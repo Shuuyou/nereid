@@ -1,0 +1,126 @@
+"""富化流水线编排：并发 worker fan-out → 确定性字段合并 + 子表幂等写回 + enrichment 审计"""
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime, timezone
+
+from sqlalchemy import delete, select
+
+from app.core.logging import get_logger
+from app.db.models import AssetStat, Item, MappingLink, Paper, Poc
+from app.db.session import get_session_factory
+from app.enrichment import ai_classify, assets, chain, mappings, nlp, papers, poc, scorers
+
+log = get_logger("enrich.pipeline")
+
+# 执行顺序：确定性优先，LLM/检索类次之，依赖前序产出的最后
+WORKERS = [
+    ("scorers", scorers.run),
+    ("mappings", mappings.run),
+    ("poc", poc.run),
+    ("papers", papers.run),
+    ("assets", assets.run),
+    ("nlp", nlp.run),
+    ("chain", chain.run),
+    ("ai_classify", ai_classify.run),
+]
+
+ROW_MODELS = {"pocs": Poc, "assets": AssetStat, "papers": Paper, "mappings": MappingLink}
+
+
+async def enrich_item(item_id: str, dims: list[str] | None = None) -> dict:
+    """对单条情报执行富化，返回各维度摘要"""
+    sf = get_session_factory()
+    async with sf() as db:
+        item = (await db.execute(select(Item).where(Item.id == item_id))).scalar_one_or_none()
+        if not item:
+            return {"error": "item not found"}
+        wanted = set(dims) if dims else None
+        enrichment = dict(item.enrichment or {})
+        changed_fields: set[str] = set()
+
+        async def one(name, fn):
+            if wanted and name not in wanted:
+                return name, None
+            try:
+                return name, await asyncio.wait_for(fn(item, None), timeout=180)
+            except Exception as e:  # noqa: BLE001
+                log.error("worker_failed", item=item_id, worker=name, error=str(e)[:200])
+                return name, {"status": "error", "confidence": 0.0, "note": str(e)[:300]}
+
+        results = await asyncio.gather(*[one(n, f) for n, f in WORKERS])
+
+        for name, res in results:
+            if res is None:
+                continue
+            enrichment[name] = {k: res.get(k) for k in ("status", "confidence", "note", "ts", "data_keys")}
+            # 字段合并：worker 字段优先级低——只覆盖空值或明确更强的值
+            for k, v in (res.get("fields") or {}).items():
+                if v is None:
+                    continue
+                cur = getattr(item, k, None)
+                if cur in (None, "", [], 0, 0.0, False) or k in ("epss_score", "epss_percentile", "is_kev", "has_poc", "ai_relevance_score"):
+                    setattr(item, k, v)
+                    changed_fields.add(k)
+                elif k == "exploit_maturity" and _maturity_rank(v) > _maturity_rank(cur):
+                    setattr(item, k, v)
+            # extra 浅合并
+            if res.get("extra"):
+                item.extra = {**(item.extra or {}), **_json_safe(res["extra"])}
+            # 子表幂等写回：delete+insert
+            for rk, model in ROW_MODELS.items():
+                rows = (res.get("rows") or {}).get(rk)
+                if not rows:
+                    continue
+                await db.execute(delete(model).where(model.item_id == item_id))
+                seen_keys = set()
+                for r in rows[:50]:
+                    key = r.get("url") or f"{r.get('title','')}-{r.get('cve_id')}-{r.get('capec_id')}-{r.get('atlas_technique')}"
+                    if key in seen_keys:
+                        continue
+                    seen_keys.add(key)
+                    db.add(model(item_id=item_id, **_filter_fields(model, r)))
+
+        item.enrichment = enrichment
+        item.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+        return {"item_id": item_id, "enrichment": enrichment, "changed": sorted(changed_fields)}
+
+
+def _json_safe(obj):
+    """JSONB 安全化：datetime/其他不可序列化对象 → str"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
+
+
+def _maturity_rank(v: str | None) -> int:
+    return {"none": 0, "poc": 1, "weaponized": 2}.get(v or "", 0)
+
+
+def _filter_fields(model, row: dict) -> dict:
+    cols = {c.name for c in model.__table__.columns}
+    return {k: v for k, v in row.items() if k in cols}
+
+
+async def enrich_pending(limit: int = 30) -> int:
+    """批量富化尚未富化的 item（按优先级排序）"""
+    sf = get_session_factory()
+    async with sf() as db:
+        items = (await db.execute(
+            select(Item).where(Item.enrichment == {})
+            .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
+            .limit(limit))).scalars().all()
+        ids = [i.id for i in items]
+    n = 0
+    for iid in ids:
+        try:
+            await enrich_item(iid)
+            n += 1
+        except Exception as e:  # noqa: BLE001
+            log.error("enrich_item_failed", item=iid, error=str(e)[:200])
+    return n

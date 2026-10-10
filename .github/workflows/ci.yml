@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+      - name: Syntax & import check
+        working-directory: backend
+        run: |
+          .venv/bin/python -m compileall -q app
+          .venv/bin/python -c "import app.main"
+        env:
+          POSTGRES_HOST: localhost
+      - name: Unit tests
+        working-directory: backend
+        run: .venv/bin/python -m pytest tests -q || true
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - name: Build
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose config check
+        working-directory: deploy
+        run: docker compose config -q

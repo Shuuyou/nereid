@@ -1,0 +1,35 @@
+{
+  "name": "secagent-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SecAgent - 智能体驱动的AI安全知识情报系统 前端",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "echarts": "^5.5.1",
+    "echarts-for-react": "^3.0.2",
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "tailwind-merge": "^2.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.50",
+    "@types/react": "^18.3.8",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}

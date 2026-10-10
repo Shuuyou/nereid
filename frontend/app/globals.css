@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+body { @apply bg-bg text-fg antialiased; }
+
+.card { @apply rounded-xl border border-border bg-panel p-4; }
+.badge { @apply inline-block rounded px-1.5 py-0.5 text-[11px] font-medium leading-none; }
+.sev-critical { @apply bg-critical/15 text-critical; }
+.sev-high { @apply bg-high/15 text-high; }
+.sev-medium { @apply bg-medium/15 text-medium; }
+.sev-low { @apply bg-low/15 text-low; }
+.tag { @apply badge bg-border text-dim; }
+.tag-accent { @apply badge bg-accent/15 text-accent; }
+.tag-kev { @apply badge bg-critical/20 text-critical; }
+.input { @apply w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-dim focus:border-accent focus:outline-none; }
+.btn { @apply rounded-lg bg-accent/15 px-3 py-2 text-sm font-medium text-accent hover:bg-accent/25 transition-colors; }
+.btn-ghost { @apply rounded-lg border border-border px-3 py-2 text-sm text-dim hover:bg-border hover:text-fg transition-colors; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { @apply rounded bg-border; }

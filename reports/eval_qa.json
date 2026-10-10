@@ -1,0 +1,44 @@
+{
+  "overall": 0.9375,
+  "multi_hop": 0.75,
+  "results": [
+    {
+      "q": "CVE-2025-32444 影响哪个组件？严重度是多少？",
+      "type": "single",
+      "hops": 1,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 2.8,
+      "missed": []
+    },
+    {
+      "q": "Ollama Probllama 漏洞的 CVE 编号是什么？",
+      "type": "single",
+      "hops": 1,
+      "expect_hits": "1/1",
+      "hit_rate": 1.0,
+      "latency_s": 10.2,
+      "missed": []
+    },
+    {
+      "q": "CVE-2025-3248 是否已被在野利用？",
+      "type": "single",
+      "hops": 1,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 1.9,
+      "missed": []
+    },
+    {
+      "q": "vLLM 的 PyNcclPipe RCE 漏洞（CVE-2025-32444）利用了哪类弱点，对应的 ATT&CK 攻",
+      "type": "multi",
+      "hops": 3,
+      "expect_hits": "3/4",
+      "hit_rate": 0.75,
+      "latency_s": 2.4,
+      "missed": [
+        "T1190"
+      ]
+    }
+  ]
+}

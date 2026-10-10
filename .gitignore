@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.next/
+dist/
+*.egg-info/
+.pytest_cache/
+data/
+models/
+*.log
+.DS_Store
