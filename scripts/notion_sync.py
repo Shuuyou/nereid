@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import re
+import ssl
 import sys
 import time
 import urllib.request
@@ -163,13 +164,28 @@ class NotionClient:
         self.token = token
 
     def _req(self, method: str, path: str, body: dict | None = None) -> dict:
+        headers = {"Authorization": f"Bearer {self.token}",
+                   "Notion-Version": NOTION_VERSION,
+                   "Content-Type": "application/json"}
+        try:
+            import requests  # noqa: PLC0415
+            for attempt in range(4):
+                r = requests.request(method, NOTION_API + path, headers=headers,
+                                     json=body, timeout=30)
+                if r.status_code == 429 and attempt < 3:
+                    time.sleep(2 ** attempt)
+                    continue
+                if r.status_code >= 400:
+                    raise RuntimeError(f"Notion {method} {path} -> {r.status_code}: {r.text[:500]}")
+                return r.json()
+            return {}
+        except ImportError:
+            pass
         req = urllib.request.Request(
             NOTION_API + path,
             data=json.dumps(body).encode() if body is not None else None,
             method=method,
-            headers={"Authorization": f"Bearer {self.token}",
-                     "Notion-Version": NOTION_VERSION,
-                     "Content-Type": "application/json"})
+            headers=headers)
         for attempt in range(4):
             try:
                 with urllib.request.urlopen(req, timeout=30) as resp:

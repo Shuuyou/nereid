@@ -97,6 +97,13 @@ async def answer(question: str, session_id: str | None = None,
     sub_qs = routed.sub_questions[:3] or [question]
     step("route", route=routed.route, sub_questions=sub_qs, entities=routed.entities)
 
+    # ---- 3.5 确定性事实注入：KEV/在野利用 意图 → DB 直查（绕过检索）----
+    kev_ctx: dict | None = None
+    if re.search(r"kev|在野利用|已被利用|actively exploited", question, re.I):
+        kev_ctx = await _kev_facts()
+        if kev_ctx:
+            step("kev_facts", n=kev_ctx["meta"]["n_items"])
+
     # ---- 4. 混合检索 ----
     all_hits: list[dict] = []
     seen_iid: set[str] = set()
@@ -133,6 +140,9 @@ async def answer(question: str, session_id: str | None = None,
             for f in kg_facts[:15])
         contexts.append({"n": len(contexts) + 1, "item_id": "kg", "title": "知识图谱关联事实",
                          "url": None, "text": facts_txt, "meta": {"kind": "kg_facts"}, "score": 0.6})
+    if kev_ctx:
+        kev_ctx = {**kev_ctx, "n": len(contexts) + 1}
+        contexts.append(kev_ctx)
     step("context", n=len(contexts))
 
     # ---- 7. 生成 ----
@@ -143,6 +153,31 @@ async def answer(question: str, session_id: str | None = None,
     if kg_facts:
         trace["kg_facts"] = kg_facts[:15]
     return _final(out, cites, trace, t0)
+
+
+async def _kev_facts(limit: int = 30) -> dict | None:
+    """KEV 收录 + AI 相关条目的确定性清单（供"哪些被在野利用"类问题）"""
+    async with get_session_factory()() as db:
+        items = (await db.execute(
+            select(Item).where(Item.is_kev.is_(True))
+            .order_by(Item.ai_relevance_score.desc().nullslast(),
+                      Item.epss_score.desc().nullslast()).limit(limit))).scalars().all()
+    if not items:
+        return None
+    lines = []
+    for i in items:
+        flags = [f"AI相关度{i.ai_relevance_score:.2f}" if i.ai_relevance_score else "AI相关度低",
+                 f"{i.severity}", f"EPSS{i.epss_score or 0:.2f}"]
+        if i.attack_techniques:
+            flags.append(f"ATT&CK:{','.join(i.attack_techniques[:3])}")
+        if i.cwe_ids:
+            flags.append(f"CWE:{','.join(i.cwe_ids[:2])}")
+        if i.products:
+            flags.append(f"产品:{','.join(i.products[:3])}")
+        lines.append(f"- {','.join(i.cve_ids or [])} {i.title[:80]} [{'｜'.join(flags)}]")
+    return {"n": 0, "item_id": "kev_facts", "title": f"CISA KEV 收录情报清单（库内 {len(items)} 条）",
+            "url": None, "text": "以下为情报库中被 CISA KEV 收录（已遭在野利用）的条目：\n" + "\n".join(lines),
+            "meta": {"kind": "kev_facts", "n_items": len(items)}, "score": 0.95}
 
 
 async def _hydrate(item_ids: list[str]) -> dict[str, Item]:
@@ -180,7 +215,7 @@ async def _generate(question: str, history: list[dict], contexts: list[dict], tr
     sys_p = """你是 AI 安全情报分析助手。基于给定证据回答，要求：
 1. 引用证据用 [n] 标注；无证据支撑的内容不要编造
 2. 证据不足时明确说"当前情报库信息有限"
-3. 回答结构化：结论 → 关键事实 → 建议
+3. 回答结构化：结论 → 关键事实 → 建议；若问题要求枚举（哪些/所有/列出），须逐条列全
 4. 中文回答，技术名词保留原文
 5. 输出 JSON: {"answer": "...", "confidence": 0-1, "followups": ["建议的追问"]}"""
     msgs = [{"role": "system", "content": sys_p},

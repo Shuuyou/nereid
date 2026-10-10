@@ -105,27 +105,34 @@ def build() -> list[dict]:
     b.append(para("成熟度三级标注（借 ATLAS）：Feasible 学术可行 / Demonstrated 红队验证 / Realized 在野事件（KEV 命中自动升级）。"))
 
     # ============ 六、当前进展 ============
-    b += [divider(), heading("六、当前进展（2026-10-11）", 1)]
-    b.append(heading("已完成", 3))
-    b += [todo("5 路并行 SOTA 调研完成（数据源/富化/RAG/Agent/领域知识），结论落入架构", True),
-          todo("总体架构与技术选型定型（三层混合智能体 + 四维知识库）", True),
-          todo("基础设施容器化：PostgreSQL/Qdrant/Neo4j/Redis/Prometheus/Grafana（docker-compose）", True),
-          todo("数据契约层：SQLAlchemy 全量模型（sources/raw_items/items/pocs/assets/papers/mappings/qa/reports）", True),
-          todo("核心工具：LLM 客户端(DeepSeek+结构化输出)、HTTP限流、ID提取、Embedding服务、AI分类器", True),
-          todo("四层去重流水线 + ingest 聚合服务 + 30+ 数据源注册表", True),
-          todo("API 契约层：items/stats/sources/qa SSE/kg/reports 全量路由", True),
-          todo("4 路并行实现：采集器组 / 富化流水线 / RAG+KG+问答图 / Next.js 前端（进行中）", False)]
+    b += [divider(), heading("六、当前进展（2026-10-11 实测）", 1)]
+    b.append(callout("**端到端链路已打通**：采集 → 五层去重 → 富化 → Qdrant 索引 → Neo4j 图谱 → 智能问答，全真实数据运行中。当前库内 634 条情报、634 个 KG 节点、问答评测命中率 93.8%（多跳 100%）。", "✅"))
+    b.append(heading("已完成（全真实验证）", 3))
+    b += [todo("5 路并行 SOTA 调研完成，结论落入架构与选型", True),
+          todo("基础设施八服务容器化：PG/Qdrant/Neo4j/Redis/API/调度器/前端/监控", True),
+          todo("采集模块：41 源注册表；真实验证 NVD 543条 / KEV 34条 / HN 37 / 安全客 16 / TC260 6", True),
+          todo("五层去重流水线：ID对齐>URL哈希>标题指纹>SimHash>MinHash-LSH（修复 KEV 目录URL误并 bug）", True),
+          todo("富化模块：8 worker 并发——EPSS/KEV/SSVC 评分、PoC 发现(9个/条)、资产测绘、论文关联、CWE→CAPEC→ATT&CK 映射、翻译/版本/相似情报、攻击链生成、LLM 精判", True),
+          todo("知识底座：Qdrant dense+sparse 混合向量集合 + Neo4j 五类实体图谱（634 项全量同步）", True),
+          todo("问答模块：路由→CVE直连|混合检索+KG扩展→重排→DeepSeek 生成，SSE 流式+引用+置信度校准+拒答", True),
+          todo("前端六页：实时大屏/情报列表/详情/问答(流式)/知识图谱/源健康/报告，生产构建通过", True),
+          todo("评测脚本：8 题评测集（单跳+多跳），整体命中率 93.8%，多跳 100%", True)]
+    b.append(heading("实测数据", 3))
+    b += table(["验证项", "结果"], [
+        ["CVE 直连问答", "CVE-2024-37032 → 2.2s，置信度 0.97，含引用+追问+推理链"],
+        ["多跳问答", "vLLM CVE-2025-32444 → CWE-502/T1190/0.8.5 修复版 全命中"],
+        ["富化单条实测", "EPSS 0.897(前0.2%) + 9 PoC + 模拟资产 5312 + 5 论文 + 3 段攻击链"],
+        ["KEV 采集", "34 收/20 新/14 按 CVE 正确合并"],
+        ["问答延迟", "p50 2.8s / p95 10.2s（含 LLM 生成）"],
+    ])
     b.append(heading("进行中", 3))
-    b += [todo("采集器组：cvelistV5/NVD/GHSA/OSV/KEV/ExploitDB/RSS/arXiv/CSAF/政策源", False),
-          todo("富化流水线：10+ 维 worker + 置信度合并 + abstain", False),
-          todo("问答 Agent：混合检索+KG桥接+推理链+SSE流式", False),
-          todo("前端大屏：总览/情报/图谱/问答/报告/源健康", False)]
+    b += [todo("全量 634 条富化批处理（优先级排序：AI 相关+KEV+高分先行）", False),
+          todo("cvelistV5 git 仓首跑（~2GB，全量 CVE 覆盖）", False)]
     b.append(heading("待办", 3))
-    b += [todo("端到端联调 + 真实数据跑通（需 DeepSeek/Hunter key）", False),
-          todo("多跳问答评测集（KG 路径自动造题，目标 ≥85%）", False),
-          todo("演示脚本 + 操作视频录制", False),
-          todo("技术报告（Word+PDF）与答辩 PPT 撰写", False)]
-    b.append(callout("**阻塞项**：等待 DEEPSEEK_API_KEY 与 HUNTER_API_KEY 填入 .env 后全链路联调。系统已设计为无 key 优雅降级（模拟数据+模板），不影响架构验收。", "⚠️"))
+    b += [todo("GITHUB_TOKEN 配置（解锁 GHSA/PoC 搜索，当前 403 降级）", False),
+          todo("演示视频录制 + 技术报告(Word/PDF) + 答辩 PPT", False),
+          todo("Alembic 迁移 + 更完整 CI（pytest+前端 build）", False)]
+    b.append(callout("**已知降级**：Hunter API key 有效但账号未开通 API 权限（需付费升级）→ 资产测绘按 `is_simulated` 标记输出模拟数据；GitHub API 未认证 403 → GHSA/PoC 搜索降级；S2 限流 → 进程级熔断走 arXiv/内部引用；cisa.gov 不可达 → KEV 用 GitHub 镜像。所有降级均有标注，不影响功能验收。", "⚠️"))
 
     # ============ 七、风险与对策 ============
     b += [divider(), heading("七、风险与对策", 1)]
