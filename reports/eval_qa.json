@@ -1,6 +1,6 @@
 {
-  "overall": 0.875,
-  "multi_hop": 0.8,
+  "overall": 0.90625,
+  "multi_hop": 0.85,
   "results": [
     {
       "q": "CVE-2025-32444 影响哪个组件？严重度是多少？",
@@ -8,7 +8,7 @@
       "hops": 1,
       "expect_hits": "3/3",
       "hit_rate": 1.0,
-      "latency_s": 52.7,
+      "latency_s": 1.6,
       "missed": []
     },
     {
@@ -17,7 +17,7 @@
       "hops": 1,
       "expect_hits": "1/1",
       "hit_rate": 1.0,
-      "latency_s": 5.2,
+      "latency_s": 4.8,
       "missed": []
     },
     {
@@ -26,7 +26,7 @@
       "hops": 1,
       "expect_hits": "3/3",
       "hit_rate": 1.0,
-      "latency_s": 1.9,
+      "latency_s": 2.4,
       "missed": []
     },
     {
@@ -35,7 +35,7 @@
       "hops": 3,
       "expect_hits": "4/4",
       "hit_rate": 1.0,
-      "latency_s": 2.6,
+      "latency_s": 2.3,
       "missed": []
     },
     {
@@ -44,29 +44,29 @@
       "hops": 2,
       "expect_hits": "4/4",
       "hit_rate": 1.0,
-      "latency_s": 44.8,
+      "latency_s": 47.1,
       "missed": []
     },
     {
       "q": "MCP 生态今年曝出的安全漏洞有哪些共性？给出开发和部署侧的防护建议。",
       "type": "multi",
       "hops": 3,
-      "expect_hits": "4/4",
-      "hit_rate": 1.0,
-      "latency_s": 46.9,
-      "missed": []
+      "expect_hits": "3/4",
+      "hit_rate": 0.75,
+      "latency_s": 50.0,
+      "missed": [
+        "CVE-2025-6514"
+      ]
     },
     {
       "q": "哪些 AI 基础设施漏洞已被 CISA KEV 收录并遭在野利用？它们的攻击链有什么共同点？",
       "type": "multi",
       "hops": 3,
-      "expect_hits": "1/4",
-      "hit_rate": 0.25,
-      "latency_s": 40.9,
+      "expect_hits": "3/4",
+      "hit_rate": 0.75,
+      "latency_s": 46.7,
       "missed": [
-        "CVE-2024-37032",
-        "CVE-2023-48022",
-        "T1190"
+        "CVE-2023-48022"
       ]
     },
     {
@@ -75,7 +75,7 @@
       "hops": 2,
       "expect_hits": "3/4",
       "hit_rate": 0.75,
-      "latency_s": 46.8,
+      "latency_s": 49.0,
       "missed": [
         "输入"
       ]
