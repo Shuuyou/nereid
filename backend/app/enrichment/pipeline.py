@@ -29,26 +29,38 @@ ROW_MODELS = {"pocs": Poc, "assets": AssetStat, "papers": Paper, "mappings": Map
 
 
 async def enrich_item(item_id: str, dims: list[str] | None = None) -> dict:
-    """对单条情报执行富化，返回各维度摘要"""
+    """对单条情报执行富化，返回各维度摘要。
+    三阶段：读(detach)→并发 worker(不持会话)→写(短事务)——避免 180s LLM 调用期持行锁"""
     sf = get_session_factory()
+    # ---- 阶段1：短事务读 + detach ----
     async with sf() as db:
         item = (await db.execute(select(Item).where(Item.id == item_id))).scalar_one_or_none()
         if not item:
             return {"error": "item not found"}
-        wanted = set(dims) if dims else None
         enrichment = dict(item.enrichment or {})
-        changed_fields: set[str] = set()
+        db.expunge(item)
 
-        async def one(name, fn):
-            if wanted and name not in wanted:
-                return name, None
-            try:
-                return name, await asyncio.wait_for(fn(item, None), timeout=180)
-            except Exception as e:  # noqa: BLE001
-                log.error("worker_failed", item=item_id, worker=name, error=str(e)[:200])
-                return name, {"status": "error", "confidence": 0.0, "note": str(e)[:300]}
+    wanted = set(dims) if dims else None
+    changed_fields: set[str] = set()
 
-        results = await asyncio.gather(*[one(n, f) for n, f in WORKERS])
+    # ---- 阶段2：worker 扇出（纯计算/网络，无 DB 会话）----
+    async def one(name, fn):
+        if wanted and name not in wanted:
+            return name, None
+        try:
+            return name, await asyncio.wait_for(fn(item, None), timeout=180)
+        except Exception as e:  # noqa: BLE001
+            log.error("worker_failed", item=item_id, worker=name, error=str(e)[:200])
+            return name, {"status": "error", "confidence": 0.0, "note": str(e)[:300]}
+
+    results = await asyncio.gather(*[one(n, f) for n, f in WORKERS])
+
+    # ---- 阶段3：短事务写回（重取最新行，防覆盖并发更新）----
+    async with sf() as db:
+        item = (await db.execute(select(Item).where(Item.id == item_id))).scalar_one_or_none()
+        if not item:
+            return {"error": "item deleted during enrich"}
+        enrichment = {**(item.enrichment or {}), **enrichment}  # 并发安全合并
 
         for name, res in results:
             if res is None:

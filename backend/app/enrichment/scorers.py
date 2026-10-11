@@ -82,7 +82,8 @@ async def run(item, ctx) -> dict:
                             mm = metrics[key][0]["cvssData"]
                             fields["cvss_v31_score"] = mm.get("baseScore")
                             fields["cvss_v31_vector"] = mm.get("vectorString")
-                            fields["severity"] = (metrics[key][0].get("baseSeverity") or "").lower() or None
+                            fields["severity"] = ((metrics[key][0].get("baseSeverity")
+                                                    or mm.get("baseSeverity") or "").lower() or None)
                     if metrics.get("cvssMetricV40"):
                         mm = metrics["cvssMetricV40"][0]["cvssData"]
                         fields["cvss_v40_score"] = mm.get("baseScore")

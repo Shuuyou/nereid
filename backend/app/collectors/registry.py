@@ -62,13 +62,17 @@ async def run_source(source_id: int) -> dict:
     _running.add(source_id)
     started = datetime.now(timezone.utc)
     try:
+        # 阶段1：短事务读 source（网络采集期不持会话/行锁）
         async with get_session_factory()() as db:
             source = (await db.execute(select(Source).where(Source.id == source_id))).scalar_one_or_none()
             if not source or not source.enabled:
                 return {"status": "disabled"}
-            collector = COLLECTORS.get(source.name)
-            if not collector:
-                raise RuntimeError(f"no collector for {source.name}")
+            db.expunge(source)
+        collector = COLLECTORS.get(source.name)
+        if not collector:
+            raise RuntimeError(f"no collector for {source.name}")
+        async with get_session_factory()() as db:
+            source = await db.merge(source)  # 重新附着会话，状态写回生效
             try:
                 import time as _t
                 t0 = _t.time()
@@ -83,7 +87,6 @@ async def run_source(source_id: int) -> dict:
                 stats.update({"status": "ok", "elapsed_s": round(elapsed, 1), "received": len(items)})
                 items_collected.labels(source=source.name).inc(len(items))
                 items_new.inc(stats.get("new_items", 0))
-                items_merged.inc(stats.get("merged", 0))
                 items_merged.inc(stats.get("merged", 0))
                 collection_duration.labels(source=source.name).observe(elapsed)
                 db.add(TaskRun(task_name=f"collect:{source.name}", status="success", started_at=started,

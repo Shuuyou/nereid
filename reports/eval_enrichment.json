@@ -1,0 +1,209 @@
+{
+  "generated_at": "2026-10-11T18:23:38.865172+00:00",
+  "n_requested": 3,
+  "n_evaluated": 3,
+  "sources": {
+    "epss": "ok",
+    "kev": "ok",
+    "nvd": "ok"
+  },
+  "tolerances": {
+    "epss": 0.05,
+    "cvss": 0.1,
+    "cwe_iou_min": 0.5
+  },
+  "metric_defs": {
+    "accuracy": "correct / (truth非空且我们已填)",
+    "recall": "我们非空 / truth非空",
+    "is_kev": "布尔字段报混淆矩阵"
+  },
+  "fields": {
+    "epss_score": {
+      "truth_n": 3,
+      "filled_n": 3,
+      "correct_n": 3,
+      "extra_n": 0,
+      "accuracy": 1.0,
+      "recall": 1.0
+    },
+    "epss_percentile": {
+      "truth_n": 3,
+      "filled_n": 3,
+      "correct_n": 3,
+      "extra_n": 0,
+      "accuracy": 1.0,
+      "recall": 1.0
+    },
+    "cvss_v31_score": {
+      "truth_n": 3,
+      "filled_n": 2,
+      "correct_n": 2,
+      "extra_n": 0,
+      "accuracy": 1.0,
+      "recall": 0.6667
+    },
+    "severity": {
+      "truth_n": 3,
+      "filled_n": 1,
+      "correct_n": 1,
+      "extra_n": 0,
+      "accuracy": 1.0,
+      "recall": 0.3333
+    },
+    "cwe_ids": {
+      "truth_n": 3,
+      "filled_n": 2,
+      "correct_n": 2,
+      "extra_n": 0,
+      "accuracy": 1.0,
+      "recall": 0.6667
+    },
+    "is_kev": {
+      "confusion": {
+        "tp": 3,
+        "fp": 0,
+        "tn": 0,
+        "fn": 0,
+        "skipped": 0
+      },
+      "accuracy": 1.0,
+      "recall": 1.0
+    }
+  },
+  "overall": {
+    "accuracy": 1.0,
+    "recall": 0.7778
+  },
+  "items": [
+    {
+      "item_id": "1487462dbdad4f809884dd766dd8ba51",
+      "cve": "CVE-2025-3248",
+      "title": "Langflow unauthenticated code validation RCE (CVE-2025-3248)",
+      "fields": {
+        "epss_score": {
+          "ours": 0.99993,
+          "truth": 0.99993,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.99988,
+          "truth": 0.99988,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-306",
+            "CWE-94"
+          ],
+          "truth": [
+            "CWE-306",
+            "CWE-94"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "109dde2fcc4f4ad3bfc7e8aa1b38d74b",
+      "cve": "CVE-2026-81578",
+      "title": "26秒攻陷11家机构：AI智能体第一次像蜂群一样打过来",
+      "fields": {
+        "epss_score": {
+          "ours": 0.85581,
+          "truth": 0.85581,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.9972,
+          "truth": 0.9972,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "critical",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-305"
+          ],
+          "truth": [
+            "CWE-305"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "5/5"
+    },
+    {
+      "item_id": "08dfbd1dd57f4f6090a6098108641645",
+      "cve": "CVE-2015-3246",
+      "title": "[KEV] ProFTPD Improper Access Control Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.99497,
+          "truth": 0.99497,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.99945,
+          "truth": 0.99945,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": 7.4,
+          "status": "missing"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "high",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [
+            "CWE-264",
+            "CWE-367"
+          ],
+          "iou": 0.0,
+          "status": "missing"
+        }
+      },
+      "score": "3/3"
+    }
+  ]
+}

@@ -195,6 +195,10 @@ def _new_item(data: RawItemData, ids: dict, source: Source) -> Item:
         extra={"atlas": ids["atlas"], "attack": ids["attack"], "arxiv": ids["arxiv"], "capec": ids["capec"], "cpe": ids["cpe"]},
         attack_techniques=ids["attack"], atlas_techniques=ids["atlas"],
     )
+    # KEV 源条目即权威在野利用标记（不等下游 worker）
+    if source.source_type == "kev" or (data.raw or {}).get("kev"):
+        it.is_kev = True
+        it.exploit_maturity = "weaponized"
     it.priority_score = _priority(it)
     return it
 
@@ -211,6 +215,10 @@ def _merge_into(item: Item, data: RawItemData, ids: dict, source: Source, method
     item.products = _merge_list(item.products, data.products)
     item.attack_techniques = _merge_list(item.attack_techniques, ids["attack"])
     item.atlas_techniques = _merge_list(item.atlas_techniques, ids["atlas"])
+    if source.source_type == "kev" or (data.raw or {}).get("kev"):
+        item.is_kev = True
+        if (item.exploit_maturity or "none") == "none":
+            item.exploit_maturity = "weaponized"
     if source.name not in (item.source_names or []):
         item.source_names = (item.source_names or []) + [source.name]
     item.source_count = len(item.source_names or [])
