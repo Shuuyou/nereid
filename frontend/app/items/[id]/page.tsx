@@ -88,6 +88,20 @@ export default function ItemDetail() {
               {it.extra?.attack_chain_desc && <p className="mt-3 text-sm text-dim">{it.extra.attack_chain_desc}</p>}
             </div>
           )}
+          {it.d3fend?.length > 0 && (
+            <div className="card border-low/30">
+              <h3 className="mb-2 text-sm font-medium text-low">D3FEND 防御对策</h3>
+              <div className="space-y-1.5">
+                {it.d3fend.map((d: any) => (
+                  <div key={d.id} className="flex items-start gap-2 text-sm">
+                    <span className="tag shrink-0 text-low">{d.id}</span>
+                    <div><span className="text-fg">{d.name}</span>
+                      <span className="ml-2 text-xs text-dim">{d.desc} · 对应 {d.for_technique}</span></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {it.extra?.mitigation_zh && (
             <div className="card border-low/30">
               <h3 className="mb-2 text-sm font-medium text-low">缓解建议</h3>

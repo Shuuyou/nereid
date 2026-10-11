@@ -26,6 +26,7 @@ export const api = {
   enrich: (id: string) => j(`/api/items/${id}/enrich`, { method: "POST" }),
   kgStats: () => j("/api/kg/stats"),
   freshness: () => j("/api/stats/freshness"),
+  assetExposure: () => j("/api/stats/asset_exposure"),
   kgSubgraph: (entity: string, depth = 2) => j(`/api/kg/subgraph?entity=${encodeURIComponent(entity)}&depth=${depth}`),
   reports: () => j("/api/reports"),
   report: (id: string) => j(`/api/reports/${id}`),

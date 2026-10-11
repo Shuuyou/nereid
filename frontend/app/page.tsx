@@ -11,13 +11,14 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [fresh, setFresh] = useState<any>(null);
+  const [expo, setExpo] = useState<any>(null);
   const [live, setLive] = useState<any[]>([]);
   const [liveOn, setLiveOn] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    Promise.all([api.stats(), api.items({ size: 8, sort: "priority", ai_only: true }), api.freshness()])
-      .then(([s, it, f]) => { setStats(s); setItems(it.items || []); setFresh(f); })
+    Promise.all([api.stats(), api.items({ size: 8, sort: "priority", ai_only: true }), api.freshness(), api.assetExposure()])
+      .then(([s, it, f, e]) => { setStats(s); setItems(it.items || []); setFresh(f); setExpo(e); })
       .catch((e) => setErr(String(e)));
     // SSE 实时情报流：新条目实时进 ticker，并刷新 24h 计数
     const off = subscribeFeed((item) => {
@@ -113,6 +114,27 @@ export default function Dashboard() {
           <Chart option={layerOpt} style={{ height: 220 }} notMerge />
         </div>
       </div>
+
+      {expo && expo.products?.length > 0 && (
+        <div className="card">
+          <h3 className="mb-3 text-sm font-medium text-dim">
+            影子 AI 资产暴露
+            <span className="ml-2 text-xs text-dim">（互联网测绘聚合{expo.products.some((p: any) => p.simulated) ? " · 含模拟数据" : ""}）</span>
+          </h3>
+          <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-5">
+            {expo.products.slice(0, 10).map((p: any) => (
+              <div key={p.product} className="rounded border border-edge bg-bg/60 px-3 py-2">
+                <div className="truncate text-sm text-fg">{p.product}</div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-high">{p.total.toLocaleString()}</span>
+                  <span className="text-xs text-dim">暴露 · {p.items} 条情报</span>
+                </div>
+                {p.cves?.[0] && <div className="mt-0.5 truncate text-xs text-dim">{p.cves.slice(0, 2).join(", ")}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="mb-3 flex items-center justify-between">

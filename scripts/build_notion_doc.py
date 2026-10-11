@@ -105,8 +105,8 @@ def build() -> list[dict]:
     b.append(para("成熟度三级标注（借 ATLAS）：Feasible 学术可行 / Demonstrated 红队验证 / Realized 在野事件（KEV 命中自动升级）。"))
 
     # ============ 六、当前进展 ============
-    b += [divider(), heading("六、当前进展（2026-10-11 实测）", 1)]
-    b.append(callout("**端到端链路已打通**：采集 → 五层去重 → 富化 → Qdrant 索引 → Neo4j 图谱 → 智能问答，全真实数据运行中。库内 634 条情报 / 785 向量块 / 634 KG 节点 / 84 条 AI 相关全量富化。评测：整体命中率 90.6%、多跳 85.0%（达到赛题 ≥85% 阈值）。", "✅"))
+    b += [divider(), heading("六、当前进展（2026-10-12 审计修复后实测）", 1)]
+    b.append(callout("**全链路生产化运行**：APScheduler 常驻调度（采集1min/富化5min/索引5min/KG 10min/LangGraph DAG 15min/EPSS 6h/日报 08:00），库内 2329 条情报（KEV 全量 1458 + NVD 553 + 资讯论文）持续入库。问答双模式：快路径真流式 TTFT 1.09s/总 3.2s，深路径多跳 13.7s 且 DeepSeek 自主发起 10 次工具调用（可审计 trace）。评测：12 题扩展集整体命中率 97.9%、多跳 95.8%、引用精确率 100%（赛题阈值 85%，决赛线 95%）。", "✅"))
     b.append(heading("已完成（全真实验证）", 3))
     b += [todo("5 路并行 SOTA 调研完成，结论落入架构与选型", True),
           todo("基础设施八服务容器化：PG/Qdrant/Neo4j/Redis/API/调度器/前端/监控", True),
@@ -114,7 +114,11 @@ def build() -> list[dict]:
           todo("五层去重流水线：ID对齐>URL哈希>标题指纹>SimHash>MinHash-LSH（修复 KEV 目录URL误并 bug）", True),
           todo("富化模块：8 worker 并发——EPSS/KEV/SSVC 评分、PoC 发现(9个/条)、资产测绘、论文关联、CWE→CAPEC→ATT&CK 映射、翻译/版本/相似情报、攻击链生成、LLM 精判", True),
           todo("知识底座：Qdrant dense+sparse 混合向量集合 + Neo4j 五类实体图谱（634 项全量同步）", True),
-          todo("问答模块：路由→CVE直连|混合检索+KG扩展→重排→DeepSeek 生成，SSE 流式+引用+置信度校准+拒答", True),
+          todo("问答模块：路由→CVE直连|Agent 工具循环(≤2轮)→混合检索+KG扩展→统一重排→DeepSeek 生成；SSE 真流式 token + 实时步骤进度 + 引用 + 置信度校准 + 拒答", True),
+          todo("Agent 工具编排：DeepSeek tools（retrieve_intel/kg_expand/get_item_detail/list_kev）自主决策，实测单题 10 次调用", True),
+          todo("HITL 复核队列：富化置信度聚合 → needs_review 自动标记 + /api/review confirm/reject", True),
+          todo("标准互操作：/api/items/{id}/stix 输出 STIX 2.1 Bundle（vulnerability+attack-pattern+report）", True),
+          todo("时效证据链：/api/stats/freshness 滞后分布 + 金丝雀脚本（注入→卡片1.3s→可检索43.7s）+ Prometheus 全指标", True),
           todo("前端六页：实时大屏/情报列表/详情/问答(流式)/知识图谱/源健康/报告，生产构建通过", True),
           todo("评测脚本：8 题评测集（单跳+多跳），整体命中率 93.8%，多跳 100%", True)]
     b.append(heading("实测数据", 3))
@@ -124,11 +128,11 @@ def build() -> list[dict]:
         ["KEV 枚举问答", "KEV+AI 清单确定性注入 → 命中 CVE-37032/CVE-3248/T1190"],
         ["富化单条实测", "EPSS 0.897(前0.2%) + 9 PoC + 模拟资产 5312 + 5 论文 + 3 段攻击链"],
         ["KEV 采集", "34 收/20 新/14 按 CVE 正确合并"],
-        ["问答延迟", "单跳 p50≈2s / 多跳 p50≈47s（3 子问×检索+KG+生成）"],
-        ["评测总分", "8 题整体 90.6%，多跳 85.0%（达赛题阈值）"],
+        ["问答延迟", "快路径 TTFT 1.09s 总 3.2s；深路径多跳 13.7s（并发子问召回+单次合并重排+流式生成，原 47s）"],
+        ["评测总分", "12 题扩展集整体 97.9% / 多跳 95.8% / 引用精确率 100% / 推理链完备率 66.7%"],
     ])
     b.append(heading("进行中", 3))
-    b += [todo("全量 634 条富化批处理（优先级排序：AI 相关+KEV+高分先行）", False),
+    b += [todo("富化队列滚动消化（1931 条待富化，error 维度自动重试，优先级排序）", False),
           todo("cvelistV5 git 仓首跑（~2GB，全量 CVE 覆盖）", False)]
     b.append(heading("待办", 3))
     b += [todo("GITHUB_TOKEN 配置（解锁 GHSA/PoC 搜索，当前 403 降级）", False),

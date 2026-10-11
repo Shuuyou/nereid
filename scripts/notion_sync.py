@@ -20,6 +20,18 @@ import time
 import urllib.request
 import urllib.error
 
+# 本机 IPv6 路由不可达且 api.notion.com 解析 v6 优先 → 强制 IPv4
+import socket as _socket
+
+_orig_gai = _socket.getaddrinfo
+
+
+def _ipv4_only(host, port, family=0, *a, **kw):
+    return [r for r in _orig_gai(host, port, _socket.AF_INET, *a, **kw)]
+
+
+_socket.getaddrinfo = _ipv4_only
+
 NOTION_API = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
 DEFAULT_TOKEN = os.environ.get("NOTION_TOKEN", "")

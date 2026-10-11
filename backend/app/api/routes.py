@@ -114,6 +114,30 @@ async def stats_overview(db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.get("/stats/asset_exposure")
+async def asset_exposure(db: AsyncSession = Depends(get_db)):
+    """影子 AI 暴露看板：AI 产品维度聚合暴露资产（含模拟标记）"""
+    rows = (await db.execute(
+        select(AssetStat, Item)
+        .join(Item, AssetStat.item_id == Item.id)
+        .order_by(AssetStat.total_count.desc()).limit(200))).all()
+    by_prod: dict = {}
+    for a, it in rows:
+        prod = (it.products or ["unknown"])[0]
+        e = by_prod.setdefault(prod, {"product": prod, "total": 0, "items": 0,
+                                      "max_single": 0, "simulated": False, "cves": []})
+        e["total"] += a.total_count or 0
+        e["items"] += 1
+        e["max_single"] = max(e["max_single"], a.total_count or 0)
+        e["simulated"] = e["simulated"] or bool(a.is_simulated)
+        if it.cve_ids and it.cve_ids[0] not in e["cves"]:
+            e["cves"].append(it.cve_ids[0])
+    ranked = sorted(by_prod.values(), key=lambda x: x["total"], reverse=True)
+    return {"products": ranked[:15],
+            "total_exposed": sum(x["total"] for x in ranked),
+            "shadow_ai_items": sum(x["items"] for x in ranked)}
+
+
 @router.get("/stats/freshness")
 async def stats_freshness(db: AsyncSession = Depends(get_db)):
     """时效指标：published_at→first_seen_at 的入库延迟分布（性能分'时效'的证据）"""
@@ -214,6 +238,7 @@ async def item_detail(item_id: str, db: AsyncSession = Depends(get_db)):
         "assets": [{"platform": a.platform, "query": a.query, "total_count": a.total_count,
                     "sample": a.sample, "is_simulated": a.is_simulated,
                     "fetched_at": a.fetched_at.isoformat()} for a in assets],
+        "d3fend": _d3fend(it),
         "papers": [{"title": p.title, "url": p.url, "venue": p.venue, "year": p.year,
                     "authors": p.authors, "abstract": (p.abstract or "")[:800], "source": p.source,
                     "relevance_score": p.relevance_score, "paper_role": p.paper_role} for p in papers],
@@ -309,6 +334,11 @@ async def run_source_now(source_id: int, db: AsyncSession = Depends(get_db)):
     from app.collectors.registry import run_source
     asyncio.create_task(run_source(s.id))
     return {"status": "started", "source": s.name}
+
+
+def _d3fend(item: Item) -> list[dict]:
+    from app.core.d3fend import mitigations_for
+    return mitigations_for((item.attack_techniques or []) + (item.atlas_techniques or []))
 
 
 @router.get("/items/{item_id}/stix")
