@@ -1,4 +1,9 @@
-export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// 浏览器端跟随页面来源主机（localhost:3200→localhost:8000，Tailscale IP→同 IP:8000）；
+// SSR/构建期回落 localhost；可用 NEXT_PUBLIC_API_URL 显式覆盖。
+export const API = process.env.NEXT_PUBLIC_API_URL
+  || (typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:8000`
+    : "http://localhost:8000");
 
 async function j(path: string, init?: RequestInit) {
   const r = await fetch(`${API}${path}`, { ...init, cache: "no-store" });
