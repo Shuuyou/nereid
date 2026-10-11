@@ -44,6 +44,15 @@
 - 金丝雀：scripts/canary_freshness.py 全链路 43.7s；快路径 QA ~3s TTFT 1.1s；深路径多跳 ~14s
 - EPSS 刷新：批量 API（refresh_epss_all），KEV 走 github 镜像（cisa.gov 不可达）
 
+## 新增契约（2026-10-12 审计修复后）
+- **事务纪律**：enrich_item 与 run_source 均为"读(短事务)→外部调用(无会话)→写(短事务)"三阶段；worker 期禁开 DB 事务
+- **跨进程锁**：enrich 用 extra._enrich_lock 时间戳（15min 过期窃取）；enrichment 判已完成 = has_key("scorers")
+- **Redis 已消费**：pipeline DAG 运行态写 `pipeline:run:{id}` hash + `pipeline:runs` list；金丝雀指标走 POST /api/internal/canary 进 API 进程
+- **数据文件入仓**：data/cwe_capec.json、data/attack_ai.json 已跟踪（.gitignore 只排除 data/cvelistV5/）；mappings 读顶层 CWE-* 键与 attck/atlas/cwe_to_atlas
+- **演示诚信**：demo 条目走 ingest_items 真实管线 + extra.is_demo=true + source_names=["demo"]；freshness 统计排除 is_demo/canary；is_kev 只由真实 KEV 数据置位
+- **前端 API**：同源 /api 反代（next.config rewrites → BACKEND_URL），不再依赖 NEXT_PUBLIC_API_URL 构建期变量
+- **金丝雀**：scripts/canary_freshness.py 默认跑完自动清理条目（--keep 保留）
+
 ## 子 Agent 注意事项
 - 后台子 Agent 曾被回收且仍可能写盘冲突 → 实现类任务自己写，别让子 Agent 写共享文件
 - enrichment/*.py 曾被覆写导致 extract_cwes/item.lang/ai_layers 旧版回归，修复后需 grep 验证

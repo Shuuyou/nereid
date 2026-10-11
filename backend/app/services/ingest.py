@@ -45,7 +45,7 @@ async def ingest_items(db: AsyncSession, source: Source, items: list[RawItemData
         try:
             async with db.begin_nested():  # SAVEPOINT：单条失败不污染整批
                 item = await _ingest_one(db, source, data, stats)
-            if item is not None and item.enrichment == {} and item.id:
+            if item is not None and not (item.enrichment or {}).get("scorers") and item.id:
                 new_items.append(item)
         except Exception as e:  # noqa: BLE001
             stats["errors"] += 1
@@ -53,8 +53,9 @@ async def ingest_items(db: AsyncSession, source: Source, items: list[RawItemData
     await db.commit()
     source.total_items = (source.total_items or 0) + stats["inserted"]
     await db.commit()
-    # 下游：富化 → 索引 → KG（后台任务，不阻塞采集）
-    _post_process([i.id for i in new_items[:20]])
+    # 下游：富化 → 索引 → KG（后台任务，不阻塞采集）；整批进队列保证大批量不漏
+    stats["new_item_ids"] = [i.id for i in new_items]
+    _post_process(stats["new_item_ids"])
     return stats
 
 
@@ -69,21 +70,30 @@ def _post_process(item_ids: list[str]) -> None:
         from app.rag.kg import sync_item
         from sqlalchemy import select as _sel
         from app.db.session import get_session_factory
-        for iid in item_ids:
+        # 实时推送前移：入库完成即广播（不等富化链），卡片先行、富化后字段由 detail 接口补
+        async with get_session_factory()() as db:
+            fresh = (await db.execute(_sel(Item).where(Item.id.in_(item_ids)))).scalars().all()
+        for it in fresh[:50]:
             try:
+                from app.api.routes import broadcast_new_item
+                await broadcast_new_item(it)
+            except Exception:  # noqa: BLE001
+                pass
+        sem = asyncio.Semaphore(4)  # 有限并发富化，防大批量打满 LLM/外部配额
+
+        async def _one(iid):
+            async with sem:
                 await enrich_item(iid)
                 await index_item(iid)
                 async with get_session_factory()() as db:
                     it = (await db.execute(_sel(Item).where(Item.id == iid))).scalar_one_or_none()
                     if it:
                         await sync_item(it)
-                        try:
-                            from app.api.routes import broadcast_new_item
-                            await broadcast_new_item(it)
-                        except Exception:  # noqa: BLE001
-                            pass
-            except Exception as e:  # noqa: BLE001
-                log.warning("post_process_failed", item=iid, error=str(e)[:150])
+        results = await asyncio.gather(
+            *[_one(iid) for iid in item_ids[:120]], return_exceptions=True)
+        for iid, r in zip(item_ids[:120], results):
+            if isinstance(r, Exception):
+                log.warning("post_process_failed", item=iid, error=str(r)[:150])
 
     try:
         asyncio.get_running_loop().create_task(_run())
@@ -192,7 +202,7 @@ def _new_item(data: RawItemData, ids: dict, source: Source) -> Item:
         reliability_score=_base_reliability(source),
         title_fingerprint=title_fingerprint(data.title or ""),
         simhash64=simhash64((data.title or "") + " " + (content or "")[:500]),
-        extra={"atlas": ids["atlas"], "attack": ids["attack"], "arxiv": ids["arxiv"], "capec": ids["capec"], "cpe": ids["cpe"]},
+        extra={"atlas": ids["atlas"], "attack": ids["attack"], "arxiv": ids["arxiv"], "capec_ids": ids["capec"], "cpe": ids["cpe"]},
         attack_techniques=ids["attack"], atlas_techniques=ids["atlas"],
     )
     # KEV 源条目即权威在野利用标记（不等下游 worker）

@@ -32,11 +32,21 @@ async def enrich_item(item_id: str, dims: list[str] | None = None) -> dict:
     """对单条情报执行富化，返回各维度摘要。
     三阶段：读(detach)→并发 worker(不持会话)→写(短事务)——避免 180s LLM 调用期持行锁"""
     sf = get_session_factory()
-    # ---- 阶段1：短事务读 + detach ----
+    # ---- 阶段1：短事务读 + 加锁戳 + detach（跨进程互斥，15min 过期可窃取）----
     async with sf() as db:
         item = (await db.execute(select(Item).where(Item.id == item_id))).scalar_one_or_none()
         if not item:
             return {"error": "item not found"}
+        lock_ts = (item.extra or {}).get("_enrich_lock")
+        if lock_ts:
+            try:
+                age = (datetime.now(timezone.utc) - datetime.fromisoformat(lock_ts)).total_seconds()
+                if age < 900:
+                    return {"skipped": "locked", "age_s": int(age)}
+            except Exception:  # noqa: BLE001
+                pass
+        item.extra = {**(item.extra or {}), "_enrich_lock": datetime.now(timezone.utc).isoformat()}
+        await db.commit()
         enrichment = dict(item.enrichment or {})
         db.expunge(item)
 
@@ -94,6 +104,7 @@ async def enrich_item(item_id: str, dims: list[str] | None = None) -> dict:
                     db.add(model(item_id=item_id, **_filter_fields(model, r)))
 
         item.enrichment = enrichment
+        item.extra = {k: v for k, v in (item.extra or {}).items() if k != "_enrich_lock"}
         item.updated_at = datetime.now(timezone.utc)
 
         # HITL：全 error/低置信/关键维度缺失 → needs_review
@@ -142,7 +153,7 @@ async def enrich_pending(limit: int = 30) -> int:
     sf = get_session_factory()
     async with sf() as db:
         items = (await db.execute(
-            select(Item).where(Item.enrichment == {})
+            select(Item).where(~Item.enrichment.has_key("scorers"))
             .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
             .limit(limit))).scalars().all()
         ids = [i.id for i in items]

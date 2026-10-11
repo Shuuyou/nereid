@@ -463,6 +463,8 @@ async def stream_answer(question: str, session_id: str | None = None,
     except Exception as e:  # noqa: BLE001
         log.error("qa_failed", error=str(e)[:300])
         yield {"type": "error", "data": {"error": "问答服务暂时不可用"}}
+        yield {"type": "done", "data": {"answer": "", "confidence": 0.0, "abstain": True,
+                                       "error": True, "citations": [], "trace": {}}}
         return
     yield {"type": "trace", "data": {"trace": trace}}
     yield {"type": "citations", "data": {"citations": cites}}
@@ -476,6 +478,8 @@ async def stream_answer(question: str, session_id: str | None = None,
     except Exception as e:  # noqa: BLE001
         log.error("generate_stream_failed", error=str(e)[:200])
         yield {"type": "error", "data": {"error": "答案生成中断"}}
+        yield {"type": "done", "data": {"answer": ans or "", "confidence": 0.0, "abstain": True,
+                                       "error": True, "citations": cites[:12], "trace": trace}}
         return
     # 置信度校准（引用覆盖+证据分，与 _final 同口径）
     top = max((c["score"] for c in cites), default=0)

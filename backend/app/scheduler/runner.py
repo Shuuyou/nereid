@@ -60,7 +60,7 @@ async def job_pipeline() -> None:
     """LangGraph 全链 DAG：对到期源跑 collect→enrich→index→kg→notify（编排层实跑路径）"""
     from datetime import datetime, timezone
     from sqlalchemy import select
-    from app.agents.pipeline_graph import run_pipeline
+    from app.agents.pipeline_graph import run_pipeline_tracked
     from app.db.models import Source
     from app.db.session import get_session_factory
     try:
@@ -70,8 +70,8 @@ async def job_pipeline() -> None:
         due = [s for s in sources
                if s.last_run_at is None or (now - s.last_run_at).total_seconds() >= (s.poll_interval_sec or 3600)]
         for s in due[:3]:  # 每轮最多 3 个源走完整 DAG
-            res = await run_pipeline(s.id)
-            log.info("pipeline_run", source=s.name, stats=res.get("stats"), errors=len(res.get("errors") or []))
+            res = await run_pipeline_tracked(s.id)
+            log.info("pipeline_run", source=s.name, run=res.get("run_id"), status=res.get("status"))
     except Exception as e:  # noqa: BLE001
         log.error("pipeline_job_failed", error=str(e)[:300])
 

@@ -23,9 +23,12 @@ class PipelineState(TypedDict, total=False):
 
 
 async def node_collect(state: PipelineState) -> PipelineState:
+    """采集节点：run_source 返回本轮新增 item_id 列表 → 流入下游 enrich"""
     from app.collectors.registry import run_source
-    await run_source(state["source_id"])
-    return state
+    stats = await run_source(state["source_id"]) or {}
+    new_ids = stats.get("item_ids") or []
+    return {**state, "item_ids": new_ids,
+            "stats": {**state.get("stats", {}), "collected": stats.get("new", 0)}}
 
 
 async def node_enrich(state: PipelineState) -> PipelineState:
@@ -40,7 +43,7 @@ async def node_enrich(state: PipelineState) -> PipelineState:
     if not ids:
         async with get_session_factory()() as db:
             rows = (await db.execute(
-                select(Item.id).where(Item.enrichment == {}).order_by(Item.first_seen_at.desc()).limit(30)
+                select(Item.id).where(~Item.enrichment.has_key("scorers")).order_by(Item.first_seen_at.desc()).limit(30)
             )).scalars().all()
             ids = list(rows)
     results = await asyncio.gather(*[enrich_item(i) for i in ids[:30]], return_exceptions=True)
@@ -68,10 +71,13 @@ async def node_notify(state: PipelineState) -> PipelineState:
     from app.db.session import get_session_factory
 
     async with get_session_factory()() as db:
-        rows = (await db.execute(select(Item).where(
-            Item.ai_relevance_score >= 0.5,
-            Item.enrichment.has_key("scorers"),  # type: ignore[attr-defined]
-        ).order_by(Item.first_seen_at.desc()).limit(5))).scalars().all()
+        from sqlalchemy import or_, and_
+        cond = and_(Item.ai_relevance_score >= 0.5,
+                    or_(Item.is_kev.is_(True), Item.severity == "critical"))
+        q = select(Item).where(cond)
+        if state.get("item_ids"):
+            q = q.where(Item.id.in_(state["item_ids"]))
+        rows = (await db.execute(q.order_by(Item.first_seen_at.desc()).limit(10))).scalars().all()
         for it in rows:
             await broadcast_new_item(it)
     return state
@@ -103,6 +109,56 @@ def get_pipeline():
     return _pipeline
 
 
+NODES_ORDER = ["collect", "enrich", "index", "kg", "notify"]
+
+
 async def run_pipeline(source_id: int) -> dict:
     result = await get_pipeline().ainvoke({"source_id": source_id, "item_ids": []})
     return result
+
+
+async def run_pipeline_tracked(source_id: int, run_id: str | None = None) -> dict:
+    """带实时状态的 DAG 执行：astream 逐节点回写 Redis（前端轮询真实状态，非前端定时器动画）"""
+    import json as _j
+    import uuid as _u
+    from datetime import datetime, timezone
+    from app.core.rds import rds
+
+    run_id = run_id or _u.uuid4().hex[:12]
+    key = f"pipeline:run:{run_id}"
+    now = lambda: datetime.now(timezone.utc).isoformat()  # noqa: E731
+    try:
+        await rds().hset(key, mapping={
+            "run_id": run_id, "source_id": str(source_id), "status": "running",
+            "started_at": now(), "nodes": _j.dumps({n: "pending" for n in NODES_ORDER})})
+        await rds().expire(key, 86400)
+        await rds().lpush("pipeline:runs", run_id)
+        await rds().ltrim("pipeline:runs", 0, 99)
+        nodes: dict[str, str] = {}
+        result: dict = {}
+        async for upd in get_pipeline().astream(
+                {"source_id": source_id, "item_ids": []}, stream_mode="updates"):
+            for node, st in upd.items():
+                nodes[node] = "done"
+                result = {**result, **(st or {})}
+                if isinstance(st, dict) and st.get("stats"):
+                    result.setdefault("stats", {}).update(st["stats"])
+                await rds().hset(key, mapping={
+                    "nodes": _j.dumps({**{n: "pending" for n in NODES_ORDER}, **nodes}),
+                    "current": node})
+        await rds().hset(key, mapping={"status": "done", "finished_at": now(),
+                                       "result": _j.dumps(result, default=str)[:4000]})
+        try:
+            from app.db.session import get_session_factory
+            from app.db.models import TaskRun
+            async with get_session_factory()() as db:
+                db.add(TaskRun(task_name=f"pipeline:{source_id}", status="success",
+                               detail={"run_id": run_id, "stats": result.get("stats")}))
+                await db.commit()
+        except Exception:  # noqa: BLE001
+            pass
+        return {"run_id": run_id, "status": "done", "result": result}
+    except Exception as e:  # noqa: BLE001
+        await rds().hset(key, mapping={"status": "error", "finished_at": now(),
+                                       "error": str(e)[:400]})
+        return {"run_id": run_id, "status": "error", "error": str(e)[:400]}

@@ -57,7 +57,7 @@
 - **内容要点**：
   - 源矩阵：CVE 官方库(git 增量)/NVD/GHSA/OSV/KEV/ExploitDB/厂商 CSAF/AI 专用库/20+ 中英 RSS/邮件列表与社交/中文政策源；
   - 分层时效表：准实时 15min（cvelistV5 git diff）→ 快速 30min → 标准 2h → 每日批；
-  - 四层去重：URL 哈希 → 编号实体对齐(union-find) → SimHash → MinHash-LSH+向量跨语言合并；
+  - 四层去重：URL 哈希 → 编号集合对齐(CVE/GHSA 多号并集) → SimHash → MinHash-LSH 近重复合并；
   - 实测一行：NVD 单轮 576 收/543 新/33 合并。
 - **视觉**：左侧源分类矩阵表；右上漏斗图（四层去重）；右下横向时效轴。角标："满分线 7 类 ≥6h → 实测 11 类 ≤1h"。
 - **讲稿**：40 秒。强调"自动化程度"分：APScheduler 全程无人值守 + 断点续采 + 失败降级不阻塞（cisa.gov 不可达自动切 GitHub 镜像）。
@@ -92,10 +92,10 @@
   - 周期链路=确定性 DAG：节点幂等可重放，部分失败可续跑；
   - 交互链路=Supervisor-as-Tools：检索/KG/测绘/报告封装为工具，智能体自主决策调用序；
   - 分析链路=Planner-Executor-Critic：日报含自我校验回环；
-  - 共享态：PG checkpoint + 情报 Store 黑板；interrupt 人工复核口（abstain 队列）；
+  - 共享态：TaskRun 持久化 + Redis 实时节点态；HITL 复核队列（review_status + REST 确认/回炉）；
   - 生产细节：handoff 弹跳预算、worker 只回结论防上下文膨胀。
 - **视觉**：三泳道状态图（每条链路一张小型 StateGraph 拓扑），节点用真实节点名；右上贴一张真实 trace 截图。
-- **讲稿**：45 秒，本页放慢。"评委如果只看一页，请看这页：三套模式对应三类任务，共享同一份 checkpoint 与黑板存储——这是'架构精良且可扩展'的具体含义：加一条新链路=加一张子图，不动存量。"
+- **讲稿**：45 秒，本页放慢。"评委如果只看一页，请看这页：三套模式对应三类任务，共享同一份 TaskRun 运行记录与 Redis 实时状态——这是'架构精良且可扩展'的具体含义：加一条新链路=加一张子图，不动存量。"
 
 ---
 
@@ -186,7 +186,7 @@
 | "多跳 85% 怎么测的？" | KG 路径自动造桥接题（仿 HotpotQA）+8 题人工基准，`scripts/eval_qa.py` 可现场重跑 |
 | "数据规模只有 634？" | 系统刚上线 N 天的自然累积；架构与规模无关，入库管线已验证单轮 NVD 576 条吞吐 |
 | "Hunter 模拟数据算造假吗？" | 页面显式 is_simulated 标注=诚实降级设计；管线真实可查，权限开通即真实数据；这正体现 abstain 原则 |
-| "为什么用 LangGraph 不用 AutoGen？" | AutoGen 已并入 MS Agent Framework；LangGraph 显式状态图+checkpoint+interrupt 最契合三类编排模式 |
+| "为什么用 LangGraph 不用 AutoGen？" | AutoGen 已并入 MS Agent Framework；LangGraph 显式状态图+astream 节点事件最契合三类编排模式（HITL 由独立复核队列承担，可审计可追溯） |
 | "断网能不能跑？" | 已入库数据全功能可用；采集层天然异步，恢复后游标续采不丢不重 |
 | "创新里哪个最难？" | 四层去重的实体对齐与富化的置信度合并——前者决定'同一漏洞不被拆成五条'，后者决定'准确率敢承诺 95%' |
 

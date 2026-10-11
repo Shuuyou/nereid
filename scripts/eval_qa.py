@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""多跳问答评测：从知识库/KG 自动生成桥接型问题，评测问答准确率
+"""多跳问答评测：基于库内真实 CVE 的桥接型问题评测
+
+口径声明（诚实标注）：
+- 题集为自建（覆盖单跳事实/多跳桥接/枚举/推理四类），expect 为关键词子串命中
+- cite_precision 校验"引用编号存在于返回 citations 集合"（编号存在性，非内容正确性）
+- 适用于回归与演示；对外宣称时须注明"自建题集口径"，盲评集另行人工标注
 
 用法: cd backend && .venv/bin/python ../scripts/eval_qa.py [--n 20] [--live]
   --live 走 POST /api/qa/chat；默认直接调 query_agent.stream_answer 收集 done 事件
@@ -14,7 +19,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 
-# 内置多跳评测集（基于 demo_seed 中真实 CVE 的 KG 可答问题）
+# 内置多跳评测集（基于库内真实 CVE 的 KG 可答问题；自建口径见模块 docstring）
 EVAL_QUESTIONS = [
     # 单跳事实
     {"q": "CVE-2025-32444 影响哪个组件？严重度是多少？", "type": "single",

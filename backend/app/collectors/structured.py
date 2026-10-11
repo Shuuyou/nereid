@@ -226,7 +226,7 @@ class GhsaCollector(BaseCollector):
         if s.github_token:
             headers["Authorization"] = f"Bearer {s.github_token}"
         items: list[RawItemData] = []
-        url = f"{source.url}?updated=>{cursor}&per_page=100"
+        url = f"{source.url}?updated={cursor}&per_page=100"
         pages = 0
         while url and pages < 10:
             resp = await fetch(url, headers=headers)

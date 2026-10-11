@@ -10,9 +10,10 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-from app.core.ids import url_sha256  # noqa: E402
-from app.db.models import Item  # noqa: E402
+from app.collectors.base import RawItemData  # noqa: E402
+from app.db.models import Item, Source  # noqa: E402
 from app.db.session import get_session_factory, init_db  # noqa: E402
+from sqlalchemy import select  # noqa: E402
 
 NOW = datetime.now(timezone.utc)
 
@@ -204,13 +205,44 @@ DEMO_ITEMS = [
 
 
 async def main() -> None:
+    """演示种子走真实 ingest 管线：RawItem/ItemSource/去重/下游富化全链路留痕。
+    诚信约束：不手写 is_kev/epss/has_poc（由真实 KEV/EPSS 源富化），
+    source_names 如实为 ["demo"]，extra.is_demo=true 标记以便统计剔除。"""
     await init_db()
     async with get_session_factory()() as db:
-        for d in DEMO_ITEMS:
-            d["url_sha256"] = url_sha256(d.get("url"))
-            db.add(Item(**d))
+        src = (await db.execute(select(Source).where(Source.name == "demo"))).scalar_one_or_none()
+        if not src:
+            src = Source(name="demo", source_type="demo", tier=1, lang="mixed",
+                         url="local://demo", poll_interval_sec=86400 * 365, enabled=False,
+                         tags=["demo"])
+            db.add(src)
+            await db.commit()
+            await db.refresh(src)
+        raws = [RawItemData(
+            title=d.get("title") or d.get("title_zh") or "",
+            url=d.get("url"), native_id=d.get("url") or d["title"],
+            published_at=d.get("published_at"), lang=d.get("lang") or "en",
+            summary=d.get("summary"), content_text=d.get("content_text") or d.get("summary"),
+            item_type=d.get("item_type", "article"),
+            cve_ids=d.get("cve_ids", []), cwe_ids=d.get("cwe_ids", []),
+            vendors=d.get("vendors", []), products=d.get("products", []),
+            severity=d.get("severity"), cvss_v31_score=d.get("cvss_v31_score"),
+            raw={"demo": True},
+        ) for d in DEMO_ITEMS]
+        from app.services.ingest import ingest_items
+        stats = await ingest_items(db, src, raws)
+        urls = [d.get("url") for d in DEMO_ITEMS if d.get("url")]
+        if urls:
+            from sqlalchemy import text as _t
+            await db.execute(_t(
+                "UPDATE items SET extra = jsonb_set(COALESCE(extra,'{}'::jsonb),"
+                " '{is_demo}', 'true'::jsonb) WHERE url = ANY(:urls)"),
+                {"urls": urls})
         await db.commit()
-    print(f"seeded {len(DEMO_ITEMS)} demo items")
+    print(f"seeded via ingest pipeline: {stats}")
+
+
+
 
 
 if __name__ == "__main__":

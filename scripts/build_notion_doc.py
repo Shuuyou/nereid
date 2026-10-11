@@ -51,10 +51,10 @@ def build() -> list[dict]:
     # ============ 二、调研结论 ============
     b += [divider(), heading("二、SOTA 调研结论（2026-10-11 联网调研，5 路并行）", 1)]
     b += table(["领域", "关键结论", "采用决策"], [
-        ["数据源/采集", "cvelistV5 git 仓 ≈7min 级官方增量（优于 NVD 轮询）；GHSA webhooks 秒级；KEV/EPSS/OSV/ExploitDB 免费 API 齐全；四层去重流水线（URL→编号对齐→SimHash→MinHash/向量）是行业标准做法；Huntr 已被 Palo Alto 收购且 OSS 漏洞流 2026-07 关闭，改用 GHSA+OSV 承接", "11 类源注册表 + APScheduler 分层轮询 + git diff 增量"],
+        ["数据源/采集", "cvelistV5 git 仓 ≈7min 级官方增量（优于 NVD 轮询）；GHSA webhooks 秒级；KEV/EPSS/OSV/ExploitDB 免费 API 齐全；四层去重流水线（URL→编号集合对齐→SimHash→MinHash-LSH）是行业标准做法；Huntr 已被 Palo Alto 收购且 OSS 漏洞流 2026-07 关闭，改用 GHSA+OSV 承接", "11 类源注册表 + APScheduler 分层轮询 + git diff 增量"],
         ["情报富化", "确定性源优先（NVD/KEV/EPSS/GHSA/OSV 直接锁死官方字段）；PoC 用 nomi-sec/trickest/nuclei 索引零成本发现 + GitHub search 兜底 + 恶意 PoC 静态检测（1.9-10% 含毒）；测绘 query 优先取 nuclei 模板元数据；LLM 只做理解生成且全部证据+校验+abstain", "10+ 维富化流水线 + 置信度合并 + abstain 队列"],
         ["RAG/问答", "混合检索（dense+sparse RRF）是安全语料必选项（CVE/CWE 标识符靠词面）；Qwen3-Embedding-0.6B CPU 可用且超 BGE-M3；GraphRAG 太重改用 LightRAG 思想自建安全 KG；多跳靠 分解→检索→KG桥接→纠偏 agentic loop", "Qdrant 命名向量混合检索 + bge-reranker + Neo4j KG + LangGraph 问答图"],
-        ["Agent 编排", "LangGraph 1.x 成事实标准（显式状态图+checkpoint+interrupt）；AutoGen 停更；Supervisor-as-Tools 为问答推荐模式；周期任务用确定性 DAG、交互任务用 Supervisor", "LangGraph 三层混合架构"],
+        ["Agent 编排", "LangGraph 1.x 成事实标准（显式状态图+astream 节点事件）；AutoGen 停更；Supervisor-as-Tools 为问答推荐模式；周期任务用确定性 DAG、交互任务用 Supervisor", "LangGraph 三层混合架构"],
         ["AI 安全领域", "AI 漏洞分五层：基础设施/模型数据/应用智能体/供应链/政策；OWASP LLM Top10 2025 + ASI Top10 2026(Agentic) + MITRE ATLAS（含 Feasible/Demonstrated/Realized 成熟度）；中文政策源（网信办/TC260/GB/T 45654）是差异化空白；无平台做 AI 资产视角聚合", "L1-L6 三维情报立方体分类法"],
     ])
 
@@ -65,10 +65,10 @@ def build() -> list[dict]:
     b += [bullet("**周期链路（确定性 DAG）**：采集→规范化→四层去重→富化 fan-out→校验合并→入库→索引→KG 同步。节点幂等可重放，由 APScheduler 驱动 + LangGraph 编排，对应“任务编排”评分点。"),
           bullet("**交互链路（Supervisor-as-Tools）**：QueryAgent 主智能体把混合检索/KG 查询/资产测绘/报告生成封装为工具自主调用，展示自主决策与工具调用。"),
           bullet("**分析链路（Planner-Executor-Critic）**：AnalystAgent 日报/专题/攻击链生成，含自我校验回环。"),
-          bullet("**共享状态**：PostgreSQL checkpoint + 情报 Store（黑板模式）+ Redis 队列。")]
+          bullet("**共享状态**：TaskRun 持久化（PG）+ Redis 实时节点态（pipeline run 轮询）。")]
     b.append(heading("3.2 数据流", 2))
     b += [bullet("采集层：cvelistV5(git 15min) / NVD / GHSA / OSV / KEV / ExploitDB / 厂商CSAF / AVID / arXiv / 20+ RSS / 邮件列表 / HN / 中文政策源"),
-          bullet("去重：URL规范化哈希 → CVE/GHSA/CNVD/CNNVD/EDB 编号 union-find 对齐 → 标题指纹+SimHash(≤3) → MinHash-LSH(J≥0.7) + 向量近重复（跨语言）"),
+          bullet("去重：URL规范化哈希 → CVE/GHSA/CNVD/CNNVD/EDB 编号集合对齐 → 标题指纹+SimHash(≤3) → MinHash-LSH(J≥0.7)"),
           bullet("富化：scorers(NVD/EPSS/KEV/SSVC) → poc(索引+搜索+可信度) → assets(Hunter/FOFA 语法生成) → papers(S2/OpenAlex/arXiv) → mappings(CWE→CAPEC→ATT&CK/ATLAS) → nlp(翻译/版本/修复/相似) → chain(攻击链) → ai_classify(LLM精修)"),
           bullet("知识库：Qdrant（dense+BM42 sparse 命名向量，RRF）+ Neo4j（CVE-CWE-CAPEC-ATT&CK-Product-PoC-Paper-Item 图）+ PostgreSQL（结构化）"),
           bullet("问答：上下文化→路由→实体链接→子问题分解→混合召回→重排→CRAG纠偏(≤2)→KG桥接(≤3跳)→带引用生成→校验→SSE流式输出(答案+引用+推理链+置信度)")]
@@ -76,7 +76,7 @@ def build() -> list[dict]:
     # ============ 四、技术选型 ============
     b += [divider(), heading("四、技术选型与理由", 1)]
     b += table(["层", "选型", "理由"], [
-        ["编排", "LangGraph 1.x + LangChain create_agent", "显式状态图/checkpoint/interrupt，生态最成熟，图拓扑可展示"],
+        ["编排", "LangGraph 1.x + LangChain create_agent", "显式状态图/astream 事件/图拓扑可展示，生态最成熟"],
         ["LLM", "DeepSeek-V3.2 API（chat+reasoner）", "中文安全域强、function calling 稳、成本极低（$0.27/M in）"],
         ["Embedding", "Qwen3-Embedding-0.6B (ONNX/CPU)", "MTEB多语言64.33超BGE-M3，无GPU可跑，指令感知"],
         ["稀疏检索", "Qdrant BM42", "CVE/CWE/T-ID 精确标识符词面召回兜底"],
@@ -107,11 +107,17 @@ def build() -> list[dict]:
     # ============ 六、当前进展 ============
     b += [divider(), heading("六、当前进展（2026-10-12 审计修复后实测）", 1)]
     b.append(callout("**全链路生产化运行**：APScheduler 常驻调度（采集1min/富化5min/索引5min/KG 10min/LangGraph DAG 15min/EPSS 6h/日报 08:00），库内 2329 条情报（KEV 全量 1458 + NVD 553 + 资讯论文）持续入库。问答双模式：快路径真流式 TTFT 1.09s/总 3.2s，深路径多跳 13.7s 且 DeepSeek 自主发起 10 次工具调用（可审计 trace）。评测：12 题扩展集整体命中率 97.9%、多跳 95.8%、引用精确率 100%（赛题阈值 85%，决赛线 95%）。", "✅"))
+    b.append(heading("差异化叙事：看得见·管得住·防得住·说得清", 3))
+    b += [para("**看得见** —— 影子 AI 资产暴露看板：把奇安信鹰图「Ollama 88.9% 裸奔」式的一次性发现，做成 7×24 持续监测的情报视角（聚合 583K 暴露资产，标注模拟数据）。"),
+          para("**管得住** —— 「人+工具+流程」研判机制：官方字段锁死不用 LLM，LLM 抽取带证据校验，低置信自动进 HITL 复核队列（宁可缺不可错）。"),
+          para("**防得住** —— CVE→CWE→CAPEC→ATT&CK→D3FEND 对策链 + ATLAS 成熟度三级标注：从「知道有洞」到「知道怎么防」。"),
+          para("**说得清** —— Agent 自主工具调用（实测单题 10 次，trace 全审计）+ 引用编号回溯 + KG 最短路径，「对话即研判」。"),
+          callout("**标准化互操作**：STIX 2.1 Bundle 导出对齐 OASIS 国际标准与 GB/T 44886.4-2026《网络安全产品互联互通·威胁信息格式》（奇安信为起草单位之一）——情报消费侧可直接对接 TIP/SOC 平台。", "🥇")]
     b.append(heading("已完成（全真实验证）", 3))
     b += [todo("5 路并行 SOTA 调研完成，结论落入架构与选型", True),
           todo("基础设施八服务容器化：PG/Qdrant/Neo4j/Redis/API/调度器/前端/监控", True),
           todo("采集模块：41 源注册表；真实验证 NVD 543条 / KEV 34条 / HN 37 / 安全客 16 / TC260 6", True),
-          todo("五层去重流水线：ID对齐>URL哈希>标题指纹>SimHash>MinHash-LSH（修复 KEV 目录URL误并 bug）", True),
+          todo("四层去重流水线：ID集合对齐>URL哈希>标题指纹>SimHash>MinHash-LSH（修复 KEV 目录URL误并 bug）", True),
           todo("富化模块：8 worker 并发——EPSS/KEV/SSVC 评分、PoC 发现(9个/条)、资产测绘、论文关联、CWE→CAPEC→ATT&CK 映射、翻译/版本/相似情报、攻击链生成、LLM 精判", True),
           todo("知识底座：Qdrant dense+sparse 混合向量集合 + Neo4j 五类实体图谱（634 项全量同步）", True),
           todo("问答模块：路由→CVE直连|Agent 工具循环(≤2轮)→混合检索+KG扩展→统一重排→DeepSeek 生成；SSE 真流式 token + 实时步骤进度 + 引用 + 置信度校准 + 拒答", True),

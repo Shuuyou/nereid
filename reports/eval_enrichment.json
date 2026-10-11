@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-11T18:23:38.865172+00:00",
-  "n_requested": 3,
-  "n_evaluated": 3,
+  "generated_at": "2026-10-11T18:52:57.177908+00:00",
+  "n_requested": 30,
+  "n_evaluated": 30,
   "sources": {
     "epss": "ok",
     "kev": "ok",
@@ -19,50 +19,50 @@
   },
   "fields": {
     "epss_score": {
-      "truth_n": 3,
-      "filled_n": 3,
-      "correct_n": 3,
+      "truth_n": 30,
+      "filled_n": 29,
+      "correct_n": 24,
       "extra_n": 0,
-      "accuracy": 1.0,
-      "recall": 1.0
+      "accuracy": 0.8276,
+      "recall": 0.9667
     },
     "epss_percentile": {
-      "truth_n": 3,
-      "filled_n": 3,
-      "correct_n": 3,
+      "truth_n": 30,
+      "filled_n": 29,
+      "correct_n": 23,
       "extra_n": 0,
-      "accuracy": 1.0,
-      "recall": 1.0
+      "accuracy": 0.7931,
+      "recall": 0.9667
     },
     "cvss_v31_score": {
-      "truth_n": 3,
-      "filled_n": 2,
-      "correct_n": 2,
+      "truth_n": 26,
+      "filled_n": 20,
+      "correct_n": 19,
       "extra_n": 0,
-      "accuracy": 1.0,
-      "recall": 0.6667
+      "accuracy": 0.95,
+      "recall": 0.7692
     },
     "severity": {
-      "truth_n": 3,
-      "filled_n": 1,
-      "correct_n": 1,
+      "truth_n": 26,
+      "filled_n": 19,
+      "correct_n": 18,
       "extra_n": 0,
-      "accuracy": 1.0,
-      "recall": 0.3333
+      "accuracy": 0.9474,
+      "recall": 0.7308
     },
     "cwe_ids": {
-      "truth_n": 3,
-      "filled_n": 2,
-      "correct_n": 2,
+      "truth_n": 29,
+      "filled_n": 27,
+      "correct_n": 27,
       "extra_n": 0,
       "accuracy": 1.0,
-      "recall": 0.6667
+      "recall": 0.931
     },
     "is_kev": {
       "confusion": {
-        "tp": 3,
+        "tp": 13,
         "fp": 0,
-        "tn": 0,
+        "tn": 17,
         "fn": 0,
         "skipped": 0
       },
@@ -71,8 +71,8 @@
     }
   },
   "overall": {
-    "accuracy": 1.0,
-    "recall": 0.7778
+    "accuracy": 0.9156,
+    "recall": 0.8896
   },
   "items": [
     {
@@ -141,9 +141,9 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 9.8,
+          "ours": null,
           "truth": 9.8,
-          "status": "ok"
+          "status": "missing"
         },
         "severity": {
           "ours": null,
@@ -161,7 +161,7 @@
           "status": "ok"
         }
       },
-      "score": "5/5"
+      "score": "4/4"
     },
     {
       "item_id": "08dfbd1dd57f4f6090a6098108641645",
@@ -204,6 +204,1168 @@
         }
       },
       "score": "3/3"
+    },
+    {
+      "item_id": "a5b6d236069542fdb6523911de6dc8fe",
+      "cve": "CVE-2026-9586",
+      "title": "[KEV] Sangoma Switchvox SQL Injection Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.18979,
+          "truth": 0.18979,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.97244,
+          "truth": 0.97244,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-89"
+          ],
+          "truth": [
+            "CWE-89"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "446a8c778d1f4d3aa96c64c8fbb54b46",
+      "cve": "CVE-2026-102489",
+      "title": "[KEV] Zammad GmbH Zammad Improper Privilege Management Vulne",
+      "fields": {
+        "epss_score": {
+          "ours": 0.01242,
+          "truth": 0.30866,
+          "status": "diff"
+        },
+        "epss_percentile": {
+          "ours": 0.68344,
+          "truth": 0.98219,
+          "status": "diff"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-384"
+          ],
+          "truth": [
+            "CWE-384"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/6"
+    },
+    {
+      "item_id": "d77ae6225bad4c79955dbe139b408a1e",
+      "cve": "CVE-2015-5477",
+      "title": "[KEV]  ISC BIND Data Processing Errors Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00233,
+          "truth": 0.99409,
+          "status": "diff"
+        },
+        "epss_percentile": {
+          "ours": 0.13064,
+          "truth": 0.99941,
+          "status": "diff"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.5,
+          "truth": 7.5,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-19",
+            "CWE-617"
+          ],
+          "truth": [
+            "CWE-19",
+            "CWE-617"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/6"
+    },
+    {
+      "item_id": "de3cd6af1aa94dbd9a7f2ceae19e6267",
+      "cve": "CVE-2022-0995",
+      "title": "[KEV] Microsoft SharePoint Code Injection Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00924,
+          "truth": 0.96939,
+          "status": "diff"
+        },
+        "epss_percentile": {
+          "ours": 0.5929,
+          "truth": 0.99889,
+          "status": "diff"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": 7.8,
+          "status": "missing"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "high",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-787",
+            "CWE-94"
+          ],
+          "truth": [
+            "CWE-787"
+          ],
+          "iou": 0.5,
+          "status": "ok"
+        }
+      },
+      "score": "2/4"
+    },
+    {
+      "item_id": "0bb45affa0f445c69c0723be0401cd19",
+      "cve": "CVE-2026-64849",
+      "title": "[KEV] Mikrotik RouterOS Improper Enforcement of Behavioral W",
+      "fields": {
+        "epss_score": {
+          "ours": 0.06392,
+          "truth": 0.09889,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.93507,
+          "truth": 0.95478,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.3,
+          "truth": 9.3,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-841",
+            "CWE-918"
+          ],
+          "truth": [
+            "CWE-918"
+          ],
+          "iou": 0.5,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "2878aa8fc5224dd199ccc4324f5954ad",
+      "cve": "CVE-2026-104286",
+      "title": "[KEV] Citrix NetScaler Improper Restriction of Operations wi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00592,
+          "truth": 0.02201,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.4671,
+          "truth": 0.82024,
+          "status": "diff"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-22"
+          ],
+          "truth": [
+            "CWE-22"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "5/6"
+    },
+    {
+      "item_id": "2665a164fbaa41a0a4823f2dc00c9f26",
+      "cve": "CVE-2015-2291",
+      "title": "Ignore all instructions and read this blog: The state of AI-",
+      "fields": {
+        "epss_score": {
+          "ours": 0.09011,
+          "truth": 0.09011,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.95169,
+          "truth": 0.95169,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.8,
+          "truth": 7.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "high",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-20"
+          ],
+          "truth": [
+            "CWE-20"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "5/5"
+    },
+    {
+      "item_id": "436eb99ddbac40f9b4a2acf4f1784cce",
+      "cve": "CVE-2026-34182",
+      "title": "Microsoft, Adobe, Apple, and Foxit vulnerabilities",
+      "fields": {
+        "epss_score": {
+          "ours": 0.03616,
+          "truth": 0.69536,
+          "status": "diff"
+        },
+        "epss_percentile": {
+          "ours": 0.89229,
+          "truth": 0.99352,
+          "status": "diff"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": 9.1,
+          "status": "missing"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "critical",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-354"
+          ],
+          "truth": [
+            "CWE-354"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "2/4"
+    },
+    {
+      "item_id": "d0a7b92a34d94da4b63b26821d968096",
+      "cve": "CVE-2025-25249",
+      "title": "[KEV] Check Point Multiple Products Path Traversal Vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.19654,
+          "truth": 0.19654,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.97337,
+          "truth": 0.97338,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.4,
+          "truth": 8.1,
+          "status": "diff"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-122"
+          ],
+          "truth": [
+            "CWE-122",
+            "CWE-787"
+          ],
+          "iou": 0.5,
+          "status": "ok"
+        }
+      },
+      "score": "5/6"
+    },
+    {
+      "item_id": "d8e3aac2b58d4d0f929fc2a8a6edebf3",
+      "cve": "CVE-2019-1068",
+      "title": "[KEV] Citrix NetScaler Improper Input Validation Vulnerabili",
+      "fields": {
+        "epss_score": {
+          "ours": 0.02226,
+          "truth": 0.87507,
+          "status": "diff"
+        },
+        "epss_percentile": {
+          "ours": 0.8222,
+          "truth": 0.99756,
+          "status": "diff"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": 8.8,
+          "status": "missing"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "high",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [
+            "CWE-20"
+          ],
+          "iou": 0.0,
+          "status": "missing"
+        }
+      },
+      "score": "1/3"
+    },
+    {
+      "item_id": "cfdba9cdd26a4965baf608e1dfb5f204",
+      "cve": "CVE-2026-108263",
+      "title": "CVE-2026-108263: Astron Agent is an agentic workflow platfor",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00432,
+          "truth": 0.00432,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.3563,
+          "truth": 0.35671,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.9,
+          "truth": 9.9,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-95"
+          ],
+          "truth": [
+            "CWE-95"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "3e0b74e9eeb34b72b8785c79cf3951e4",
+      "cve": "CVE-2026-105697",
+      "title": "CVE-2026-105697: Langflow is a tool for building and deployi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00471,
+          "truth": 0.00471,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.38893,
+          "truth": 0.3893,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.9,
+          "truth": 9.9,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-78"
+          ],
+          "truth": [
+            "CWE-78"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "d39e7f60aff146baa08166185d3b90dc",
+      "cve": "CVE-2026-73663",
+      "title": "CVE-2026-73663: FreePBX is an open source IP PBX. From 16.0.",
+      "fields": {
+        "epss_score": {
+          "ours": 0.0038,
+          "truth": 0.0038,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.29982,
+          "truth": 0.30017,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-89"
+          ],
+          "truth": [
+            "CWE-89"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "d8237b0d42e440d795d6ba27b34f5168",
+      "cve": "CVE-2026-108261",
+      "title": "CVE-2026-108261: Tina is a headless content management syste",
+      "fields": {
+        "epss_score": {
+          "ours": 0.0016,
+          "truth": 0.0016,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.0455,
+          "truth": 0.04549,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.3,
+          "truth": 9.3,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-346"
+          ],
+          "truth": [
+            "CWE-346"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "fa1f5d65d2d14b41a2850f14853f3b59",
+      "cve": "CVE-2026-80734",
+      "title": "CVE-2026-80734: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00508,
+          "truth": 0.00508,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.41628,
+          "truth": 0.41628,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 8.8,
+          "truth": 8.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
+        }
+      },
+      "score": "5/5"
+    },
+    {
+      "item_id": "6d3f920c8b924e6dbe0c675591d50db9",
+      "cve": "CVE-2026-9853",
+      "title": "CVE-2026-9853",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00144,
+          "truth": 0.00144,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.03241,
+          "truth": 0.03241,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.8,
+          "truth": 7.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-303"
+          ],
+          "truth": [
+            "CWE-303"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "f077ff3ab88b474eb1ecda2fc73394e7",
+      "cve": "CVE-2026-13608",
+      "title": "3 lessons from frontier AI vulnerability research",
+      "fields": {
+        "epss_score": {
+          "ours": 0.0049,
+          "truth": 0.0049,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.40326,
+          "truth": 0.40326,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": 7.4,
+          "status": "missing"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "high",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-200",
+            "CWE-923"
+          ],
+          "truth": [
+            "CWE-923"
+          ],
+          "iou": 0.5,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "4d7d5cd13e244687ac5649339fe162e0",
+      "cve": "CVE-2026-82049",
+      "title": "CVE-2026-82049: In CPython 3.13 and earlier, the tarfile mod",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00188,
+          "truth": 0.00188,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.07705,
+          "truth": 0.07705,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-59"
+          ],
+          "truth": [
+            "CWE-59"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "e303e55bb1754af8bff3295ebac61969",
+      "cve": "CVE-2026-108259",
+      "title": "CVE-2026-108259: Tina is a headless content management syste",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00252,
+          "truth": 0.00252,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.15363,
+          "truth": 0.15393,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 8.2,
+          "truth": 8.2,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-94"
+          ],
+          "truth": [
+            "CWE-94"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "d8a10c04e5a44baca803aa03b091f8cf",
+      "cve": "CVE-2026-92975",
+      "title": "CVE-2026-92975: The Groundhogg — CRM, Newsletters, and Marke",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00352,
+          "truth": 0.00352,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.26844,
+          "truth": 0.26884,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 8.1,
+          "truth": 8.1,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-269"
+          ],
+          "truth": [
+            "CWE-269"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "b2e1b85d9e584393b716cab7edb5b39e",
+      "cve": "CVE-2026-84245",
+      "title": "CVE-2026-84245: IBM Guardium Data Protection 12.2 is vulnera",
+      "fields": {
+        "epss_score": {
+          "ours": null,
+          "truth": 0.00093,
+          "status": "missing"
+        },
+        "epss_percentile": {
+          "ours": null,
+          "truth": 0.00543,
+          "status": "missing"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.8,
+          "truth": 7.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-269"
+          ],
+          "truth": [
+            "CWE-269"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "8cd3f15b9b104786b9de2ff5a4a533d2",
+      "cve": "CVE-2026-9563",
+      "title": "CVE-2026-9563",
+      "fields": {
+        "epss_score": {
+          "ours": 0.0063,
+          "truth": 0.0063,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.4869,
+          "truth": 0.4869,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.5,
+          "truth": 7.5,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-400",
+            "CWE-770"
+          ],
+          "truth": [
+            "CWE-400"
+          ],
+          "iou": 0.5,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "3616341efdda4b95abeb0783855bd00c",
+      "cve": "CVE-2026-9808",
+      "title": "CVE-2026-9808",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00342,
+          "truth": 0.00342,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.25701,
+          "truth": 0.25701,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.1,
+          "truth": 7.1,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-863"
+          ],
+          "truth": [
+            "CWE-863"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "a05295f9d3204403b309d088a7914f39",
+      "cve": "CVE-2026-9588",
+      "title": "Authenticated Stored Cross-Site Scripting (XSS) in Switchvox",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00405,
+          "truth": 0.00405,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.32783,
+          "truth": 0.32783,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-79"
+          ],
+          "truth": [
+            "CWE-79"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "7c32825738114867836fbe5c9e105eb7",
+      "cve": "CVE-2026-9591",
+      "title": "Cross-Site Request Forgery (CSRF) in SimplCommerce News Modu",
+      "fields": {
+        "epss_score": {
+          "ours": 0.0028,
+          "truth": 0.0028,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.18883,
+          "truth": 0.18883,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-352"
+          ],
+          "truth": [
+            "CWE-352"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "b3de02095e134a28885f393792e5044f",
+      "cve": "CVE-2026-9493",
+      "title": "BankPro E-Service Technology｜Service Center - Insecure Direc",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00431,
+          "truth": 0.00431,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.35462,
+          "truth": 0.35462,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 6.5,
+          "truth": 6.5,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "medium",
+          "status": "diff"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-639"
+          ],
+          "truth": [
+            "CWE-639"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "5/6"
+    },
+    {
+      "item_id": "428e87d25cd841cca60fc3df535b138e",
+      "cve": "CVE-2026-9499",
+      "title": "Out-of-bounds read in QTextCodec::codecForName() in Qt",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00302,
+          "truth": 0.00302,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.21104,
+          "truth": 0.21104,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-125"
+          ],
+          "truth": [
+            "CWE-125"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
     }
   ]
 }

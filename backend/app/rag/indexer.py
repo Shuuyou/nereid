@@ -83,13 +83,14 @@ async def index_item(item: Item | str) -> int:
     await qdrant.ensure_collection()
     vecs = await embedder.embed_texts(chunks)
     sparses = await embedder.sparse_texts(chunks)
-    await qdrant.delete_item(item.id)
     points = [
         qm.PointStruct(id=_pid(item.id, i),
                        vector={qdrant.DENSE: vecs[i], qdrant.SPARSE: sparses[i]},
                        payload=_payload(item, chunks[i], i))
         for i in range(len(chunks))]
+    # 先 upsert（确定性 id 覆盖同名旧块），再清残留旧块：崩溃窗口内检索不丢数据
     await qdrant.upsert_chunks(points)
+    await qdrant.delete_item_except(item.id, [p.id for p in points])
     # 标记已索引（免迁移，存 extra）
     async with sf() as db:
         it = await db.get(Item, item.id)

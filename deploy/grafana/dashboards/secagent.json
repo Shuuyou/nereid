@@ -1,0 +1,213 @@
+{
+  "title": "SecAgent 运行态势",
+  "uid": "secagent-main",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "采集速率（条/次）",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "secagent_items_collected_total",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "新增 vs 合并",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(secagent_items_new_total[5m])",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(secagent_items_merged_total[5m])",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "采集延迟 p50（s）",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum by (le, source) (rate(secagent_collection_duration_seconds_bucket[15m])))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "源采集滞后（s）",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "secagent_source_lag_seconds",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "富化运行（status）",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(secagent_enrich_runs_total[15m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "问答延迟 p50/p95（s）",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(secagent_qa_latency_seconds_bucket[15m])))",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(secagent_qa_latency_seconds_bucket[15m])))",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "金丝雀端到端（s）",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "secagent_canary_e2e_seconds",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "KG 节点数",
+      "type": "stat",
+      "gridPos": {
+        "x": 8,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "secagent_kg_nodes",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "向量索引点数",
+      "type": "stat",
+      "gridPos": {
+        "x": 16,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "secagent_index_size",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "secagent"
+  ]
+}

@@ -8,6 +8,45 @@ from app.services.ssvc import fetch_vulnrichment
 
 log = get_logger("enrich.scorers")
 
+_ROOT = __import__("os").path.dirname(__import__("os").path.dirname(
+    __import__("os").path.dirname(__import__("os").path.dirname(__import__("os").path.abspath(__file__)))))
+
+
+def _cvelist_local(cve_id: str) -> dict:
+    """从本地 cvelistV5 git 克隆读取 CVSS/CWE（免外部 API，离线可复现）"""
+    import json as _j
+    import os as _o
+    try:
+        _, y, n = cve_id.split("-")
+        path = _o.path.join(_ROOT, "data/cvelistV5/cves", y, f"{n[:-3]}xxx", f"{cve_id}.json")
+        if not _o.path.exists(path):
+            return {}
+        d = _j.load(open(path, encoding="utf-8"))
+        out: dict = {}
+        # CNA + ADP 容器都可能有 metrics
+        for cont in ("cna",):
+            m = (d.get("containers", {}).get(cont, {}).get("metrics") or [])
+            for mm in m:
+                for ver, fk, fv, fs in (("cvssV3_1", "cvss_v31_score", "cvss_v31_vector", "severity"),
+                                        ("cvssV3_0", "cvss_v31_score", "cvss_v31_vector", "severity"),
+                                        ("cvssV4_0", "cvss_v40_score", "cvss_v40_vector", None)):
+                    v = mm.get(ver)
+                    if v and not out.get(fk):
+                        out[fk] = v.get("baseScore")
+                        if fv:
+                            out[fv] = v.get("vectorString")
+                        if fs and v.get("baseSeverity"):
+                            out[fs] = v["baseSeverity"].lower()
+        cwes = sorted({d2.get("cweId") for pt in
+                       (d.get("containers", {}).get("cna", {}).get("problemTypes") or [])
+                       for d2 in (pt.get("descriptions") or [])
+                       if str(d2.get("cweId") or "").startswith("CWE-")})
+        if cwes:
+            out["cwe_ids"] = sorted(set(cwes))
+        return out
+    except Exception:  # noqa: BLE001
+        return {}
+
 KEV_URLS = [
     # github 镜像优先（本环境 cisa.gov 不可达，直连会耗尽 fetch 3 次指数退避）
     "https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json",
@@ -65,8 +104,15 @@ async def run(item, ctx) -> dict:
         extra["kev_required_action"] = hit.get("requiredAction")
         fields["exploit_maturity"] = "weaponized"
 
-    # ---- NVD 补分（仅当缺 CVSS）----
+    # ---- cvelistV5 本地克隆优先（免 NVD 限流，离线可用）----
     if not item.cvss_v31_score and cves:
+        cv = _cvelist_local(cves[0])
+        if cv:
+            fields.update({k: v for k, v in cv.items() if v is not None})
+            notes.append("cvss:cvelistV5-local")
+
+    # ---- NVD 补分（仅当缺 CVSS 且本地克隆未覆盖）----
+    if not item.cvss_v31_score and not fields.get("cvss_v31_score") and cves:
         from app.config import get_settings
         headers = {"apiKey": get_settings().nvd_api_key} if get_settings().nvd_api_key else {}
         try:

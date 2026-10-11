@@ -27,6 +27,7 @@ from sqlalchemy import desc, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
+from app.config import get_settings
 from app.core.logging import get_logger
 from app.db.models import (
     AssetStat, Item, ItemSource, MappingLink, Paper, Poc, QaMessage, QaSession,
@@ -74,8 +75,26 @@ def _item_card(it: Item) -> dict:
 
 @router.get("/health")
 async def health(db: AsyncSession = Depends(get_db)):
-    items = (await db.execute(select(func.count(Item.id)))).scalar() or 0
-    return {"status": "ok", "items": items, "ts": datetime.now(timezone.utc).isoformat()}
+    """优雅降级：任一依赖挂掉仍返回 200 + degraded 明细（答辩拔线演示安全）"""
+    out = {"status": "ok", "ts": datetime.now(timezone.utc).isoformat(), "checks": {}}
+    try:
+        out["items"] = (await db.execute(select(func.count(Item.id)))).scalar() or 0
+        out["checks"]["postgres"] = True
+    except Exception as e:  # noqa: BLE001
+        out["checks"]["postgres"] = False
+        out["status"] = "degraded"
+        out["errors"] = {"postgres": str(e)[:120]}
+    s = get_settings()
+    try:
+        from app.core.http import fetch
+        r = await fetch(f"http://{s.qdrant_host}:{s.qdrant_port}/collections")
+        out["checks"]["qdrant"] = r.status_code == 200
+        if not out["checks"]["qdrant"]:
+            out["status"] = "degraded"
+    except Exception:  # noqa: BLE001
+        out["checks"]["qdrant"] = False
+        out["status"] = "degraded"
+    return out
 
 
 @router.get("/stats/overview")
@@ -144,7 +163,9 @@ async def stats_freshness(db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(text(
         "SELECT EXTRACT(EPOCH FROM (first_seen_at - published_at))/60.0 AS lag_min, "
         "       source_names[1] "
-        "FROM items WHERE published_at IS NOT NULL AND first_seen_at IS NOT NULL"))).all()
+        "FROM items WHERE published_at IS NOT NULL AND first_seen_at IS NOT NULL "
+        "AND COALESCE(extra->>'is_demo','') <> 'true' "
+        "AND COALESCE(extra->>'canary','') <> 'true'"))).all()
     lags = sorted(r[0] for r in rows if r[0] is not None and 0 <= r[0] < 43200)  # <30d 合理窗
     if not lags:
         return {"n": 0}
@@ -307,7 +328,21 @@ async def trigger_enrich(item_id: str, db: AsyncSession = Depends(get_db)):
     if not it:
         raise HTTPException(404)
     from app.enrichment.pipeline import enrich_item
-    asyncio.create_task(enrich_item(item_id))
+
+    async def _tracked():
+        started = datetime.now(timezone.utc)
+        res = await enrich_item(item_id)
+        try:
+            async with get_session_factory()() as s2:
+                s2.add(TaskRun(task_name=f"enrich:{item_id[:8]}",
+                               status="error" if res.get("error") else "success",
+                               started_at=started, finished_at=datetime.now(timezone.utc),
+                               detail={k: res.get(k) for k in ("review_status", "changed", "skipped", "error")}))
+                await s2.commit()
+        except Exception:  # noqa: BLE001
+            pass
+
+    asyncio.create_task(_tracked())
     return {"status": "enrichment_started", "item_id": item_id}
 
 
@@ -366,6 +401,14 @@ async def item_stix(item_id: str, db: AsyncSession = Depends(get_db)):
             "created": now, "modified": now, "name": tech,
             "external_references": [{"source_name": "mitre-attack", "external_id": tech}],
         })
+    # relationship 对象：report→vuln(indicates/targets)、vuln→attack-pattern(indicates)
+    primary = objects[0]["id"] if objects else None
+    for tech_obj in [o for o in objects if o["type"] == "attack-pattern"]:
+        if primary:
+            objects.append({"type": "relationship", "spec_version": "2.1",
+                            "id": f"relationship--{_uuid.uuid5(_uuid.NAMESPACE_URL, 'https://secagent/rel/' + primary + '/' + tech_obj['id'])}",
+                            "created": now, "modified": now, "relationship_type": "indicates",
+                            "source_ref": primary, "target_ref": tech_obj["id"]})
     objects.append({
         "type": "report", "spec_version": "2.1",
         "id": f"report--{_uuid.uuid5(_uuid.NAMESPACE_URL, 'https://secagent/item/' + item.id)}",
@@ -375,7 +418,9 @@ async def item_stix(item_id: str, db: AsyncSession = Depends(get_db)):
         "object_refs": [o["id"] for o in objects],
         "labels": [item.severity or "unknown", item.ai_layer or "general"],
     })
-    return {"type": "bundle", "id": f"bundle--{_uuid.uuid4()}", "objects": objects}
+    return {"type": "bundle",
+            "id": f"bundle--{_uuid.uuid5(_uuid.NAMESPACE_URL, 'https://secagent/bundle/' + item.id)}",
+            "objects": objects}
 
 
 @router.get("/pipeline/graph")
@@ -398,14 +443,53 @@ async def pipeline_graph_def():
 
 @router.post("/pipeline/run/{source_id}")
 async def pipeline_run(source_id: int, db: AsyncSession = Depends(get_db)):
-    """对指定数据源运行 LangGraph 全链 DAG（collect→enrich→index→kg→notify）"""
-    from app.agents.pipeline_graph import run_pipeline
+    """对指定数据源运行 LangGraph 全链 DAG（collect→enrich→index→kg→notify）
+    返回 run_id —— 用 GET /api/pipeline/run/{run_id} 轮询真实节点状态"""
+    import uuid as _u
+    from app.agents.pipeline_graph import run_pipeline_tracked
     src = await db.get(Source, source_id)
     if not src:
         raise HTTPException(404, "source not found")
-    asyncio.create_task(run_pipeline(source_id))
-    return {"status": "started", "source": src.name,
+    run_id = _u.uuid4().hex[:12]
+    asyncio.create_task(run_pipeline_tracked(source_id, run_id))
+    return {"status": "started", "run_id": run_id, "source": src.name,
             "dag": ["collect", "enrich", "index", "kg", "notify"]}
+
+
+@router.get("/pipeline/run/{run_id}")
+async def pipeline_run_status(run_id: str):
+    """单次 DAG 运行的真实节点状态（Redis）"""
+    import json as _j
+    from app.core.rds import rds
+    try:
+        h = await rds().hgetall(f"pipeline:run:{run_id}")
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(503, f"redis unavailable: {e}") from e
+    if not h:
+        raise HTTPException(404, "run not found")
+    h["nodes"] = _j.loads(h.get("nodes") or "{}")
+    if h.get("result"):
+        h["result"] = _j.loads(h["result"])
+    return h
+
+
+@router.get("/pipeline/runs")
+async def pipeline_runs():
+    """最近 DAG 运行列表（TaskRun 落库 + Redis 实时态）"""
+    import json as _j
+    from app.core.rds import rds
+    out = []
+    try:
+        ids = await rds().lrange("pipeline:runs", 0, 19)
+        for rid in ids or []:
+            h = await rds().hgetall(f"pipeline:run:{rid}")
+            if h:
+                h["nodes"] = _j.loads(h.get("nodes") or "{}")
+                h.pop("result", None)
+                out.append(h)
+    except Exception as e:  # noqa: BLE001
+        return {"runs": [], "redis": f"unavailable: {e}"}
+    return {"runs": out}
 
 
 @router.post("/collect/run-all")
@@ -450,6 +534,8 @@ async def qa_chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     from app.rag.query_agent import stream_answer
 
     session_id = req.session_id
+    if session_id and not await db.get(QaSession, session_id):
+        session_id = None  # 无效 session_id → 自动建会话而非 FK 500
     if not session_id:
         sess = QaSession(title=req.question[:80])
         db.add(sess)
@@ -504,7 +590,31 @@ async def kg_subgraph(entity: str = Query(...), depth: int = Query(2, ge=1, le=3
 @router.get("/kg/stats")
 async def kg_stats():
     from app.services.kg import graph_stats
-    return await graph_stats()
+    stats = await graph_stats()
+    try:
+        from app.core.metrics import kg_nodes
+        if isinstance(stats, dict):
+            for k, v in stats.items():
+                if isinstance(v, (int, float)):
+                    kg_nodes.labels(label=k).set(v)
+    except Exception:  # noqa: BLE001
+        pass
+    return stats
+
+
+class CanaryReport(BaseModel):
+    stages: dict[str, float]
+
+
+@router.post("/internal/canary")
+async def canary_report(rep: CanaryReport):
+    """金丝雀脚本回写各阶段耗时 → API 进程内注册 Prometheus gauge
+    （/metrics 才能暴露 secagent_canary_e2e_*，解决脚本进程指标不可见问题）"""
+    from app.core.metrics import canary_e2e
+    for stage, v in rep.stages.items():
+        if v >= 0:
+            canary_e2e.labels(stage=stage).set(v)
+    return {"status": "recorded", "stages": len(rep.stages)}
 
 
 # ============ 报告 ============

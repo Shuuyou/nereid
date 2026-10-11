@@ -19,19 +19,21 @@ _cache: dict | None = None
 def _load() -> dict:
     global _cache
     if _cache is None:
-        out = {"cwe_capec": {}, "atlas_by_tech": {}, "atlas_names": {}}
+        out = {"cwe_capec": {}, "atlas_by_tech": {}, "atlas_names": {}, "missing": []}
         try:
             d = json.load(open(os.path.join(_ROOT, "data/cwe_capec.json"), encoding="utf-8"))
-            out["cwe_capec"] = d.get("cwe_to_capec", {})
+            out["cwe_capec"] = {k: v for k, v in d.items() if k.startswith("CWE-")}
         except Exception as e:  # noqa: BLE001
+            out["missing"].append("cwe_capec")
             log.warning("cwe_capec_load", error=str(e)[:100])
         try:
             d = json.load(open(os.path.join(_ROOT, "data/attack_ai.json"), encoding="utf-8"))
-            for t in d.get("techniques", []):
-                out["atlas_names"][t["id"]] = t.get("name")
-                for cwe in t.get("cwes", []):
-                    out["atlas_by_tech"].setdefault(cwe, []).append(t["id"])
+            out["atlas_names"] = dict(d.get("atlas", {}))
+            out["attck_names"] = dict(d.get("attck", {}))
+            for cwe, techs in (d.get("cwe_to_atlas") or {}).items():
+                out["atlas_by_tech"][cwe] = list(techs)
         except Exception as e:  # noqa: BLE001
+            out["missing"].append("attack_ai")
             log.warning("atlas_load", error=str(e)[:100])
         _cache = out
     return _cache
@@ -68,7 +70,10 @@ async def run(item, ctx) -> dict:
     if atlas:
         fields["atlas_techniques"] = atlas
     extra = {"capec_ids": capex, "atlas_named": atlas_named}
-    return ok(f"cwe={len(cwes)} capec={len(capex)} atlas={len(atlas)}",
+    note = f"cwe={len(cwes)} capec={len(capex)} atlas={len(atlas)}"
+    if data.get("missing"):
+        note += f" missing_data={'+'.join(data['missing'])}"
+    return ok(note,
               confidence=0.85 if rows else 0.4,
               fields=fields, extra=extra, rows={"mappings": rows},
               data_keys=["mappings"])

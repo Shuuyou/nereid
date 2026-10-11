@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { API, api } from "@/lib/api";
 import { SevBadge, LayerTag } from "@/components/cards";
 
 const CRED_COLOR: Record<string, string> = {
@@ -35,7 +35,13 @@ export default function ItemDetail() {
           <LayerTag l={it.ai_layer} />
           <span className="tag">{it.item_type}</span>
           {(it.owasp_llm || []).map((o: string) => <span key={o} className="tag-accent">{o}</span>)}
-          <button className="btn-ghost ml-auto !py-1 !px-2 text-xs" onClick={() => api.enrich(id).then(() => location.reload())}>重新富化</button>
+          <a
+            className="btn-ghost ml-auto !py-1 !px-2 text-xs"
+            href={`${API}/api/items/${id}/stix`}
+            download={`secagent-${id.slice(0, 8)}.stix.json`}
+            title="导出 STIX 2.1 Bundle（TAXII/TIP 互操作）"
+          >导出 STIX</a>
+          <button className="btn-ghost !py-1 !px-2 text-xs" onClick={() => api.enrich(id).then(() => location.reload())}>重新富化</button>
         </div>
         <h1 className="text-xl font-semibold leading-snug">{it.title_zh || it.title}</h1>
         {it.title_zh && <p className="text-sm text-dim">{it.title}</p>}

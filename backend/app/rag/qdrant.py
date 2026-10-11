@@ -121,6 +121,22 @@ async def search_dense(vec: list[float], top_k: int = 10, filters=None, exclude_
         return []
 
 
+async def delete_item_except(item_id: str, keep_ids: list[str]) -> None:
+    """删除 item 名下不在 keep_ids 中的残留点（先插后删的旧块清理）"""
+    c = client()
+    flt = qm.Filter(
+        must=[qm.FieldCondition(key="item_id", match=qm.MatchValue(value=item_id))],
+        must_not=[qm.HasIdCondition(has_id=keep_ids)] if keep_ids else [])
+    for attempt in range(4):
+        try:
+            await c.delete(COLLECTION, qm.FilterSelector(filter=flt))
+            return
+        except Exception:  # noqa: BLE001
+            if attempt == 3:
+                raise
+            await asyncio.sleep(2 ** attempt * 2)
+
+
 async def delete_item(item_id: str) -> None:
     c = client()
     for attempt in range(4):

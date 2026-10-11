@@ -1,0 +1,140 @@
+{
+ "_comment": "AI 安全高频 ATT&CK / ATLAS 技术名表（供 mappings 映射与校验，来源 MITRE 官方）",
+ "attck": {
+  "T1190": "Exploit Public-Facing Application",
+  "T1059": "Command and Scripting Interpreter",
+  "T1059.007": "JavaScript",
+  "T1105": "Ingress Tool Transfer",
+  "T1071": "Application Layer Protocol",
+  "T1078": "Valid Accounts",
+  "T1041": "Exfiltration Over C2 Channel",
+  "T1567": "Exfiltration Over Web Service",
+  "T1005": "Data from Local System",
+  "T1027": "Obfuscated Files or Information",
+  "T1055": "Process Injection",
+  "T1195": "Supply Chain Compromise",
+  "T1195.002": "Compromise Software Supply Chain",
+  "T1496": "Resource Hijacking",
+  "T1499": "Endpoint Denial of Service",
+  "T1574": "Hijack Execution Flow",
+  "T1609": "Container Administration Command",
+  "T1552": "Unsecured Credentials",
+  "T1087": "Account Discovery",
+  "T1210": "Exploitation of Remote Services",
+  "T1133": "External Remote Services",
+  "T1053": "Scheduled Task/Job",
+  "T1548": "Abuse Elevation Control Mechanism",
+  "T1098": "Account Manipulation",
+  "T1185": "Browser Session Cookie Theft",
+  "T1539": "Steal Web Session Cookie",
+  "T1614": "System Location Discovery",
+  "T1046": "Network Service Discovery",
+  "T1036": "Masquerading",
+  "T1204": "User Execution",
+  "T1656": "Impersonation",
+  "T1189": "Drive-by Compromise",
+  "T1071.001": "Web Protocols",
+  "T1090": "Proxy",
+  "T1003": "OS Credential Dumping",
+  "T1486": "Data Encrypted for Impact",
+  "T1498": "Network Denial of Service",
+  "T1213": "Data from Information Repositories",
+  "T1213.003": "Code Repositories",
+  "T1557": "Adversary-in-the-Middle"
+ },
+ "atlas": {
+  "AML.T0051": "LLM Prompt Injection",
+  "AML.T0051.000": "Direct",
+  "AML.T0051.001": "Indirect",
+  "AML.T0051.002": "Visual (Image-based)",
+  "AML.T0054": "LLM Jailbreak",
+  "AML.T0020": "Poisoning Training Data",
+  "AML.T0024": "Exfiltration via Cyber Means",
+  "AML.T0025": "Exfiltration via AI Inference API",
+  "AML.T0043": "Craft Adversarial Data",
+  "AML.T0044": "Full AI Model Access",
+  "AML.T0040": "AI Model Inference API Access",
+  "AML.T0015": "Evade AI Model",
+  "AML.T0016": "Acquire AI Model",
+  "AML.T0018": "Backdoor AI Model",
+  "AML.T0019": "Publish Poisoned Datasets",
+  "AML.T0010": "AI Supply Chain",
+  "AML.T0000": "Reconnaissance",
+  "AML.T0002": "Resource Development",
+  "AML.T0004": "ML-Enabled Product or Service",
+  "AML.T0007": "Discover AI Artifacts",
+  "AML.T0048": "External-facing Information About AI-enabled Products",
+  "AML.T0046": "Discover AI Agent Configuration",
+  "AML.T0047": "AI Agent Context Poisoning",
+  "AML.T0052": "Phishing",
+  "AML.T0057": "LLM Data Leakage",
+  "AML.T0058": "Discover LLM Hallucinations",
+  "AML.T0060": "Manipulate User LLM Chat History",
+  "AML.T0061": "AI Agent Clickbait",
+  "AML.T0062": "Discover AI Agent Tool Definitions",
+  "AML.T0063": "RAG Credential Harvesting",
+  "AML.T0064": "Exfiltration via AI Agent Tool Invocation",
+  "AML.T0065": "Scan for Exposed AI Infrastructure",
+  "AML.T0066": "Misconfigured or Publicly Exposed AI Services",
+  "AML.T0067": "Modify AI Agent Configuration",
+  "AML.T0068": "Delay Execution of LLM Instructions",
+  "AML.T0069": "Prompt Infiltration via Public-Facing Application"
+ },
+ "atlas_tactics": {
+  "AML.TA0000": "Reconnaissance",
+  "AML.TA0001": "Resource Development",
+  "AML.TA0002": "Initial Access",
+  "AML.TA0003": "AI Model Access",
+  "AML.TA0004": "Execution",
+  "AML.TA0005": "Persistence",
+  "AML.TA0006": "Privilege Escalation",
+  "AML.TA0007": "Defense Evasion",
+  "AML.TA0008": "Credential Access",
+  "AML.TA0009": "Discovery",
+  "AML.TA0010": "Collection",
+  "AML.TA0011": "AI Attack Adaptation",
+  "AML.TA0012": "Lateral Movement",
+  "AML.TA0013": "Exfiltration",
+  "AML.TA0014": "Impact",
+  "AML.TA0015": "AI Attack Staging"
+ },
+ "cwe_to_atlas": {
+  "CWE-502": [
+   "AML.T0010",
+   "AML.T0051"
+  ],
+  "CWE-94": [
+   "AML.T0051",
+   "AML.T0010"
+  ],
+  "CWE-78": [
+   "AML.T0051"
+  ],
+  "CWE-918": [
+   "AML.T0051.002",
+   "AML.T0043"
+  ],
+  "CWE-22": [
+   "AML.T0043"
+  ],
+  "CWE-77": [
+   "AML.T0051"
+  ],
+  "CWE-611": [
+   "AML.T0043"
+  ],
+  "CWE-200": [
+   "AML.T0024",
+   "AML.T0048"
+  ],
+  "CWE-400": [
+   "AML.T0029"
+  ],
+  "CWE-345": [
+   "AML.T0010"
+  ],
+  "CWE-20": [
+   "AML.T0040"
+  ]
+ }
+}

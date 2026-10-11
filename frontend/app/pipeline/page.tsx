@@ -4,36 +4,41 @@ import { API, api } from "@/lib/api";
 
 interface DagNode { id: string; label: string; desc: string }
 interface Dag { engine?: string; nodes: DagNode[]; edges: [string, string][]; schedule?: string }
+interface RunRec {
+  run_id: string; source_id: string; status: string; current?: string;
+  started_at?: string; finished_at?: string; error?: string; nodes?: Record<string, string>;
+}
 
 export default function PipelinePage() {
   const [dag, setDag] = useState<Dag | null>(null);
   const [sources, setSources] = useState<any[]>([]);
   const [sid, setSid] = useState<number | "">("");
-  const [running, setRunning] = useState(false);
-  // progress: -1 空闲；n = 第 n 个节点正在执行；>= 节点数 = 全部完成
-  const [progress, setProgress] = useState(-1);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [run, setRun] = useState<RunRec | null>(null);
+  const [runs, setRuns] = useState<RunRec[]>([]);
   const [msg, setMsg] = useState("");
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     fetch(`${API}/api/pipeline/graph`, { cache: "no-store" })
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-        return r.json();
-      })
-      .then(setDag)
-      .catch(() => setDag(null));
-    api.sources()
-      .then((d) => {
-        const rows = d.sources || [];
-        setSources(rows);
-        if (rows.length) setSid(rows[0].id);
-      })
-      .catch(() => {});
-    return () => { if (timer.current) clearInterval(timer.current); };
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setDag).catch(() => setDag(null));
+    api.sources().then((d) => {
+      const rows = d.sources || [];
+      setSources(rows);
+      if (rows.length) setSid(rows[0].id);
+    }).catch(() => {});
+    refreshRuns();
+    return () => { if (poll.current) clearInterval(poll.current); };
   }, []);
 
-  // 按 edges 链式排序（入度为 0 的起点一路走到尾），异常时回落原始顺序
+  async function refreshRuns() {
+    try {
+      const r = await fetch(`${API}/api/pipeline/runs`, { cache: "no-store" });
+      if (r.ok) setRuns((await r.json()).runs || []);
+    } catch { /* ignore */ }
+  }
+
   const ordered: DagNode[] = (() => {
     if (!dag) return [];
     const byId = new Map(dag.nodes.map((n) => [n.id, n]));
@@ -51,46 +56,63 @@ export default function PipelinePage() {
     return seq.length === dag.nodes.length ? seq : dag.nodes;
   })();
 
-  function toast(text: string) {
-    setMsg(text);
-    setTimeout(() => setMsg(""), 3000);
-  }
+  function toast(text: string) { setMsg(text); setTimeout(() => setMsg(""), 3500); }
 
-  async function run() {
-    if (!sid || running) return;
-    setRunning(true);
-    setProgress(0);
+  async function triggerRun() {
+    if (!sid || run?.status === "running") return;
     try {
       const r = await fetch(`${API}/api/pipeline/run/${sid}`, { method: "POST" });
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
       const d = await r.json();
-      toast(`已启动对「${d.source}」的全链 DAG（后台异步执行）`);
-      // 后端 asyncio 后台执行，前端按 DAG 顺序逐节点高亮示意推进
-      const chain: string[] = d.dag || ordered.map((n) => n.id);
-      let i = 0;
-      timer.current = setInterval(() => {
-        i += 1;
-        setProgress(i);
-        if (i >= chain.length) {
-          if (timer.current) clearInterval(timer.current);
-          setRunning(false);
-        }
-      }, 1200);
+      setRunId(d.run_id);
+      setRun({ run_id: d.run_id, source_id: String(sid), status: "running", nodes: {} });
+      toast(`DAG 已启动 run_id=${d.run_id}`);
+      // 真实状态轮询：后端 Redis 回写每节点完成情况
+      if (poll.current) clearInterval(poll.current);
+      poll.current = setInterval(async () => {
+        try {
+          const sr = await fetch(`${API}/api/pipeline/run/${d.run_id}`, { cache: "no-store" });
+          if (!sr.ok) return;
+          const rec: RunRec = await sr.json();
+          setRun(rec);
+          if (rec.status !== "running") {
+            if (poll.current) clearInterval(poll.current);
+            refreshRuns();
+            toast(rec.status === "done" ? "DAG 执行完成" : `执行失败：${rec.error || "未知错误"}`);
+          }
+        } catch { /* ignore */ }
+      }, 1000);
     } catch (e) {
       toast(`触发失败：${e}`);
-      setRunning(false);
-      setProgress(-1);
     }
   }
 
-  function nodeCls(i: number) {
-    if (progress >= 0 && i < progress) return "border-low/50 bg-low/5";
-    if (i === progress && running) return "border-accent bg-accent/10 animate-pulse";
-    if (progress >= ordered.length && ordered.length > 0) return "border-low/50 bg-low/5";
+  const nodeState = (id: string): "pending" | "running" | "done" | "error" => {
+    if (!run) return "pending";
+    if (run.status === "done") return "done";
+    if (run.status === "error") return run.nodes?.[id] === "done" ? "done" : run.current === id ? "error" : "pending";
+    if (run.nodes?.[id] === "done") return "done";
+    if (run.current === id) return "running";
+    return "pending";
+  };
+
+  const nodeCls = (id: string) => {
+    const st = nodeState(id);
+    if (st === "done") return "border-low/50 bg-low/5";
+    if (st === "running") return "border-accent bg-accent/10 animate-pulse";
+    if (st === "error") return "border-crit/60 bg-crit/10";
     return "border-border";
-  }
+  };
+  const badgeCls = (id: string) => {
+    const st = nodeState(id);
+    if (st === "done") return "bg-low/15 text-low";
+    if (st === "running") return "bg-accent/15 text-accent";
+    if (st === "error") return "bg-crit/15 text-crit";
+    return "bg-border text-dim";
+  };
 
   const sel = "rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-fg";
+  const running = run?.status === "running";
 
   return (
     <div className="space-y-4">
@@ -111,16 +133,17 @@ export default function PipelinePage() {
           <div className="flex min-w-max items-stretch">
             {ordered.map((n, i) => (
               <div key={n.id} className="flex items-center">
-                <div className={`w-44 rounded-xl border p-3 transition-colors ${nodeCls(i)}`}>
+                <div className={`w-44 rounded-xl border p-3 transition-colors ${nodeCls(n.id)}`}>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className={`badge ${progress > i || progress >= ordered.length ? "bg-low/15 text-low" : i === progress && running ? "bg-accent/15 text-accent" : "bg-border text-dim"}`}>
-                      {progress > i || progress >= ordered.length ? "✓" : i + 1}
+                    <span className={`badge ${badgeCls(n.id)}`}>
+                      {nodeState(n.id) === "done" ? "✓" : i + 1}
                     </span>
                     <span className="font-medium">{n.label}</span>
                     <span className="mono text-[10px] text-dim">{n.id}</span>
                   </div>
                   <p className="text-xs leading-snug text-dim">{n.desc}</p>
-                  {i === progress && running && <div className="mt-2 text-[11px] text-accent">执行中…</div>}
+                  {nodeState(n.id) === "running" && <div className="mt-2 text-[11px] text-accent">执行中…</div>}
+                  {nodeState(n.id) === "error" && <div className="mt-2 text-[11px] text-crit">失败</div>}
                 </div>
                 {i < ordered.length - 1 && (
                   <div className="mx-3 flex flex-col items-center text-dim">
@@ -131,6 +154,14 @@ export default function PipelinePage() {
             ))}
           </div>
         )}
+        {run && (
+          <div className="mt-4 border-t border-border pt-3 text-xs text-dim">
+            当前运行：<span className="mono text-fg">{run.run_id}</span>
+            {run.current && <span> · 当前节点 <span className="text-accent">{run.current}</span></span>}
+            <span> · 状态 <span className={run.status === "done" ? "text-low" : run.status === "error" ? "text-crit" : "text-accent"}>{run.status}</span></span>
+            {run.error && <span className="text-crit"> · {run.error}</span>}
+          </div>
+        )}
       </div>
 
       <div className="card space-y-3">
@@ -139,29 +170,46 @@ export default function PipelinePage() {
           <select className={sel} value={sid} onChange={(e) => setSid(Number(e.target.value))}>
             {sources.length === 0 && <option value="">（无数据源）</option>}
             {sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}（{s.source_type} · T{s.tier}）
-              </option>
+              <option key={s.id} value={s.id}>{s.name}（{s.source_type} · T{s.tier}）</option>
             ))}
           </select>
-          <button className="btn" disabled={running || sid === ""} onClick={run}>
+          <button className="btn" disabled={running || sid === ""} onClick={triggerRun}>
             {running ? "DAG 运行中…" : "运行完整 DAG"}
           </button>
-          {running && <span className="text-xs text-accent">流水线推进中，节点逐个点亮</span>}
-          {!running && progress >= ordered.length && ordered.length > 0 && (
-            <span className="text-xs text-low">本轮 DAG 已跑完</span>
-          )}
+          {running && <span className="text-xs text-accent">节点状态来自后端 Redis 实时回写</span>}
         </div>
         <p className="text-xs text-dim">
-          触发后后端以 asyncio 后台执行整条 LangGraph 链：采集入库 → 并发富化 worker → Qdrant 混合向量索引 → Neo4j 图谱同步 → 高危条目 SSE 广播。
-          {dag?.schedule ? `（${dag.schedule}）` : ""} 实际运行状态可在「数据源监控」页查看。
+          触发后后端执行整条 LangGraph 链：采集入库 → 并发富化 worker → Qdrant 混合向量索引 → Neo4j 图谱同步 → 高危条目 SSE 广播。
+          节点状态通过 astream 事件实时写入 Redis，前端每秒轮询真实进度（非示意动画）。
         </p>
       </div>
 
-      {msg && (
-        <div className="card fixed bottom-6 right-6 z-50 border-accent/40 px-4 py-3 text-sm shadow-lg">
-          {msg}
+      {runs.length > 0 && (
+        <div className="card">
+          <h2 className="mb-2 text-sm font-semibold">最近运行</h2>
+          <table className="tbl">
+            <thead><tr><th>run_id</th><th>source</th><th>状态</th><th>开始</th><th>结束</th></tr></thead>
+            <tbody>
+              {runs.map((r) => (
+                <tr key={r.run_id}>
+                  <td className="mono text-xs">{r.run_id}</td>
+                  <td className="text-xs">{r.source_id}</td>
+                  <td>
+                    <span className={`badge ${r.status === "done" ? "bg-low/15 text-low" : r.status === "error" ? "bg-crit/15 text-crit" : "bg-accent/15 text-accent"}`}>
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="text-xs text-dim">{(r.started_at || "").slice(5, 19).replace("T", " ")}</td>
+                  <td className="text-xs text-dim">{(r.finished_at || "").slice(5, 19).replace("T", " ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      )}
+
+      {msg && (
+        <div className="card fixed bottom-6 right-6 z-50 border-accent/40 px-4 py-3 text-sm shadow-lg">{msg}</div>
       )}
     </div>
   );

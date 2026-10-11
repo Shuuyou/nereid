@@ -72,7 +72,9 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    env_file: ../.env
+    env_file:
+      - path: ../.env
+        required: false
     environment:
       POSTGRES_HOST: postgres
       QDRANT_HOST: qdrant
@@ -100,7 +102,9 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     command: python -m app.scheduler.runner
-    env_file: ../.env
+    env_file:
+      - path: ../.env
+        required: false
     environment:
       POSTGRES_HOST: postgres
       QDRANT_HOST: qdrant
@@ -119,7 +123,8 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      # 容器内 Next 服务把 /api/* 反代到 backend（浏览器同源访问，无需知晓后端地址）
+      BACKEND_URL: http://backend:8000
     ports:
       - "3200:3000"
     depends_on:

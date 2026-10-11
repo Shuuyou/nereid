@@ -8,6 +8,7 @@
 """
 import asyncio
 import sys
+import json
 import time
 import uuid
 from datetime import datetime, timezone
@@ -16,7 +17,7 @@ from datetime import datetime, timezone
 async def main(skip_enrich: bool = False) -> None:
     from sqlalchemy import select
     from app.collectors.base import RawItemData
-    from app.db.models import Item, Source
+    from app.db.models import Item, RawItem, Source
     from app.db.session import get_session_factory
     from app.services.ingest import ingest_items
 
@@ -53,6 +54,9 @@ async def main(skip_enrich: bool = False) -> None:
 
     async with get_session_factory()() as db:
         item = await db.scalar(select(Item).where(Item.title.like(f"{tag}%")))
+        if item:
+            item.extra = {**(item.extra or {}), "canary": True}
+            await db.commit()
     if not item:
         print("[canary] FAIL: item 未入库"); sys.exit(1)
     marks["item_visible"] = time.time() - t0
@@ -98,13 +102,17 @@ async def main(skip_enrich: bool = False) -> None:
         print(f"[canary] 检索降级: {e}")
         marks["searchable"] = -1
 
+    # 回写 API 进程 → /metrics 暴露 secagent_canary_e2e_seconds{stage=...}
     try:
-        from app.core.metrics import canary_e2e
-        for stage, v in marks.items():
-            if v >= 0:
-                canary_e2e.labels(stage=stage).set(v)
-    except Exception:  # noqa: BLE001
-        pass
+        import urllib.request
+        req = urllib.request.Request(
+            "http://localhost:8000/api/internal/canary",
+            data=json.dumps({"stages": marks}).encode(),
+            headers={"Content-Type": "application/json"}, method="POST")
+        urllib.request.urlopen(req, timeout=5)
+        print("[canary] 指标已回写 /metrics")
+    except Exception as e:  # noqa: BLE001
+        print(f"[canary] 指标回写失败（API未在跑？）: {e}")
 
     total = time.time() - t0
     print("\n===== 金丝雀瀑布 =====")
@@ -112,7 +120,22 @@ async def main(skip_enrich: bool = False) -> None:
         bar = "█" * min(40, int(v)) if v >= 0 else "✗"
         print(f"  {k:14s} {v:7.2f}s {bar}")
     print(f"  {'TOTAL':14s} {total:7.2f}s")
-    print(f"[canary] item_id={item.id}（可保留作演示证据或手动删除）")
+    # 默认自动清理金丝雀条目，防污染情报库/统计（--keep 保留作演示证据）
+    if "--keep" in sys.argv:
+        print(f"[canary] item_id={item.id}（--keep：已保留）")
+    else:
+        try:
+            async with get_session_factory()() as db:
+                from sqlalchemy import delete
+                for m in (Item,):
+                    await db.execute(delete(m).where(m.id == item.id))
+                raw = await db.scalar(select(RawItem).where(RawItem.url.like(f"%{tag}")))
+                if raw:
+                    await db.delete(raw)
+                await db.commit()
+            print(f"[canary] 条目已清理 item_id={item.id[:8]}（指标保留于 /metrics）")
+        except Exception as e:  # noqa: BLE001
+            print(f"[canary] 清理失败（可手动删除 {item.id}）: {e}")
 
 
 if __name__ == "__main__":

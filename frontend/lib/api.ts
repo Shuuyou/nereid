@@ -1,9 +1,7 @@
-// 浏览器端跟随页面来源主机（localhost:3200→localhost:8000，Tailscale IP→同 IP:8000）；
-// SSR/构建期回落 localhost；可用 NEXT_PUBLIC_API_URL 显式覆盖。
+// 浏览器端默认同源（""）：/api/* 由 Next rewrite 反代到后端（BACKEND_URL），
+// 任意域名/IP/端口均自适应；显式部署可用 NEXT_PUBLIC_API_URL 覆盖为直连地址。
 export const API = process.env.NEXT_PUBLIC_API_URL
-  || (typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:8000`
-    : "http://localhost:8000");
+  ?? (typeof window !== "undefined" ? "" : "http://localhost:8000");
 
 async function j(path: string, init?: RequestInit) {
   const r = await fetch(`${API}${path}`, { ...init, cache: "no-store" });
@@ -55,14 +53,17 @@ export async function* streamChat(question: string, sessionId: string | null, de
     const { done, value } = await reader.read();
     if (done) break;
     buf += dec.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() || "";
-    for (const line of lines) {
-      if (line.startsWith("event:")) evType = line.slice(6).trim();
-      else if (line.startsWith("data:")) {
-        try {
-          yield { type: evType as QaEvent["type"], data: JSON.parse(line.slice(5)) };
-        } catch { /* ignore */ }
+    // SSE 规范解析：空行分隔事件，data: 支持多行，兼容 \r\n
+    const blocks = buf.split(/\r?\n\r?\n/);
+    buf = blocks.pop() || "";
+    for (const block of blocks) {
+      for (const line of block.split(/\r?\n/)) {
+        if (line.startsWith("event:")) evType = line.slice(6).trim();
+        else if (line.startsWith("data:")) {
+          try {
+            yield { type: evType as QaEvent["type"], data: JSON.parse(line.slice(5).replace(/^ /, "")) };
+          } catch { /* ignore */ }
+        }
       }
     }
   }

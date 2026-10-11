@@ -27,7 +27,7 @@ jobs:
           POSTGRES_HOST: localhost
       - name: Unit tests
         working-directory: backend
-        run: .venv/bin/python -m pytest tests -q || true
+        run: .venv/bin/python -m pytest tests -q
 
   frontend:
     runs-on: ubuntu-latest

@@ -177,7 +177,7 @@ class NvidiaPsirtCollector(BaseCollector):
 
 class MsrcCollector(BaseCollector):
     name = "msrc"
-    AI_HINTS = ("ai", "copilot", "azure openai", "machine learning", "python", "ml", "deep learning", "semantic kernel")
+    AI_HINTS = ("copilot", "azure openai", "machine learning", "deep learning", "semantic kernel", "ai-assisted", "generative ai")
 
     async def collect(self, source: Source) -> tuple[list[RawItemData], dict]:
         now = datetime.now(timezone.utc)
@@ -196,7 +196,7 @@ class MsrcCollector(BaseCollector):
             title = v.get("Title", {}).get("Value") or (v.get("Title") if isinstance(v.get("Title"), str) else cve)
             notes = " ".join(n.get("Value", "") for n in v.get("Notes", []) if isinstance(n, dict))
             hay = (title or "") + " " + notes
-            ai_hit = any(h in hay.lower() for h in self.AI_HINTS)
+            ai_hit = any(re.search(r"\b" + re.escape(h) + r"\b", hay.lower()) for h in self.AI_HINTS)
             sev = None
             for t in v.get("Threats", []):
                 if t.get("Type") == 3:
@@ -228,15 +228,18 @@ class PolicyCollector(RssCollector):
                 return items, st
         except Exception as e:  # noqa: BLE001
             log.debug("policy_rss_fallback", src=source.name, error=str(e)[:100])
-        # 兜底：抓首页提取政策链接
-        resp = await fetch(source.url)
+        # 兜底：抓站点首页提取政策链接（source.url 可能是 rss.xml，RSS 挂时抓它没意义）
+        home = source.state.get("home_url") or source.url
+        if re.search(r"(rss|feed|atom)(\.[a-z]+)?$|\.xml$", home):
+            home = re.sub(r"/[^/]*$", "/", home)  # 退到站点根
+        resp = await fetch(home)
         if resp.status_code != 200:
             return [], {}
         html = resp.text
         links = re.findall(r'<a[^>]+href="([^"]+)"[^>]*>([^<]{10,80})</a>', html)
         items: list[RawItemData] = []
-        host = source.url.rstrip("/").split("/")[2]
-        base = f"https://{host}" if host else source.url
+        host = home.rstrip("/").split("/")[2]
+        base = f"https://{host}" if host else home
         seen = set(source.state.get("seen", []))
         for href, text in links[:40]:
             text = re.sub(r"\s+", " ", text).strip()

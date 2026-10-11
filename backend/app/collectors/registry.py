@@ -56,13 +56,17 @@ _running: set[int] = set()
 
 
 async def run_source(source_id: int) -> dict:
-    """执行单源采集：collector → ingest → 状态/指标更新"""
+    """执行单源采集：collector → ingest → 状态/指标更新
+
+    三阶段事务模型：读(短事务) → 网络采集(无会话) → 写(短事务)。
+    网络期不持任何 DB 事务/锁，避免长耗时外部调用饿死并发写。
+    """
     if source_id in _running:
         return {"status": "skipped_running"}
     _running.add(source_id)
     started = datetime.now(timezone.utc)
     try:
-        # 阶段1：短事务读 source（网络采集期不持会话/行锁）
+        # 阶段1：短事务读 source 后 detach
         async with get_session_factory()() as db:
             source = (await db.execute(select(Source).where(Source.id == source_id))).scalar_one_or_none()
             if not source or not source.enabled:
@@ -71,20 +75,33 @@ async def run_source(source_id: int) -> dict:
         collector = COLLECTORS.get(source.name)
         if not collector:
             raise RuntimeError(f"no collector for {source.name}")
+
+        # 阶段2：网络采集——完全无会话
+        import time as _t
+        t0 = _t.time()
+        collect_err: str | None = None
+        items: list = []
+        new_state: dict = {}
+        try:
+            items, new_state = await collector.collect(source)
+        except Exception as e:  # noqa: BLE001
+            collect_err = str(e)[:400]
+        elapsed = _t.time() - t0
+
+        # 阶段3：短事务——重附着 source + ingest + 状态写回
         async with get_session_factory()() as db:
-            source = await db.merge(source)  # 重新附着会话，状态写回生效
+            source = await db.merge(source)
             try:
-                import time as _t
-                t0 = _t.time()
-                items, new_state = await collector.collect(source)
-                elapsed = _t.time() - t0
+                if collect_err:
+                    raise RuntimeError(collect_err)
                 stats = await ingest_items(db, source, items)
                 source.state = {**(source.state or {}), **(new_state or {})}
                 source.last_run_at = started
                 source.last_success_at = datetime.now(timezone.utc)
                 source.last_error = None
                 source.consecutive_failures = 0
-                stats.update({"status": "ok", "elapsed_s": round(elapsed, 1), "received": len(items)})
+                stats.update({"status": "ok", "elapsed_s": round(elapsed, 1), "received": len(items),
+                              "item_ids": stats.get("new_item_ids", [])[:50]})
                 items_collected.labels(source=source.name).inc(len(items))
                 items_new.inc(stats.get("new_items", 0))
                 items_merged.inc(stats.get("merged", 0))
