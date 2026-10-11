@@ -12,3 +12,4 @@ data/*.tmp
 models/
 *.log
 .DS_Store
+*.tsbuildinfo
