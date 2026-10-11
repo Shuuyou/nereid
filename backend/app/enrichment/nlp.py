@@ -37,6 +37,13 @@ async def run(item, ctx) -> dict:
     extra: dict = {}
     notes = []
 
+    # 中文源直接回填（已中文无需翻译）
+    if not item.title_zh and re.search(r"[一-鿿]", item.title or ""):
+        fields["title_zh"] = (item.title or "")[:300]
+    if not item.summary_zh and re.search(r"[一-鿿]", item.summary or ""):
+        fields["summary_zh"] = (item.summary or "")[:2000]
+        notes.append("zh_backfill")
+
     if llm_enabled():
         text = (item.content_text or item.summary or "")[:6000]
         title = item.title or ""

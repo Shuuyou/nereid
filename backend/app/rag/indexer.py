@@ -77,6 +77,9 @@ async def index_item(item: Item | str) -> int:
     chunks = chunk_text(body)
     if not chunks:
         return 0
+    content_hash = hashlib.md5(body.encode()).hexdigest()[:16]
+    if (item.extra or {}).get("indexed_hash") == content_hash:
+        return 0  # 内容未变，跳过（幂等增量）
     await qdrant.ensure_collection()
     vecs = await embedder.embed_texts(chunks)
     sparses = await embedder.sparse_texts(chunks)
@@ -87,6 +90,18 @@ async def index_item(item: Item | str) -> int:
                        payload=_payload(item, chunks[i], i))
         for i in range(len(chunks))]
     await qdrant.upsert_chunks(points)
+    # 标记已索引（免迁移，存 extra）
+    async with sf() as db:
+        it = await db.get(Item, item.id)
+        if it:
+            it.extra = {**(it.extra or {}), "indexed_hash": content_hash}
+            await db.commit()
+    try:
+        from app.core.metrics import index_size
+        info = await qdrant.client().get_collection(qdrant.COLLECTION)
+        index_size.set(info.points_count or 0)
+    except Exception:  # noqa: BLE001
+        pass
     log.info("item_indexed", item=item.id, chunks=len(points))
     return len(points)
 

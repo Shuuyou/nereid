@@ -7,21 +7,23 @@ from app.rag import embedder, qdrant
 log = get_logger("rag.retriever")
 
 
-async def retrieve(query: str, top_k: int = 8, rerank_top: int = 24, **filters) -> list[dict]:
-    """返回 item 级证据：[{item_id,title,url,text,score,cve,...}]"""
+async def retrieve(query: str, top_k: int = 8, rerank_top: int = 24,
+                   do_rerank: bool = True, **filters) -> list[dict]:
+    """返回 item 级证据：[{item_id,title,url,text,score,cve,...}]
+    do_rerank=False 跳过重排——多子问场景先合并候选、单次重排，省 2/3 重排耗时"""
     dv = await embedder.embed_query(query)
     sv = (await embedder.sparse_texts([query]))[0]
     f = qdrant.build_filter(**{k: v for k, v in filters.items() if v})
     hits = await qdrant.hybrid_search(dv, sv, top_k=rerank_top, filters=f)
     if not hits:
         return []
-    # 交叉编码重排（query vs chunk 文本）
-    docs = [h.get("text", "") for h in hits]
-    try:
-        ranked = await embedder.rerank(query, docs, top_n=min(len(docs), rerank_top))
-        hits = [{**hits[i], "rerank_score": s} for i, s in ranked]
-    except Exception as e:  # noqa: BLE001
-        log.warning("rerank_failed", error=str(e)[:120])
+    if do_rerank:
+        docs = [h.get("text", "") for h in hits]
+        try:
+            ranked = await embedder.rerank(query, docs, top_n=min(len(docs), rerank_top))
+            hits = [{**hits[i], "rerank_score": s} for i, s in ranked]
+        except Exception as e:  # noqa: BLE001
+            log.warning("rerank_failed", error=str(e)[:120])
     # 聚合到 item 级：同 item 取最高分 chunk，保留 top2 chunk 文本
     by_item: dict[str, dict] = {}
     for h in hits:

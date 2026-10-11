@@ -25,6 +25,7 @@ export const api = {
   runAll: () => j("/api/collect/run-all", { method: "POST" }),
   enrich: (id: string) => j(`/api/items/${id}/enrich`, { method: "POST" }),
   kgStats: () => j("/api/kg/stats"),
+  freshness: () => j("/api/stats/freshness"),
   kgSubgraph: (entity: string, depth = 2) => j(`/api/kg/subgraph?entity=${encodeURIComponent(entity)}&depth=${depth}`),
   reports: () => j("/api/reports"),
   report: (id: string) => j(`/api/reports/${id}`),
@@ -37,11 +38,11 @@ export interface QaEvent {
   data: any;
 }
 
-export async function* streamChat(question: string, sessionId: string | null): AsyncGenerator<QaEvent> {
+export async function* streamChat(question: string, sessionId: string | null, deep = true): AsyncGenerator<QaEvent> {
   const r = await fetch(`${API}/api/qa/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, session_id: sessionId, deep: true }),
+    body: JSON.stringify({ question, session_id: sessionId, deep }),
   });
   const sid = r.headers.get("X-Session-Id");
   if (!r.ok || !r.body) throw new Error(`chat ${r.status}`);
@@ -65,4 +66,14 @@ export async function* streamChat(question: string, sessionId: string | null): A
     }
   }
   if (sid) yield { type: "status", data: { session_id: sid } };
+}
+
+/** 订阅实时情报流（SSE /api/feed/stream），返回取消函数 */
+export function subscribeFeed(onItem: (item: any) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const es = new EventSource(`${API}/api/feed/stream`);
+  es.addEventListener("new_item", (e) => {
+    try { onItem(JSON.parse((e as MessageEvent).data)); } catch { /* ignore */ }
+  });
+  return () => es.close();
 }

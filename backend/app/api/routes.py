@@ -114,6 +114,37 @@ async def stats_overview(db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.get("/stats/freshness")
+async def stats_freshness(db: AsyncSession = Depends(get_db)):
+    """时效指标：published_at→first_seen_at 的入库延迟分布（性能分'时效'的证据）"""
+    rows = (await db.execute(text(
+        "SELECT EXTRACT(EPOCH FROM (first_seen_at - published_at))/60.0 AS lag_min, "
+        "       source_names[1] "
+        "FROM items WHERE published_at IS NOT NULL AND first_seen_at IS NOT NULL"))).all()
+    lags = sorted(r[0] for r in rows if r[0] is not None and 0 <= r[0] < 43200)  # <30d 合理窗
+    if not lags:
+        return {"n": 0}
+    def pct(p):
+        return round(lags[min(len(lags) - 1, int(len(lags) * p))], 1)
+    buckets = {"<1h": 0, "1-6h": 0, "6-24h": 0, "1-7d": 0, ">7d": 0}
+    for v in lags:
+        if v < 60: buckets["<1h"] += 1
+        elif v < 360: buckets["1-6h"] += 1
+        elif v < 1440: buckets["6-24h"] += 1
+        elif v < 10080: buckets["1-7d"] += 1
+        else: buckets[">7d"] += 1
+    # 分源延迟（top10 源）
+    by_src: dict[str, list[float]] = {}
+    for lag, src in rows:
+        if lag is not None and 0 <= lag < 43200:
+            by_src.setdefault(src or "unknown", []).append(lag)
+    src_stats = [{"source": k, "n": len(v), "p50_min": round(sorted(v)[len(v)//2], 1)}
+                 for k, v in sorted(by_src.items(), key=lambda x: -len(x[1]))[:10]]
+    return {"n": len(lags), "p50_min": pct(0.5), "p90_min": pct(0.9), "p95_min": pct(0.95),
+            "min_min": round(lags[0], 1), "buckets": buckets, "by_source": src_stats,
+            "sla_6h_pct": round(100 * sum(1 for v in lags if v < 360) / len(lags), 1)}
+
+
 # ============ 情报条目 ============
 
 @router.get("/items")
@@ -193,6 +224,41 @@ async def item_detail(item_id: str, db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.get("/review")
+async def review_queue(status: str = "needs_review", limit: int = 50,
+                       db: AsyncSession = Depends(get_db)):
+    """HITL 复核队列：低置信/富化失败条目待人工确认"""
+    rows = (await db.execute(
+        select(Item).where(Item.review_status == status)
+        .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
+        .limit(limit))).scalars().all()
+    return {"count": len(rows), "items": [
+        {"id": i.id, "title": i.title_zh or i.title, "cve": i.cve_ids[:1],
+         "severity": i.severity, "confidence": i.confidence,
+         "review_status": i.review_status,
+         "weak_dims": [k for k, v in (i.enrichment or {}).items()
+                       if isinstance(v, dict) and v.get("status") in ("error", "partial")],
+         "first_seen_at": i.first_seen_at.isoformat() if i.first_seen_at else None}
+        for i in rows]}
+
+
+@router.post("/review/{item_id}/{action}")
+async def review_action(item_id: str, action: str, db: AsyncSession = Depends(get_db)):
+    """人工复核确认/驳回：confirm → confirmed；reject → 回炉重富化"""
+    item = await db.get(Item, item_id)
+    if not item:
+        raise HTTPException(404)
+    if action == "confirm":
+        item.review_status = "confirmed"
+    elif action == "reject":
+        item.review_status = "auto"
+        item.enrichment = {}
+    else:
+        raise HTTPException(400, "action must be confirm|reject")
+    await db.commit()
+    return {"id": item_id, "review_status": item.review_status}
+
+
 @router.get("/items/{item_id}/related")
 async def related_items(item_id: str, db: AsyncSession = Depends(get_db)):
     it = (await db.execute(select(Item).where(Item.id == item_id))).scalar_one_or_none()
@@ -243,6 +309,73 @@ async def run_source_now(source_id: int, db: AsyncSession = Depends(get_db)):
     from app.collectors.registry import run_source
     asyncio.create_task(run_source(s.id))
     return {"status": "started", "source": s.name}
+
+
+@router.get("/items/{item_id}/stix")
+async def item_stix(item_id: str, db: AsyncSession = Depends(get_db)):
+    """STIX 2.1 Bundle 导出（情报互操作标准，对接 TAXII/SIEM 生态）"""
+    import uuid as _uuid
+    item = await db.get(Item, item_id)
+    if not item:
+        raise HTTPException(404)
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    objects: list[dict] = []
+    for cve in (item.cve_ids or [item.id]):
+        vid = f"vulnerability--{_uuid.uuid5(_uuid.NAMESPACE_URL, 'https://secagent/' + cve)}"
+        objects.append({
+            "type": "vulnerability", "spec_version": "2.1", "id": vid,
+            "created": now, "modified": now, "name": cve,
+            "description": (item.summary_zh or item.summary or "")[:2000],
+            "external_references": ([{"source_name": "cve", "external_id": cve}] if cve.startswith("CVE-") else [])
+                + ([{"source_name": "url", "url": item.url}] if item.url else []),
+        })
+    for tech in (item.attack_techniques or [])[:5]:
+        objects.append({
+            "type": "attack-pattern", "spec_version": "2.1",
+            "id": f"attack-pattern--{_uuid.uuid5(_uuid.NAMESPACE_URL, 'https://secagent/' + tech)}",
+            "created": now, "modified": now, "name": tech,
+            "external_references": [{"source_name": "mitre-attack", "external_id": tech}],
+        })
+    objects.append({
+        "type": "report", "spec_version": "2.1",
+        "id": f"report--{_uuid.uuid5(_uuid.NAMESPACE_URL, 'https://secagent/item/' + item.id)}",
+        "created": now, "modified": now,
+        "name": item.title_zh or item.title, "published": now,
+        "report_types": ["threat-report"],
+        "object_refs": [o["id"] for o in objects],
+        "labels": [item.severity or "unknown", item.ai_layer or "general"],
+    })
+    return {"type": "bundle", "id": f"bundle--{_uuid.uuid4()}", "objects": objects}
+
+
+@router.get("/pipeline/graph")
+async def pipeline_graph_def():
+    """LangGraph 编排 DAG 结构（前端可视化 + 架构评审证据）"""
+    return {
+        "engine": "LangGraph StateGraph",
+        "nodes": [
+            {"id": "collect", "label": "采集", "desc": "run_source → 多源采集+去重入库"},
+            {"id": "enrich", "label": "富化", "desc": "并发 worker 扇出（EPSS/KEV/PoC/论文/映射/攻击链）"},
+            {"id": "index", "label": "索引", "desc": "Qdrant dense+sparse 混合向量入库"},
+            {"id": "kg", "label": "图谱", "desc": "Neo4j 实体关系 MERGE 同步"},
+            {"id": "notify", "label": "推送", "desc": "高危情报 SSE 实时广播"},
+        ],
+        "edges": [["collect", "enrich"], ["enrich", "index"], ["index", "kg"],
+                  ["kg", "notify"]],
+        "schedule": "scheduler job_pipeline 每 15 分钟对到期源运行",
+    }
+
+
+@router.post("/pipeline/run/{source_id}")
+async def pipeline_run(source_id: int, db: AsyncSession = Depends(get_db)):
+    """对指定数据源运行 LangGraph 全链 DAG（collect→enrich→index→kg→notify）"""
+    from app.agents.pipeline_graph import run_pipeline
+    src = await db.get(Source, source_id)
+    if not src:
+        raise HTTPException(404, "source not found")
+    asyncio.create_task(run_pipeline(source_id))
+    return {"status": "started", "source": src.name,
+            "dag": ["collect", "enrich", "index", "kg", "notify"]}
 
 
 @router.post("/collect/run-all")

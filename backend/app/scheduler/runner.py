@@ -56,6 +56,26 @@ async def job_daily_report() -> None:
         log.error("daily_report_failed", error=str(e)[:300])
 
 
+async def job_pipeline() -> None:
+    """LangGraph 全链 DAG：对到期源跑 collect→enrich→index→kg→notify（编排层实跑路径）"""
+    from datetime import datetime, timezone
+    from sqlalchemy import select
+    from app.agents.pipeline_graph import run_pipeline
+    from app.db.models import Source
+    from app.db.session import get_session_factory
+    try:
+        async with get_session_factory()() as db:
+            sources = (await db.execute(select(Source).where(Source.enabled.is_(True)))).scalars().all()
+        now = datetime.now(timezone.utc)
+        due = [s for s in sources
+               if s.last_run_at is None or (now - s.last_run_at).total_seconds() >= (s.poll_interval_sec or 3600)]
+        for s in due[:3]:  # 每轮最多 3 个源走完整 DAG
+            res = await run_pipeline(s.id)
+            log.info("pipeline_run", source=s.name, stats=res.get("stats"), errors=len(res.get("errors") or []))
+    except Exception as e:  # noqa: BLE001
+        log.error("pipeline_job_failed", error=str(e)[:300])
+
+
 async def job_epss_refresh() -> None:
     from app.enrichment.scorers import refresh_epss_all
     try:
@@ -66,19 +86,24 @@ async def job_epss_refresh() -> None:
 
 def main() -> None:
     setup_logging()
-    sched = AsyncIOScheduler(timezone="Asia/Shanghai")
-    sched.add_job(job_collect, IntervalTrigger(minutes=1), id="collect", max_instances=1, coalesce=True)
-    sched.add_job(job_enrich, IntervalTrigger(minutes=5), id="enrich", max_instances=1, coalesce=True)
-    sched.add_job(job_index, IntervalTrigger(minutes=5), id="index", max_instances=1, coalesce=True)
-    sched.add_job(job_kg_sync, IntervalTrigger(minutes=10), id="kg", max_instances=1, coalesce=True)
-    sched.add_job(job_daily_report, CronTrigger(hour=8, minute=0), id="daily_report")
-    sched.add_job(job_epss_refresh, CronTrigger(hour="*/6"), id="epss")
-    sched.start()
-    log.info("scheduler_started")
+
+    async def _run() -> None:
+        sched = AsyncIOScheduler(timezone="Asia/Shanghai")
+        sched.add_job(job_collect, IntervalTrigger(minutes=1), id="collect", max_instances=1, coalesce=True)
+        sched.add_job(job_enrich, IntervalTrigger(minutes=5), id="enrich", max_instances=1, coalesce=True)
+        sched.add_job(job_index, IntervalTrigger(minutes=5), id="index", max_instances=1, coalesce=True)
+        sched.add_job(job_kg_sync, IntervalTrigger(minutes=10), id="kg", max_instances=1, coalesce=True)
+        sched.add_job(job_daily_report, CronTrigger(hour=8, minute=0), id="daily_report")
+        sched.add_job(job_epss_refresh, CronTrigger(hour="*/6"), id="epss")
+        sched.add_job(job_pipeline, IntervalTrigger(minutes=15), id="langgraph_pipeline", max_instances=1, coalesce=True)
+        sched.start()
+        log.info("scheduler_started")
+        await asyncio.Event().wait()
+
     try:
-        asyncio.get_event_loop().run_forever()
+        asyncio.run(_run())
     except (KeyboardInterrupt, SystemExit):
-        sched.shutdown()
+        pass
 
 
 if __name__ == "__main__":

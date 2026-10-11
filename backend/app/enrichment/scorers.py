@@ -9,8 +9,9 @@ from app.services.ssvc import fetch_vulnrichment
 log = get_logger("enrich.scorers")
 
 KEV_URLS = [
-    "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    # github 镜像优先（本环境 cisa.gov 不可达，直连会耗尽 fetch 3 次指数退避）
     "https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json",
+    "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
 ]
 _kev_cache: dict | None = None
 
@@ -109,19 +110,61 @@ async def run(item, ctx) -> dict:
               data_keys=["epss", "kev", "nvd", "ssvc"])
 
 
+async def _epss_batch(cves: list[str]) -> dict[str, tuple[float, float]]:
+    """EPSS 批量查询（≤100/次）→ {cve: (score, percentile)}"""
+    out: dict[str, tuple[float, float]] = {}
+    for i in range(0, len(cves), 100):
+        batch = cves[i:i + 100]
+        try:
+            r = await fetch("https://api.first.org/data/v1/epss",
+                            params={"cve": ",".join(batch)})
+            if r.status_code == 200:
+                for row in r.json().get("data", []):
+                    out[row["cve"]] = (float(row.get("epss") or 0),
+                                       float(row.get("percentile") or 0))
+        except Exception as e:  # noqa: BLE001
+            log.warning("epss_batch_failed", batch=i // 100, error=str(e)[:120])
+    return out
+
+
 async def refresh_epss_all(limit: int = 500) -> int:
-    """周期刷新全部 item 的 EPSS（评分会随时间漂移）"""
+    """周期刷新 EPSS+KEV（评分随时间漂移）：批量 API，非 per-item worker"""
     from sqlalchemy import select
     from app.db.models import Item
     from app.db.session import get_session_factory
     global _kev_cache
     _kev_cache = None
+    kev = await _kev_set()
     n = 0
     async with get_session_factory()() as db:
-        rows = (await db.execute(select(Item).where(Item.cve_ids != []).order_by(Item.first_seen_at.desc()).limit(limit))).scalars().all()
+        rows = (await db.execute(
+            select(Item).where(Item.cve_ids != [])
+            .order_by(Item.first_seen_at.desc()).limit(limit))).scalars().all()
+        # 收集全部 CVE 一次批量查 EPSS
+        all_cves = sorted({c for it in rows for c in (it.cve_ids or [])})
+        epss_map = await _epss_batch(all_cves)
         for it in rows:
-            try:
-                await run(it, None)
-            except Exception:  # noqa: BLE001
-                continue
+            best = max(((epss_map.get(c) for c in it.cve_ids or [])),
+                       key=lambda x: x[0] if x else -1)
+            changed = False
+            if best:
+                if it.epss_score != best[0]:
+                    it.epss_score = best[0]
+                    changed = True
+                if it.epss_percentile != best[1]:
+                    it.epss_percentile = best[1]
+                    changed = True
+            kev_hit = next((c for c in (it.cve_ids or []) if c in kev), None)
+            if kev_hit and not it.is_kev:
+                it.is_kev = True
+                it.exploit_maturity = "weaponized"
+                changed = True
+            if changed:
+                enr = dict(it.enrichment or {})
+                enr["scorers"] = {**(enr.get("scorers") or {}),
+                                  "status": "ok", "confidence": 1.0,
+                                  "note": "epss/kev refresh"}
+                it.enrichment = enr
+                n += 1
+        await db.commit()
     return n

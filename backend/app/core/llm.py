@@ -75,6 +75,35 @@ async def chat(
     }
 
 
+async def chat_stream(
+    messages: list[dict[str, str]],
+    *,
+    model: str | None = None,
+    reasoning: bool = False,
+    temperature: float = 0.1,
+    max_tokens: int = 4096,
+    provider: str = "deepseek",
+):
+    """真流式聊天补全：逐 delta 产出文本（SSE token 直通）"""
+    client = _get_client(provider)
+    kwargs: dict = {
+        "model": model or default_model(reasoning),
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "stream": True,
+    }
+    if not reasoning:
+        kwargs["temperature"] = temperature
+    stream = await client.chat.completions.create(**kwargs)
+    async for chunk in stream:
+        if not chunk.choices:
+            continue
+        delta = chunk.choices[0].delta
+        piece = getattr(delta, "content", None) or ""
+        if piece:
+            yield piece
+
+
 async def chat_structured(
     messages: list[dict[str, str]],
     schema: type[T],

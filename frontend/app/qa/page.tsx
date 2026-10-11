@@ -19,6 +19,7 @@ export default function QaPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [deep, setDeep] = useState(true);
   const bottom = useRef<HTMLDivElement>(null);
 
   async function send(q?: string) {
@@ -28,10 +29,11 @@ export default function QaPage() {
     setMsgs((m) => [...m, { role: "user", content: question }, { role: "assistant", content: "" }]);
     try {
       let acc = "", cites: any[] = [], trace: any = null, conf = 0;
-      for await (const ev of streamChat(question, sessionId)) {
+      for await (const ev of streamChat(question, sessionId, deep)) {
         if (ev.type === "status") {
           if (ev.data.session_id) setSessionId(ev.data.session_id);
-          setStatus(ev.data.msg || "");
+          const t = ev.data.tool ? `调用 ${ev.data.tool}(${ev.data.hits ?? "?"} 命中)` : (ev.data.msg || "");
+          setStatus(t);
         } else if (ev.type === "token") {
           acc += ev.data.t;
           setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], content: acc }; return a; });
@@ -104,6 +106,12 @@ export default function QaPage() {
         <div ref={bottom} />
       </div>
       <div className="mt-3 flex gap-2">
+        <button
+          className={`btn-ghost text-xs shrink-0 ${deep ? "text-accent" : "text-low"}`}
+          onClick={() => setDeep((d) => !d)}
+          title={deep ? "深度模式：Agent 工具编排+多跳推理（较慢）" : "快速模式：直接检索生成（≤10s）"}>
+          {deep ? "深度" : "快速"}
+        </button>
         <input className="input flex-1" placeholder="提问 AI 安全情报… (Enter 发送)"
           value={input} disabled={busy}
           onChange={(e) => setInput(e.target.value)}

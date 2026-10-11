@@ -68,14 +68,15 @@ async def entity_expand(ids: list[str], hops: int = 2, limit: int = 60) -> list[
             facts += [dict(r) async for r in res]
             # 2) 多跳：CVE→CWE→其他Item（同弱点关联的情报）
             if hops >= 2:
+                seen_ids = [f["item_id"] for f in facts if f.get("item_id")]
                 res = await ses.run("""
                     UNWIND $ids AS eid
                     MATCH (v:CVE {id:eid})-[:HAS_CWE]->(w:CWE)<-[:HAS_CWE]-(other:CVE)<-[:HAS_CVE]-(i2:Item)
-                    WHERE NOT i2.id IN [f.item_id FOR f IN []]
+                    WHERE NOT i2.id IN $seen
                     RETURN DISTINCT i2.id AS item_id, i2.title AS title,
                            w.id AS via_cwe, 'same_cwe' AS rel
                     LIMIT $limit
-                """, ids=ids, limit=limit)
+                """, ids=ids, limit=limit, seen=seen_ids)
                 facts += [dict(r) async for r in res]
     except Exception as e:  # noqa: BLE001
         log.warning("kg_expand_failed", error=str(e)[:150])

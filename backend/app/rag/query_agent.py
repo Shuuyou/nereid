@@ -3,6 +3,8 @@
 """
 from __future__ import annotations
 
+import asyncio
+import json
 import re
 import time
 from datetime import datetime, timezone
@@ -11,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.core.ids import extract_ids
-from app.core.llm import chat, chat_structured
+from app.core.llm import chat, chat_structured, chat_stream
 from app.core.logging import get_logger
 from app.db.models import Item, MappingLink, Poc
 from app.db.session import get_session_factory
@@ -52,6 +54,122 @@ async def _route(question: str, history: list[dict]) -> RouteOut:
         return RouteOut(route="general", sub_questions=[question])
 
 
+AGENT_TOOLS = [
+    {"type": "function", "function": {
+        "name": "retrieve_intel",
+        "description": "混合检索情报库（向量+词面融合+重排）。按语义/关键词找相关情报条目",
+        "parameters": {"type": "object", "properties": {
+            "query": {"type": "string", "description": "检索式（中文/英文/产品名/CVE均可）"},
+            "top_k": {"type": "integer", "default": 6}}, "required": ["query"]}}},
+    {"type": "function", "function": {
+        "name": "kg_expand",
+        "description": "知识图谱关联扩展：由实体（CVE/CWE/Product/ATT&CK技术）出发找关联情报与实体，适用于多跳推理",
+        "parameters": {"type": "object", "properties": {
+            "entities": {"type": "array", "items": {"type": "string"}},
+            "hops": {"type": "integer", "default": 2}}, "required": ["entities"]}}},
+    {"type": "function", "function": {
+        "name": "get_item_detail",
+        "description": "按 CVE 编号取完整情报卡（CVSS/EPSS/KEV/PoC/受影响版本/攻击链/富化摘要）",
+        "parameters": {"type": "object", "properties": {
+            "cve": {"type": "string", "description": "如 CVE-2024-37032"}}, "required": ["cve"]}}},
+    {"type": "function", "function": {
+        "name": "list_kev",
+        "description": "列出情报库中被 CISA KEV 收录（确认遭在野利用）的条目清单",
+        "parameters": {"type": "object", "properties": {
+            "limit": {"type": "integer", "default": 15}}}}},
+]
+
+AGENT_SYS = """你是 AI 安全情报分析 Agent，可自主调用工具收集证据。
+规则：
+1. 分析问题后决定调用哪些工具（可多轮调用），收集足够证据后停止
+2. 已有证据能覆盖问题时不再调用，直接结束
+3. 每次调用有明确目的（查具体漏洞/找关联/枚举清单/多跳桥接）
+"""
+
+
+async def _exec_tool(name: str, args: dict) -> dict:
+    """执行一个工具调用，返回 {kind, title, summary, evidence}"""
+    try:
+        if name == "retrieve_intel":
+            hits = await retriever.retrieve(str(args.get("query", ""))[:300],
+                                            top_k=int(args.get("top_k") or 6), do_rerank=False)
+            ev = [{"item_id": h["item_id"], "title": h.get("title_zh") or h.get("title"),
+                   "url": h.get("url"), "text": h.get("text", "")[:1400],
+                   "score": h.get("rerank_score", h["score"]), "kind": "retrieve"}
+                  for h in hits]
+            return {"kind": "retrieve", "title": f"检索:{args.get('query', '')[:30]}",
+                    "summary": f"命中 {len(ev)} 条", "evidence": ev}
+        if name == "kg_expand":
+            facts = await kg.entity_expand([str(x) for x in args.get("entities", [])][:6],
+                                         hops=min(int(args.get("hops") or 2), 3), limit=30)
+            txt = "\n".join(f"- {f.get('title','?')} 关联:{f.get('rel')} via {f.get('nid') or f.get('via_cwe','')}"
+                            for f in facts[:15]) or "无关联"
+            return {"kind": "kg", "title": "图谱扩展",
+                    "summary": txt[:1200], "evidence": [
+                        {"item_id": f.get("item_id"), "title": f.get("title"), "url": f.get("url"),
+                         "text": f.get("rel", ""), "score": 0.55, "kind": "kg"} for f in facts]}
+        if name == "get_item_detail":
+            d = await _cve_direct(str(args.get("cve", "")).upper())
+            if not d:
+                return {"kind": "detail", "title": args.get("cve"), "summary": "库内未收录", "evidence": []}
+            blk = _format_item_block(d["item"], d["pocs"], d["mappings"])
+            blk["kind"] = "detail"
+            return {"kind": "detail", "title": args.get("cve"), "summary": "命中完整情报卡",
+                    "evidence": [blk]}
+        if name == "list_kev":
+            k = await _kev_facts(limit=int(args.get("limit") or 15))
+            if not k:
+                return {"kind": "kev", "title": "KEV清单", "summary": "库内无 KEV 条目", "evidence": []}
+            k["kind"] = "kev"
+            return {"kind": "kev", "title": "KEV清单", "summary": k["text"][:1200],
+                    "evidence": [k]}
+    except Exception as e:  # noqa: BLE001
+        return {"kind": name, "title": name, "summary": f"工具错误:{str(e)[:80]}", "evidence": []}
+    return {"kind": name, "title": name, "summary": "未知工具", "evidence": []}
+
+
+_STEP_MSG = {
+    "extract": "解析问题实体…", "cve_direct": "命中 CVE 直连情报卡",
+    "route": "规划检索路径…", "kev_facts": "注入 KEV 在野利用事实",
+    "tool_call": "Agent 调用工具…", "agent_evidence": "汇总工具证据",
+    "retrieve": "混合检索+重排…", "kg_expand": "知识图谱多跳扩展",
+    "context": "组装证据上下文…", "generate": "DeepSeek 生成答案…",
+    "fast_path": "快速通道检索…", "fallback_retrieve": "补充检索…",
+    "agent_stop": "Agent 完成证据收集",
+}
+
+
+async def _agent_evidence(question: str, history: list[dict], step) -> list[dict]:
+    """Agent 工具调用循环：模型自主决策调用哪些工具收集证据（≤3轮）"""
+    msgs = [{"role": "system", "content": AGENT_SYS},
+            *[{"role": h["role"], "content": h["content"]} for h in history[-4:]],
+            {"role": "user", "content": question}]
+    evidence: list[dict] = []
+    for rnd in range(2):
+        try:
+            out = await chat(msgs, tools=AGENT_TOOLS, max_tokens=1024)
+        except Exception as e:  # noqa: BLE001
+            step("agent_error", error=str(e)[:120])
+            break
+        tcs = out.get("tool_calls") or []
+        if not tcs:
+            step("agent_stop", round=rnd, reason=out.get("finish_reason"))
+            break
+        msgs.append({"role": "assistant", "content": out.get("content") or "",
+                     "tool_calls": [{"id": t["id"], "type": "function",
+                                     "function": t["function"]} for t in tcs]})
+        results = await asyncio.gather(*[
+            _exec_tool(t["function"]["name"], json.loads(t["function"]["arguments"] or "{}"))
+            for t in tcs])
+        for t, res in zip(tcs, results):
+            step("tool_call", tool=t["function"]["name"],
+                 args=str(t["function"]["arguments"])[:150], hits=len(res["evidence"]))
+            msgs.append({"role": "tool", "tool_call_id": t["id"],
+                         "content": json.dumps(res["summary"], ensure_ascii=False)[:1200]})
+            evidence.extend(res["evidence"])
+    return evidence
+
+
 async def _cve_direct(cve: str) -> dict | None:
     """CVE 精确命中：DB 全量情报 + 富化"""
     async with get_session_factory()() as db:
@@ -64,15 +182,24 @@ async def _cve_direct(cve: str) -> dict | None:
         return {"item": item, "pocs": pocs, "mappings": maps}
 
 
-async def answer(question: str, session_id: str | None = None,
-                 history: list[dict] | None = None, top_k: int = 8) -> dict:
-    """主入口：返回 {answer, citations, trace, confidence, latency_ms}"""
+async def _prepare(question: str, session_id: str | None = None,
+                   history: list[dict] | None = None, top_k: int = 8,
+                   deep: bool = True, progress=None) -> tuple[list[dict], list[dict], dict, float]:
+    """流水线准备阶段：返回 (contexts, cites, trace, t0)。生成由调用方决定（同步/流式）"""
     t0 = time.time()
     history = history or []
     trace: dict = {"steps": []}
 
     def step(name, **kw):
-        trace["steps"].append({"step": name, "ts": datetime.now(timezone.utc).isoformat(), **kw})
+        ev = {"step": name, "ts": datetime.now(timezone.utc).isoformat(), **kw}
+        trace["steps"].append(ev)
+        if progress is not None:
+            try:
+                progress.put_nowait({"step": name,
+                    "msg": _STEP_MSG.get(name, name),
+                    **{k: v for k, v in kw.items() if k in ("tool", "hits", "n", "route", "facts")}})
+            except asyncio.QueueFull:
+                pass
 
     # ---- 1. 实体直提（确定性优先）----
     ids = extract_ids(question)
@@ -88,9 +215,25 @@ async def answer(question: str, session_id: str | None = None,
             step("cve_direct", cve=cves[0], found=True)
             item = direct["item"]
             ctx = _format_item_block(item, direct["pocs"], direct["mappings"])
-            out = await _generate(question, history, [ctx], trace_note=f"CVE 直连 {cves[0]}")
             cites = [_cite(item, 1)]
-            return _final(out, cites, trace, t0)
+            trace["note"] = f"CVE 直连 {cves[0]}"
+            return [ctx], cites, trace, t0
+
+    # ---- 2.5 快速通道（deep=False：跳过路由/Agent/KG，直接检索生成，≤10s）----
+    if not deep:
+        step("fast_path")
+        hits = await retriever.retrieve(question, top_k=top_k, do_rerank=False)
+        hit_items = await _hydrate([h["item_id"] for h in hits])
+        contexts = []
+        for i, h in enumerate(hits, 1):
+            it = hit_items.get(h["item_id"])
+            struct = _struct_line(it) if it else ""
+            contexts.append({"n": i, "item_id": h["item_id"], "title": h.get("title_zh") or h.get("title"),
+                             "url": h.get("url"), "text": (struct + "\n" + h.get("text", ""))[:1800],
+                             "meta": {"cve": h.get("cve")}, "score": h.get("rerank_score", h["score"])})
+        cites = [{"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"],
+                  "score": round(c["score"], 3)} for c in contexts]
+        return contexts, cites, trace, t0
 
     # ---- 3. 路由/分解 ----
     routed = await _route(question, history)
@@ -104,18 +247,38 @@ async def answer(question: str, session_id: str | None = None,
         if kev_ctx:
             step("kev_facts", n=kev_ctx["meta"]["n_items"])
 
-    # ---- 4. 混合检索 ----
+    # ---- 4. Agent 工具循环（自主决策调用检索/KG/详情/KEV，≤3轮）；证据不足回退确定性检索 ----
+    agent_ev = [] if routed.route == "general" else await _agent_evidence(question, history, step)
     all_hits: list[dict] = []
     seen_iid: set[str] = set()
-    for q in sub_qs:
-        hits = await retriever.retrieve(q, top_k=top_k, **(routed.filters or {}))
-        for h in hits:
-            if h["item_id"] not in seen_iid:
-                seen_iid.add(h["item_id"])
-                all_hits.append(h)
+    for h in agent_ev:
+        if h.get("item_id") and h["item_id"] not in seen_iid:
+            seen_iid.add(h["item_id"])
+            all_hits.append(h)
+    step("agent_evidence", n=len(all_hits))
+
+    if len(all_hits) < 2:
+        per_q = await asyncio.gather(*[
+            retriever.retrieve(q, top_k=top_k, do_rerank=False, **(routed.filters or {}))
+            for q in sub_qs])
+        for hits in per_q:
+            for h in hits:
+                if h["item_id"] not in seen_iid:
+                    seen_iid.add(h["item_id"])
+                    all_hits.append(h)
+        step("fallback_retrieve", hits=len(all_hits))
+    if len(all_hits) > 1:
+        try:
+            from app.rag import embedder
+            docs = [(h.get("text") or "")[:800] for h in all_hits[:24]]
+            ranked = await embedder.rerank(question, docs, top_n=min(24, len(docs)))
+            for idx, s in ranked:
+                all_hits[idx]["rerank_score"] = s
+        except Exception as e:  # noqa: BLE001
+            log.warning("merged_rerank_failed", error=str(e)[:120])
     all_hits.sort(key=lambda h: h.get("rerank_score", h["score"]), reverse=True)
     all_hits = all_hits[:top_k * 2]
-    step("retrieve", hits=len(all_hits))
+    step("retrieve", hits=len(all_hits), sub_qs=len(sub_qs))
 
     # ---- 5. KG 扩展（multi_hop 或实体存在时）----
     kg_facts: list[dict] = []
@@ -145,13 +308,21 @@ async def answer(question: str, session_id: str | None = None,
         contexts.append(kev_ctx)
     step("context", n=len(contexts))
 
-    # ---- 7. 生成 ----
-    out = await _generate(question, history, contexts)
     cites = [
         {"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"], "score": round(c["score"], 3)}
         for c in contexts if c["item_id"] != "kg"]
     if kg_facts:
         trace["kg_facts"] = kg_facts[:15]
+    return contexts, cites, trace, t0
+
+
+async def answer(question: str, session_id: str | None = None,
+                 history: list[dict] | None = None, top_k: int = 8,
+                 deep: bool = True, progress=None) -> dict:
+    """主入口（非流式，评测用）：返回 {answer, citations, trace, confidence, latency_ms}"""
+    contexts, cites, trace, t0 = await _prepare(
+        question, session_id, history, top_k, deep, progress)
+    out = await _generate(question, history or [], contexts)
     return _final(out, cites, trace, t0)
 
 
@@ -229,6 +400,26 @@ async def _generate(question: str, history: list[dict], contexts: list[dict], tr
         return AnswerOut(answer=raw["content"], confidence=0.4)
 
 
+_STREAM_SYS = """你是 AI 安全情报分析助手。基于给定证据回答，要求：
+1. 引用证据用 [n] 标注；无证据支撑的内容不要编造
+2. 证据不足时明确说"当前情报库信息有限"
+3. 回答结构化：结论 → 关键事实 → 建议；枚举类问题须逐条列全
+4. 中文回答，技术名词保留原文
+5. 直接输出答案正文（markdown），不要 JSON、不要前后缀"""
+
+
+async def _generate_stream(question: str, history: list[dict], contexts: list[dict]):
+    """真流式生成：yield 文本 delta"""
+    ctx_txt = "\n\n".join(
+        f"[{c['n']}] {c['title'] or ''}\nURL: {c['url'] or '-'}\n元数据: {c.get('meta')}\n{c['text']}"
+        for c in contexts[:12])
+    msgs = [{"role": "system", "content": _STREAM_SYS},
+            *[{"role": h["role"], "content": h["content"]} for h in history[-6:]],
+            {"role": "user", "content": f"证据：\n{ctx_txt}\n\n问题：{question}"}]
+    async for piece in chat_stream(msgs, max_tokens=3000):
+        yield piece
+
+
 def _format_item_block(item: Item, pocs: list, maps: list) -> dict:
     poc_txt = "\n".join(f"- {p.url} ({p.platform}, {p.credibility})" for p in pocs[:8])
     map_txt = ", ".join(sorted({x for m in maps for x in (m.capec_id, m.atlas_technique, m.attack_technique) if x}))
@@ -255,30 +446,68 @@ def _cite(item: Item, n: int) -> dict:
 
 async def stream_answer(question: str, session_id: str | None = None,
                         history: list[dict] | None = None, deep: bool = True):
-    """SSE 事件生成器：status → token → citations/trace → done"""
+    """SSE：status(实时进度) → trace/citations → token(真流式) → done"""
     yield {"type": "status", "data": {"msg": "正在检索情报库…"}}
+    progress: asyncio.Queue = asyncio.Queue(maxsize=64)
+    task = asyncio.create_task(_prepare(question, session_id, history, deep=deep, progress=progress))
+    while not task.done():
+        try:
+            ev = await asyncio.wait_for(progress.get(), timeout=0.5)
+            yield {"type": "status", "data": ev}
+        except asyncio.TimeoutError:
+            yield {"type": "status", "data": {"msg": "分析中…"}}
+    while not progress.empty():
+        yield {"type": "status", "data": progress.get_nowait()}
     try:
-        res = await answer(question, session_id, history)
+        contexts, cites, trace, t0 = task.result()
     except Exception as e:  # noqa: BLE001
         log.error("qa_failed", error=str(e)[:300])
         yield {"type": "error", "data": {"error": "问答服务暂时不可用"}}
         return
-    yield {"type": "trace", "data": {"trace": res["trace"]}}
-    yield {"type": "citations", "data": {"citations": res["citations"]}}
-    # 分段推送答案（伪流式：按句切）
-    ans = res["answer"] or ""
-    chunk = ""
-    for ch in ans:
-        chunk += ch
-        if len(chunk) >= 24 or ch in "\n。；":
-            yield {"type": "token", "data": {"t": chunk}}
-            chunk = ""
-    if chunk:
-        yield {"type": "token", "data": {"t": chunk}}
+    yield {"type": "trace", "data": {"trace": trace}}
+    yield {"type": "citations", "data": {"citations": cites}}
+    yield {"type": "status", "data": {"msg": "DeepSeek 生成答案…"}}
+    # 真流式：LLM delta 直通 SSE（首 token 延迟即感知延迟）
+    ans = ""
+    try:
+        async for piece in _generate_stream(question, history or [], contexts):
+            ans += piece
+            yield {"type": "token", "data": {"t": piece}}
+    except Exception as e:  # noqa: BLE001
+        log.error("generate_stream_failed", error=str(e)[:200])
+        yield {"type": "error", "data": {"error": "答案生成中断"}}
+        return
+    # 置信度校准（引用覆盖+证据分，与 _final 同口径）
+    top = max((c["score"] for c in cites), default=0)
+    conf = round(min(1.0, 0.55 + min(top, 1.0) * 0.45), 3) if cites else 0.3
+    abstain = conf < 0.25
+    if abstain:
+        ans = "（置信度不足，无法给出可靠答案）\n\n" + ans
+    _observe_qa(trace, time.time() - t0)
+    res = {"answer": ans, "confidence": conf, "abstain": abstain,
+           "followups": [], "citations": cites[:12], "trace": trace,
+           "latency_ms": int((time.time() - t0) * 1000)}
     yield {"type": "done", "data": res}
 
 
+def _observe_qa(trace: dict, lat: float) -> None:
+    from app.core.metrics import qa_latency, qa_queries, qa_route_latency
+    try:
+        route = next((s.get("route") for s in trace["steps"] if s.get("route")), "direct")
+        qa_queries.labels(route=route).inc()
+        qa_latency.observe(lat)
+        steps = trace["steps"]
+        for a, b in zip(steps, steps[1:]):
+            stage_dur = (datetime.fromisoformat(b["ts"]) - datetime.fromisoformat(a["ts"])).total_seconds()
+            if stage_dur > 0:
+                qa_route_latency.labels(stage=b["step"]).observe(stage_dur)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _final(out: AnswerOut, cites: list[dict], trace: dict, t0: float) -> dict:
+    lat = time.time() - t0
+    _observe_qa(trace, lat)
     # 置信度校准：引用覆盖 + 证据分
     if cites:
         top = max((c["score"] for c in cites), default=0)

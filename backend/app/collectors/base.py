@@ -20,6 +20,7 @@ class RawItemData:
     author: str | None = None
     published_at: datetime | None = None
     content_text: str | None = None       # 正文（已提取）
+    summary: str | None = None            # 源方摘要（可选）
     lang: str | None = None               # zh|en|mixed
     raw: dict[str, Any] = field(default_factory=dict)  # 原始负载（保留溯源）
     item_type: str = "article"            # vuln|advisory|exploit|article|paper|incident|policy|model_sec

@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.collectors.base import RawItemData
+from app.core.metrics import ingest_delay, item_freshness
 from app.core.ids import extract_ids, simhash64, title_fingerprint, url_sha256
 from app.core.logging import get_logger
 from app.core.taxonomy import classify
@@ -111,6 +112,11 @@ async def _ingest_one(db: AsyncSession, source: Source, data: RawItemData, stats
     db.add(raw)
     await db.flush()
     stats["inserted"] += 1
+    # 时效指标：披露→raw 落库
+    if data.published_at:
+        lag = (datetime.now(timezone.utc) - _aware(data.published_at)).total_seconds()
+        if 0 <= lag < 30 * 86400:
+            ingest_delay.labels(source=source.name).observe(lag)
 
     # 实体提取（文本 + 结构化字段并集）
     text_for_ids = " ".join(filter(None, [data.title, content]))
@@ -130,11 +136,19 @@ async def _ingest_one(db: AsyncSession, source: Source, data: RawItemData, stats
         db.add(item)
         await db.flush()
         stats["new_items"] += 1
+        if item.published_at:
+            lag = (item.first_seen_at - _aware(item.published_at)).total_seconds()
+            if 0 <= lag < 30 * 86400:
+                item_freshness.observe(lag)
 
     db.add(ItemSource(item_id=item.id, raw_item_id=raw.id, source_name=source.name, url=data.url, is_primary=(method == "new")))
     db.add(DedupCluster(raw_item_id=raw.id, item_id=item.id, match_method=method, match_score=score))
     register_minhash(raw)
     return item
+
+
+def _aware(dt):
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
 def _base_reliability(source: Source) -> float:
@@ -165,6 +179,7 @@ def _new_item(data: RawItemData, ids: dict, source: Source) -> Item:
     it = Item(
         item_type=data.item_type,
         title=data.title or "", content_text=content, url=data.url, url_sha256=url_sha256(data.url),
+        summary=(data.summary or (content or "")[:400]) or None,
         published_at=data.published_at,
         cve_ids=ids["cve"], ghsa_ids=ids["ghsa"], cnvd_ids=ids["cnvd"], cnnvd_ids=ids["cnnvd"],
         edb_ids=ids["edb"], cwe_ids=ids["cwe"],

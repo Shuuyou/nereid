@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { api } from "@/lib/api";
+import { api, subscribeFeed } from "@/lib/api";
 import { SevBadge, LayerTag, ItemCard } from "@/components/cards";
 
 const Chart = dynamic(() => import("echarts-for-react"), { ssr: false });
@@ -10,12 +10,21 @@ const Chart = dynamic(() => import("echarts-for-react"), { ssr: false });
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
+  const [fresh, setFresh] = useState<any>(null);
+  const [live, setLive] = useState<any[]>([]);
+  const [liveOn, setLiveOn] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    Promise.all([api.stats(), api.items({ size: 8, sort: "priority", ai_only: true })])
-      .then(([s, it]) => { setStats(s); setItems(it.items || []); })
+    Promise.all([api.stats(), api.items({ size: 8, sort: "priority", ai_only: true }), api.freshness()])
+      .then(([s, it, f]) => { setStats(s); setItems(it.items || []); setFresh(f); })
       .catch((e) => setErr(String(e)));
+    // SSE 实时情报流：新条目实时进 ticker，并刷新 24h 计数
+    const off = subscribeFeed((item) => {
+      setLiveOn(true);
+      setLive((l) => [item, ...l].slice(0, 6));
+    });
+    return off;
   }, []);
 
   if (err) return <div className="card text-critical">后端连接失败: {err}</div>;
@@ -57,6 +66,41 @@ export default function Dashboard() {
             <div className={`mt-1 text-2xl font-bold ${c}`}>{v}</div>
           </div>
         ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="card lg:col-span-2">
+          <h3 className="mb-2 text-sm font-medium text-dim">情报时效（披露→入库滞后）</h3>
+          {fresh ? (
+            <div className="grid grid-cols-4 gap-3 pt-2">
+              {[["P50", fresh.p50_min], ["P90", fresh.p90_min], ["P95", fresh.p95_min]].map(([k, v]: any) => (
+                <div key={k as string} className="text-center">
+                  <div className="text-xs text-dim">{k}</div>
+                  <div className="text-xl font-bold text-accent">{v != null ? `${(v / 60).toFixed(1)}h` : "—"}</div>
+                </div>
+              ))}
+              <div className="text-center">
+                <div className="text-xs text-dim">&lt;1h 入库</div>
+                <div className="text-xl font-bold text-low">{fresh.buckets?.["<1h"] ?? "—"}</div>
+              </div>
+            </div>
+          ) : <div className="text-dim text-sm">—</div>}
+        </div>
+        <div className="card">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-dim">
+            <span className={`inline-block h-2 w-2 rounded-full ${liveOn ? "bg-low animate-pulse" : "bg-dim"}`} />
+            实时监测流 {liveOn && <span className="text-low text-xs">LIVE</span>}
+          </h3>
+          <div className="space-y-2 text-xs">
+            {live.length === 0 && <div className="text-dim">等待新情报推送…（采集器运行中自动出现）</div>}
+            {live.map((it) => (
+              <a key={it.id + it.first_seen_at} href={`/items/${it.id}`} className="block truncate text-fg hover:text-accent">
+                <span className="text-dim">{new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>{" "}
+                {it.title_zh || it.title}
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

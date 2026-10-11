@@ -83,8 +83,26 @@ async def enrich_item(item_id: str, dims: list[str] | None = None) -> dict:
 
         item.enrichment = enrichment
         item.updated_at = datetime.now(timezone.utc)
+
+        # HITL：全 error/低置信/关键维度缺失 → needs_review
+        errs = [k for k, v in enrichment.items() if isinstance(v, dict) and v.get("status") == "error"]
+        confs = [v.get("confidence", 0) for v in enrichment.values() if isinstance(v, dict)]
+        if len(errs) >= 3 or (confs and sum(confs) / len(confs) < 0.4):
+            item.review_status = "needs_review"
+        elif item.review_status == "needs_review":
+            item.review_status = "auto"
+        item.confidence = round(sum(confs) / len(confs), 3) if confs else item.confidence
+
         await db.commit()
-        return {"item_id": item_id, "enrichment": enrichment, "changed": sorted(changed_fields)}
+        try:
+            from app.core.metrics import enrich_runs
+            status = "error" if errs else ("partial" if any(
+                isinstance(v, dict) and v.get("status") == "partial" for v in enrichment.values()) else "ok")
+            enrich_runs.labels(status=status).inc()
+        except Exception:  # noqa: BLE001
+            pass
+        return {"item_id": item_id, "enrichment": enrichment,
+                "review_status": item.review_status, "changed": sorted(changed_fields)}
 
 
 def _json_safe(obj):
@@ -116,10 +134,20 @@ async def enrich_pending(limit: int = 30) -> int:
             .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
             .limit(limit))).scalars().all()
         ids = [i.id for i in items]
+        # 补捞：任一维度 error 的条目重跑该维度（重试上限靠 review_status 兜底）
+        stale = (await db.execute(
+            select(Item).where(Item.enrichment != {})
+            .order_by(Item.priority_score.desc().nullslast()).limit(limit))).scalars().all()
+        for i in stale:
+            err_dims = [k for k, v in (i.enrichment or {}).items()
+                        if isinstance(v, dict) and v.get("status") == "error"]
+            if err_dims:
+                ids.append((i.id, err_dims))
     n = 0
-    for iid in ids:
+    for ent in ids:
+        iid, dims = (ent, None) if isinstance(ent, str) else ent
         try:
-            await enrich_item(iid)
+            await enrich_item(iid, dims=dims)
             n += 1
         except Exception as e:  # noqa: BLE001
             log.error("enrich_item_failed", item=iid, error=str(e)[:200])

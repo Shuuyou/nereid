@@ -84,6 +84,7 @@ async def run_source(source_id: int) -> dict:
                 items_collected.labels(source=source.name).inc(len(items))
                 items_new.inc(stats.get("new_items", 0))
                 items_merged.inc(stats.get("merged", 0))
+                items_merged.inc(stats.get("merged", 0))
                 collection_duration.labels(source=source.name).observe(elapsed)
                 db.add(TaskRun(task_name=f"collect:{source.name}", status="success", started_at=started,
                                finished_at=datetime.now(timezone.utc), detail=stats))

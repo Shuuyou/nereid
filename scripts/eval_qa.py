@@ -34,6 +34,15 @@ EVAL_QUESTIONS = [
      "type": "multi", "expect": ["CVE-2025-3248", "CVE-2024-37032", "CVE-2023-48022", "T1190"], "hops": 3},
     {"q": "提示注入类事件（如 EchoLeak）与基础设施类漏洞在缓解措施上有什么本质差异？",
      "type": "multi", "expect": ["RAG", "过滤", "输入", "补丁"], "hops": 2},
+    # ---- 扩展集：资产暴露 / 攻击链 / 政策标准 / 时效枚举 ----
+    {"q": "Ollama 暴露在公网的资产面临 Probllama 漏洞风险时，应该优先做哪三件事？",
+     "type": "single", "expect": ["升级", "0.1.34", "认证"], "hops": 1, "cat": "asset"},
+    {"q": "CVE-2024-37032 从初始访问到命令执行再到资源劫持的完整攻击链是怎样的？",
+     "type": "multi", "expect": ["T1190", "T1059", "T1105", "遍历"], "hops": 3, "cat": "chain"},
+    {"q": "《生成式人工智能服务安全基本要求》对训练数据和生成内容提出了哪些合规要求？",
+     "type": "single", "expect": ["训练数据", "安全", "内容"], "hops": 1, "cat": "policy"},
+    {"q": "列出库中 severity 为 critical 且有公开 PoC 的 AI 相关漏洞。",
+     "type": "single", "expect": ["CVE-", "critical", "PoC"], "hops": 1, "cat": "enum"},
 ]
 
 
@@ -42,10 +51,10 @@ async def run_eval(live: bool, n: int) -> None:
     qs = EVAL_QUESTIONS[:n]
     for i, item in enumerate(qs):
         t0 = time.time()
-        answer, trace = "", {}
+        answer, trace, cites = "", {}, []
         if live:
             import httpx
-            async with httpx.AsyncClient(timeout=60) as c:
+            async with httpx.AsyncClient(timeout=180) as c:
                 async with c.stream("POST", "http://localhost:8000/api/qa/chat",
                                     json={"question": item["q"], "deep": True}) as r:
                     buf = ""
@@ -56,6 +65,7 @@ async def run_eval(live: bool, n: int) -> None:
                                 if isinstance(d, dict) and "answer" in d:
                                     answer = d["answer"]
                                     trace = d.get("trace", {})
+                                    cites = d.get("citations", [])
                             except json.JSONDecodeError:
                                 buf += line
         else:
@@ -65,13 +75,19 @@ async def run_eval(live: bool, n: int) -> None:
                     if ev.get("type") == "done":
                         answer = ev["data"].get("answer", "")
                         trace = ev["data"].get("trace", {})
+                        cites = ev["data"].get("citations", [])
             except Exception as e:  # noqa: BLE001
                 answer = f"__ERROR__ {e}"
         latency = time.time() - t0
         a = answer.lower()
         hits = [k for k in item["expect"] if k.lower() in a]
+        # 引用精度：答案中的 [n] 引用必须在 citations 集合内
+        import re as _re
+        cite_n = set(_re.findall(r"\[(\d+)\]", answer))
+        cite_ok = len(cite_n) == 0 or len(cite_n - {str(c.get("n")) for c in cites}) == 0
         results.append({
             "q": item["q"][:60], "type": item["type"], "hops": item["hops"],
+            "cite_precision": cite_ok, "trace_steps": len(trace.get("steps", [])),
             "expect_hits": f"{len(hits)}/{len(item['expect'])}",
             "hit_rate": round(len(hits) / len(item["expect"]), 2),
             "latency_s": round(latency, 1), "missed": [k for k in item["expect"] if k.lower() not in a],
@@ -84,10 +100,14 @@ async def run_eval(live: bool, n: int) -> None:
     macc = sum(r["hit_rate"] for r in multi) / len(multi) if multi else 0
     lat = sorted(r["latency_s"] for r in results)
     print("\n===== 评测结果 =====")
+    cite_acc = sum(1 for r in results if r.get("cite_precision")) / len(results)
+    tool_ev = sum(1 for r in results if r["trace_steps"] >= 3) / len(results)
     print(f"整体命中率: {acc:.1%}  |  多跳命中率: {macc:.1%}  |  p50={lat[len(lat)//2]}s p95={lat[-1]}s")
+    print(f"引用精确率: {cite_acc:.1%}  |  推理链完备率(≥3步): {tool_ev:.1%}")
     out = os.path.join(os.path.dirname(__file__), "..", "reports", "eval_qa.json")
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    json.dump({"overall": acc, "multi_hop": macc, "results": results}, open(out, "w"), ensure_ascii=False, indent=2)
+    json.dump({"overall": acc, "multi_hop": macc, "cite_precision": cite_acc,
+               "trace_coverage": tool_ev, "results": results}, open(out, "w"), ensure_ascii=False, indent=2)
     print(f"写入 {out}")
 
 

@@ -32,8 +32,17 @@
 - enrichment worker 不得直接改 item/写库；LLM 一律走 common.llm_*（无 key 自动降级）
 - rag：index_item(item) 幂等（先删后插）；retrieve(q)->item级证据；kg sync_item MERGE 幂等
 - query_agent：`app.rag.query_agent.stream_answer`（勿写 app.agents.query_agent）
-- api/routes.py：前端契约已锁定（SSE: status|token|trace|citation|done）
+- api/routes.py：前端契约已锁定（SSE: status|token|trace|citations|done）
+- query_agent.answer()=非流式评测入口；stream_answer=SSE 真流式（_prepare 共享流水线）
+- LLM 工具调用：chat(tools=AGENT_TOOLS) ≤2 轮；工具 retrieve_intel/kg_expand/get_item_detail/list_kev
 - Item 字段无 title_en/summary_en/lang/ai_layers —— 只有 title/title_zh/summary/summary_zh/ai_layer（单数）
+
+## 已验证的接口（2026-10-11）
+- GET /api/stats/freshness 时效看板；GET /api/review HITL 复核队列；POST /api/review/{id}/{confirm|reject}
+- GET /api/feed/stream SSE 实时推送（前端 subscribeFeed 已消费）；GET /api/items/{id}/stix STIX2.1 导出
+- GET /api/pipeline/graph LangGraph DAG 结构；POST /api/pipeline/run/{sid} 触发全链 DAG
+- 金丝雀：scripts/canary_freshness.py 全链路 43.7s；快路径 QA ~3s TTFT 1.1s；深路径多跳 ~14s
+- EPSS 刷新：批量 API（refresh_epss_all），KEV 走 github 镜像（cisa.gov 不可达）
 
 ## 子 Agent 注意事项
 - 后台子 Agent 曾被回收且仍可能写盘冲突 → 实现类任务自己写，别让子 Agent 写共享文件
