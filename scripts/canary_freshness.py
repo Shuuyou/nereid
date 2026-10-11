@@ -29,7 +29,7 @@ async def main(skip_enrich: bool = False) -> None:
     data = RawItemData(
         native_id=tag,
         url=f"https://canary.secagent.local/{tag}",
-        title=f"{tag}: Synthetic critical vulnerability in CanaryLLM inference server",
+        title=f"{tag}: unique {tag.lower()} canary probe item {tag}",
         content_text=(f"{tag} —— 金丝雀测试条目。CanaryLLM 推理服务 <9.9 存在未授权 RCE，"
                       "CVSS 9.8，攻击者可通过 /api/generate 反序列化执行命令。该条目用于验证"
                       "采集→去重→富化→索引→检索 端到端链路时效。"),

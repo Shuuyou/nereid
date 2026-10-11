@@ -174,7 +174,7 @@ async def _epss_batch(cves: list[str]) -> dict[str, tuple[float, float]]:
     return out
 
 
-async def refresh_epss_all(limit: int = 500) -> int:
+async def refresh_epss_all(limit: int = 5000) -> int:
     """周期刷新 EPSS+KEV（评分随时间漂移）：批量 API，非 per-item worker"""
     from sqlalchemy import select
     from app.db.models import Item
