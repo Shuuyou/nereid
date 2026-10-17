@@ -1,5 +1,10 @@
 # SecAgent 项目知识（供后续会话/Agent 使用）
 
+## 命名
+- **公开品牌：捞针 · Nereid**（智能体驱动的 AI 安全知识情报系统）。用户面向：UI 标题、Logo、文档、PPT、Notion 用「捞针 · Nereid」
+- **工程代号：SecAgent** 保留不变——容器名、DB 名、`secagent_` 指标前缀、包名、路径均为内部标识
+- 命名寓意：「捞针」=大海捞针=从海量信息中捞出那根针（LLM 圈 NIAH 检索测试圈内梗）；Nereid=希腊神话海中宁芙群，喻多智能体在深海中寻针；也是海王星最远的卫星=深空哨兵
+
 ## 项目背景
 - 竞赛：第三届"中国电子杯"ICT产教融合大赛 赛题九（奇安信命题）——智能体驱动的 AI 安全知识情报系统
 - 团队：杭电具身智能实验室 Shuuyou；目标：冠军；交付期：1 个月内
@@ -16,6 +21,7 @@
 - 基础设施：`cd deploy && docker compose up -d postgres qdrant neo4j redis`
 - 后端：`cd backend && .venv/bin/uvicorn app.main:app --port 8000`（venv 在 backend/.venv）
 - 调度：`.venv/bin/python -m app.scheduler.runner`；演示数据：`.venv/bin/python ../scripts/demo_seed.py`
+- 前端生产预览：`scripts/start_frontend.sh`（standalone 需拷 static/public，端口 3200）
 - 测试：`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests -q`（必须禁用插件自加载，系统装有ROS会冲突）
 - Notion 同步：`NOTION_TOKEN=xxx python3 scripts/build_notion_doc.py`
 

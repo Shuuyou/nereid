@@ -1,4 +1,4 @@
-"""SecAgent 全局配置"""
+"""捞针 Nereid（工程代号 SecAgent）全局配置"""
 from functools import lru_cache
 from pathlib import Path
 
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     data_dir: str = "../data"
     request_timeout: float = 30.0
-    user_agent: str = "SecAgent/0.1 (AI Security Intelligence; HDU-EI-Lab)"
+    user_agent: str = "Nereid/0.1 (AI Security Intelligence; HDU-EI-Lab)"
 
     @property
     def database_url(self) -> str:

@@ -1,4 +1,4 @@
-"""SecAgent FastAPI 主程序"""
+"""捞针 Nereid — SecAgent FastAPI 主程序"""
 from __future__ import annotations
 
 import asyncio
@@ -63,7 +63,7 @@ def _warmup() -> None:
         log.warning("embedding_warmup_failed", error=str(e)[:200])
 
 
-app = FastAPI(title="SecAgent", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="捞针 · Nereid", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_credentials=False,
@@ -79,4 +79,4 @@ async def metrics():
 
 @app.get("/")
 async def root():
-    return {"name": "SecAgent", "docs": "/docs"}
+    return {"name": "捞针 · Nereid (SecAgent)", "docs": "/docs"}

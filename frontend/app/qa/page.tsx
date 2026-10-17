@@ -66,7 +66,7 @@ export default function QaPage() {
       <div className="card flex-1 space-y-4 overflow-y-auto">
         {msgs.length === 0 && (
           <div className="space-y-2 pt-8 text-center">
-            <p className="text-dim">向 SecAgent 提问试试</p>
+            <p className="text-dim">向捞针提问试试</p>
             <div className="mx-auto flex max-w-lg flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
                 <button key={s} className="btn-ghost text-xs" onClick={() => send(s)}>{s}</button>

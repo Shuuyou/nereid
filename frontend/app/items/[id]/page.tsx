@@ -38,7 +38,7 @@ export default function ItemDetail() {
           <a
             className="btn-ghost ml-auto !py-1 !px-2 text-xs"
             href={`${API}/api/items/${id}/stix`}
-            download={`secagent-${id.slice(0, 8)}.stix.json`}
+            download={`nereid-${id.slice(0, 8)}.stix.json`}
             title="导出 STIX 2.1 Bundle（TAXII/TIP 互操作）"
           >导出 STIX</a>
           <button className="btn-ghost !py-1 !px-2 text-xs" onClick={() => api.enrich(id).then(() => location.reload())}>重新富化</button>
