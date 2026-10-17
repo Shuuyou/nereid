@@ -11,6 +11,9 @@
   - 字段级准确率 = 正确数 / 可对比数（真值非空且我们已填的条目对）
   - 字段级召回率 = 我们非空数 / 真值非空数
   - is_kev 为布尔字段，单独报混淆矩阵（False 也是有效值，不参与"非空"口径）
+  - EPSS 为天级漂移分值：对比前先将官方即时值按 refresh_epss_all 同口径
+    （全部 cve_ids 取 max）写回样本存储值并记 extra.epss_fetched_at，
+    再做"同快照"对比——评的是写入路径正确性，不惩罚正常的周期刷新间隔
 
 用法: cd backend && .venv/bin/python ../scripts/eval_enrichment.py [--n 30]
 退出码: 0=正常  1=无样本/库不可用  2=全部真值源不可用
@@ -84,6 +87,31 @@ async def truth_kev() -> set[str]:
         except Exception:  # noqa: BLE001
             continue
     raise RuntimeError("kev feed unreachable")
+
+
+async def refresh_sample_epss(items, epss_map: dict[str, tuple[float, float]]) -> int:
+    """对评测样本就地刷新 EPSS：与 refresh_epss_all 同口径（全部 cve_ids 取 max），
+    写回存储值 + extra.epss_fetched_at，消除与官方快照的天级漂移。"""
+    from sqlalchemy import select
+    from app.db.models import Item
+    from app.db.session import get_session_factory
+    ts = datetime.now(timezone.utc).isoformat()
+    n = 0
+    async with get_session_factory()() as db:
+        for it in items:
+            pairs = [epss_map[c] for c in (it.cve_ids or []) if c in epss_map]
+            if not pairs:
+                continue
+            best = max(pairs, key=lambda x: x[0])
+            row = (await db.execute(
+                select(Item).where(Item.id == it.id))).scalar_one_or_none()
+            if not row:
+                continue
+            row.epss_score, row.epss_percentile = best
+            row.extra = {**(row.extra or {}), "epss_fetched_at": ts}
+            n += 1
+        await db.commit()
+    return n
 
 
 async def truth_nvd(cve: str) -> dict | None:
@@ -165,6 +193,10 @@ async def run_eval(n: int) -> int:
         epss_map = await truth_epss(all_cves)   # ≤100/批，30 条通常 1 次搞定
         sources["epss"] = "ok"
         print(f"[eval] EPSS 真值 OK（{len(epss_map)} cves）")
+        # 同快照口径：先把即时真值写回样本存储值（=周期刷新刚跑完的效果），再重新取数对比
+        n_ref = await refresh_sample_epss(items, epss_map)
+        print(f"[eval] 样本 EPSS 已实时刷新 {n_ref} 条（extra.epss_fetched_at 已更新）")
+        items = await load_items(n)
     except Exception as e:  # noqa: BLE001
         sources["epss"] = "unavailable"
         print(f"[eval] EPSS 不可用: {str(e)[:80]}")

@@ -83,7 +83,7 @@ async def node_notify(state: PipelineState) -> PipelineState:
     return state
 
 
-def build_pipeline_graph():
+def build_pipeline_graph(checkpointer=None):
     g = StateGraph(PipelineState)
     g.add_node("collect", node_collect)
     g.add_node("enrich", node_enrich)
@@ -96,24 +96,57 @@ def build_pipeline_graph():
     g.add_edge("index", "kg")
     g.add_edge("kg", "notify")
     g.add_edge("notify", END)
-    return g.compile()
+    return g.compile(checkpointer=checkpointer)
+
+
+async def _make_checkpointer():
+    """Postgres checkpointer → durable execution（进程重启后按 thread_id 断点续跑）；
+    PG 不可用降级 MemorySaver（进程内仍可中断恢复演示）。"""
+    try:
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        from app.config import get_settings
+        from psycopg import AsyncConnection
+        s = get_settings()
+        dsn = (f"postgresql://{s.postgres_user}:{s.postgres_password}"
+               f"@{s.postgres_host}:{s.postgres_port}/{s.postgres_db}")
+        conn = await AsyncConnection.connect(dsn, autocommit=True)
+        saver = AsyncPostgresSaver(conn)
+        await saver.setup()
+        return saver
+    except Exception as e:  # noqa: BLE001
+        log.warning("checkpointer_fallback_memory", error=str(e)[:120])
+        from langgraph.checkpoint.memory import MemorySaver
+        return MemorySaver()
 
 
 _pipeline = None
 
 
-def get_pipeline():
+async def get_pipeline():
     global _pipeline
     if _pipeline is None:
-        _pipeline = build_pipeline_graph()
+        _pipeline = build_pipeline_graph(checkpointer=await _make_checkpointer())
     return _pipeline
 
 
 NODES_ORDER = ["collect", "enrich", "index", "kg", "notify"]
 
 
-async def run_pipeline(source_id: int) -> dict:
-    result = await get_pipeline().ainvoke({"source_id": source_id, "item_ids": []})
+def _run_config(run_id: str) -> dict:
+    return {"configurable": {"thread_id": f"pipeline-{run_id}"}}
+
+
+async def run_pipeline(source_id: int, run_id: str | None = None) -> dict:
+    import uuid as _u
+    rid = run_id or _u.uuid4().hex[:12]
+    result = await (await get_pipeline()).ainvoke(
+        {"source_id": source_id, "item_ids": []}, config=_run_config(rid))
+    return result
+
+
+async def resume_pipeline(run_id: str, source_id: int) -> dict:
+    """断点续跑：thread_id 相同即从未完成节点恢复（durable execution 演示路径）"""
+    result = await (await get_pipeline()).ainvoke(None, config=_run_config(run_id))
     return result
 
 
@@ -136,8 +169,9 @@ async def run_pipeline_tracked(source_id: int, run_id: str | None = None) -> dic
         await rds().ltrim("pipeline:runs", 0, 99)
         nodes: dict[str, str] = {}
         result: dict = {}
-        async for upd in get_pipeline().astream(
-                {"source_id": source_id, "item_ids": []}, stream_mode="updates"):
+        async for upd in (await get_pipeline()).astream(
+                {"source_id": source_id, "item_ids": []},
+                config=_run_config(run_id), stream_mode="updates"):
             for node, st in upd.items():
                 nodes[node] = "done"
                 result = {**result, **(st or {})}

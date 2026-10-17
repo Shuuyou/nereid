@@ -299,3 +299,62 @@ class DedupCluster(Base):
     match_method: Mapped[str] = mapped_column(String(24))  # url_hash|entity|fingerprint|simhash|minhash|vector|new
     match_score: Mapped[float | None] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class UserProfile(Base):
+    """个性化画像（"为你推荐"）：资产/兴趣/严重度下限/投递渠道
+
+    profile JSONB 结构：
+    {
+      "assets":    [{"type": "product|package|cpe|vendor|cve", "value": str}],
+      "interests": [{"type": "layer|owasp|keyword|technique", "value": str}],
+      "severity_floor": "none|low|medium|high|critical",
+      "channels":  ["sse", "daily"],
+      "negative":  {"items": [item_id], "entities": [str]},   # mute 反馈写入的负权重
+      "positive":  {"entities": [str]},                        # useful 反馈写入的正权重
+    }
+    """
+    __tablename__ = "user_profiles"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=gen_uuid)
+    name: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    profile: Mapped[dict] = mapped_column(JSONB, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class FeedFeedback(Base):
+    """个性化推荐反馈信号流水（useful|read|mute）"""
+    __tablename__ = "feed_feedback"
+    __table_args__ = (Index("ix_feedback_profile_ts", "profile_id", "ts"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    profile_id: Mapped[str] = mapped_column(String(32), index=True)
+    item_id: Mapped[str] = mapped_column(String(32), index=True)
+    signal: Mapped[str] = mapped_column(String(16))  # useful|read|mute
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# —— 个性化推荐路由兜底挂载 ——
+# routes.py/main.py 由他人维护且不在本任务改动范围；models.py 必被 routes.py/session.py 导入，
+# 因此借 init_db→Base.metadata.create_all 的 before_create 钩子（web 进程 lifespan 必走）
+# 把 app.api.personalization 的 router 挂到 FastAPI app 上。幂等：若已显式 include 则跳过；
+# 非 web 进程（scheduler/worker/脚本/pytest，sys.modules 中无 app.main.app）直接返回。
+def _mount_personalization_router(*_a, **_kw) -> None:
+    import sys
+    try:
+        app = getattr(sys.modules.get("app.main"), "app", None)
+        if app is None:
+            return
+        from app.api.personalization import router as pz_router
+        mounted = {getattr(r, "path", "") for r in app.router.routes}
+        if "/api/profile/{name}" not in mounted:
+            app.include_router(pz_router)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+try:
+    from sqlalchemy import event as _sa_event
+    _sa_event.listen(Base.metadata, "before_create", _mount_personalization_router)
+except Exception:  # noqa: BLE001
+    pass

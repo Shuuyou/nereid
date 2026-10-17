@@ -170,16 +170,24 @@ def _classify_item(title: str, content: str | None, products: list) -> dict:
 
 
 def _priority(item: Item) -> float:
-    """情报优先级：KEV×3 + EPSS×2 + CVSS + AI相关 + 多源印证"""
-    s = 0.0
-    if item.is_kev:
-        s += 3.0
-    s += (item.epss_score or 0) * 2
-    s += (item.cvss_v31_score or item.cvss_v40_score or 0) / 10
-    s += (item.ai_relevance_score or 0)
+    """情报优先级：Qualys QVS 式两段——威胁证据命中进置顶桶(≥6.0)；
+    其余走 65%CVSS + 35%(EPSS+PoC成熟度+AI相关) 线性加权"""
+    ssvc = (item.extra or {}).get("ssvc") or {}
+    threat_hit = (item.is_kev
+                  or (item.exploit_maturity or "") == "weaponized"
+                  or ssvc.get("exploitation") in ("active", "poc"))
+    if threat_hit:
+        # 置顶桶：证据强弱内部排序（KEV 最强），区间 [6.0, 8.0]
+        t = 6.0 + (1.0 if item.is_kev else 0.0) + (0.5 if (item.exploit_maturity or "") == "weaponized" else 0.0)
+        t += (item.epss_score or 0) * 0.5
+        return round(min(t, 8.0), 3)
+    cvss = (item.cvss_v31_score or item.cvss_v40_score or 0) / 10
+    exploit = {"none": 0.0, "poc": 0.5, "weaponized": 1.0}.get(item.exploit_maturity or "", 0.0)
+    dynamic = (item.epss_score or 0) * 0.5 + exploit * 0.3 + (item.ai_relevance_score or 0) * 0.2
+    s = 0.65 * cvss + 0.35 * dynamic
     s += min((item.source_count or 1) - 1, 3) * 0.15
     if item.has_poc:
-        s += 0.5
+        s += 0.3
     return round(s, 3)
 
 

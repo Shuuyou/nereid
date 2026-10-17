@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import re
 import time
@@ -86,6 +87,94 @@ AGENT_SYS = """你是 AI 安全情报分析 Agent，可自主调用工具收集�
 3. 每次调用有明确目的（查具体漏洞/找关联/枚举清单/多跳桥接）
 """
 
+# DeepSeek 兼容参数：chat() 若支持 parallel_tool_calls 则透传（单轮决策即可并行发多个
+# tool_calls）；不支持时保持现状——单轮返回的多个 tool_calls 仍由 gather 并发执行。
+_PTC_KW: dict = {}
+try:
+    if "parallel_tool_calls" in inspect.signature(chat).parameters:
+        _PTC_KW = {"parallel_tool_calls": True}
+except Exception:  # noqa: BLE001
+    pass
+
+
+async def _agent_chat(msgs: list[dict]) -> dict:
+    """单轮 Agent 决策调用（工具并行声明 + 失败优雅回退）"""
+    if _PTC_KW:
+        try:
+            return await chat(msgs, tools=AGENT_TOOLS, max_tokens=1024, **_PTC_KW)
+        except Exception as e:  # noqa: BLE001
+            log.warning("parallel_tool_calls_unsupported", error=str(e)[:120])
+    return await chat(msgs, tools=AGENT_TOOLS, max_tokens=1024)
+
+
+async def _none():
+    return None
+
+
+async def _nil() -> list:
+    return []
+
+
+async def _guard(coro, default, stage: str = ""):
+    """并发容错包装：单路失败返回 default，不拖垮 asyncio.gather"""
+    try:
+        return await coro
+    except Exception as e:  # noqa: BLE001
+        log.warning("concurrent_stage_failed", stage=stage, error=str(e)[:120])
+        return default
+
+
+async def _kg_expand(entities: list[str], hops: int = 2, limit: int = 40) -> list[dict]:
+    """KG 实体扩展（空实体短路 + 容错；结果由 kg.entity_expand 进程内 TTL 缓存）"""
+    if not entities:
+        return []
+    try:
+        return await kg.entity_expand(list(entities), hops=hops, limit=limit)
+    except Exception as e:  # noqa: BLE001
+        log.warning("kg_expand_failed", error=str(e)[:120])
+        return []
+
+
+def _dedupe_facts(facts: list[dict]) -> list[dict]:
+    """跨批次 KG 事实去重（与 kg.entity_expand 内部口径一致）"""
+    seen, out = set(), []
+    for f in facts:
+        k = (f.get("item_id"), f.get("rel"), f.get("nid") or f.get("via_cwe"))
+        if k not in seen:
+            seen.add(k)
+            out.append(f)
+    return out
+
+
+def _kg_context(kg_facts: list[dict], n: int) -> dict:
+    """KG 关联事实 → 证据上下文块"""
+    facts_txt = "\n".join(
+        f"- {f.get('title','?')} [{f.get('item_id')}] 关联:{f.get('rel')} via {f.get('nid') or f.get('via_cwe','')}"
+        for f in kg_facts[:15])
+    return {"n": n, "item_id": "kg", "title": "知识图谱关联事实",
+            "url": None, "text": facts_txt, "meta": {"kind": "kg_facts"}, "score": 0.6}
+
+
+def _tool_args(tc: dict) -> dict:
+    try:
+        return json.loads((tc.get("function") or {}).get("arguments") or "{}")
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+async def _merged_rerank(question: str, all_hits: list[dict]) -> None:
+    """候选合并后的单次交叉编码重排：截断 512 字、≤16 条（就地写 rerank_score）"""
+    if len(all_hits) <= 1:
+        return
+    try:
+        from app.rag import embedder
+        docs = [(h.get("text") or "")[:512] for h in all_hits[:16]]
+        ranked = await embedder.rerank(question, docs, top_n=min(16, len(docs)))
+        for idx, s in ranked:
+            all_hits[idx]["rerank_score"] = s
+    except Exception as e:  # noqa: BLE001
+        log.warning("merged_rerank_failed", error=str(e)[:120])
+
 
 async def _exec_tool(name: str, args: dict) -> dict:
     """执行一个工具调用，返回 {kind, title, summary, evidence}"""
@@ -135,19 +224,23 @@ _STEP_MSG = {
     "retrieve": "混合检索+重排…", "kg_expand": "知识图谱多跳扩展",
     "context": "组装证据上下文…", "generate": "DeepSeek 生成答案…",
     "fast_path": "快速通道检索…", "fallback_retrieve": "补充检索…",
-    "agent_stop": "Agent 完成证据收集",
+    "agent_stop": "Agent 完成证据收集", "prepare_error": "流水线降级（部分证据）",
 }
 
 
 async def _agent_evidence(question: str, history: list[dict], step) -> list[dict]:
-    """Agent 工具调用循环：模型自主决策调用哪些工具收集证据（≤3轮）"""
+    """Agent 工具调用循环：1 轮决策 + 并行 tool_calls（gather 并发执行）；
+    仅当去重证据命中 <2 条时才允许第 2 轮（省一整轮 LLM 决策延迟）"""
     msgs = [{"role": "system", "content": AGENT_SYS},
             *[{"role": h["role"], "content": h["content"]} for h in history[-4:]],
             {"role": "user", "content": question}]
     evidence: list[dict] = []
     for rnd in range(2):
+        if rnd and len({e.get("item_id") for e in evidence if e.get("item_id")}) >= 2:
+            step("agent_stop", round=rnd, reason="evidence_sufficient")
+            break
         try:
-            out = await chat(msgs, tools=AGENT_TOOLS, max_tokens=1024)
+            out = await _agent_chat(msgs)
         except Exception as e:  # noqa: BLE001
             step("agent_error", error=str(e)[:120])
             break
@@ -156,15 +249,16 @@ async def _agent_evidence(question: str, history: list[dict], step) -> list[dict
             step("agent_stop", round=rnd, reason=out.get("finish_reason"))
             break
         msgs.append({"role": "assistant", "content": out.get("content") or "",
-                     "tool_calls": [{"id": t["id"], "type": "function",
-                                     "function": t["function"]} for t in tcs]})
+                     "tool_calls": [{"id": t.get("id"), "type": "function",
+                                     "function": t.get("function")} for t in tcs]})
         results = await asyncio.gather(*[
-            _exec_tool(t["function"]["name"], json.loads(t["function"]["arguments"] or "{}"))
+            _exec_tool((t.get("function") or {}).get("name") or "?", _tool_args(t))
             for t in tcs])
         for t, res in zip(tcs, results):
-            step("tool_call", tool=t["function"]["name"],
-                 args=str(t["function"]["arguments"])[:150], hits=len(res["evidence"]))
-            msgs.append({"role": "tool", "tool_call_id": t["id"],
+            fn = t.get("function") or {}
+            step("tool_call", tool=fn.get("name"),
+                 args=str(fn.get("arguments"))[:150], hits=len(res["evidence"]))
+            msgs.append({"role": "tool", "tool_call_id": t.get("id"),
                          "content": json.dumps(res["summary"], ensure_ascii=False)[:1200]})
             evidence.extend(res["evidence"])
     return evidence
@@ -185,135 +279,165 @@ async def _cve_direct(cve: str) -> dict | None:
 async def _prepare(question: str, session_id: str | None = None,
                    history: list[dict] | None = None, top_k: int = 8,
                    deep: bool = True, progress=None) -> tuple[list[dict], list[dict], dict, float]:
-    """流水线准备阶段：返回 (contexts, cites, trace, t0)。生成由调用方决定（同步/流式）"""
+    """流水线准备阶段：返回 (contexts, cites, trace, t0)。生成由调用方决定（同步/流式）
+
+    深路径三路并发：route ∥ 原句混合检索 ∥ KG 实体扩展（实体在 extract_ids 后即可知，
+    不等 route）；route 返回后再并发 agent_evidence ∥ 子问句补检 ∥ 路由实体 KG 扩展。
+    全函数容错：任何异常回传 (partial_contexts, cites, trace, t0) 并在 trace 记 error，
+    不再上抛——保证 partial trace 随 done 事件下发。"""
     t0 = time.time()
     history = history or []
     trace: dict = {"steps": []}
+    contexts: list[dict] = []
+    cites: list[dict] = []
 
     def step(name, **kw):
-        ev = {"step": name, "ts": datetime.now(timezone.utc).isoformat(), **kw}
+        ev = {"step": name, "ts": datetime.now(timezone.utc).isoformat(),
+              "ms": int((time.time() - t0) * 1000),
+              "status": kw.pop("status", "error" if "error" in kw else "ok"), **kw}
         trace["steps"].append(ev)
         if progress is not None:
             try:
-                progress.put_nowait({"step": name,
+                progress.put_nowait({"step": name, "ms": ev["ms"],
                     "msg": _STEP_MSG.get(name, name),
                     **{k: v for k, v in kw.items() if k in ("tool", "hits", "n", "route", "facts")}})
             except asyncio.QueueFull:
                 pass
 
-    # ---- 1. 实体直提（确定性优先）----
-    ids = extract_ids(question)
-    cves = ids["cve"]
-    cwes = ids["cwe"]
-    all_ids = ids["cve"] + ids["ghsa"] + ids["edb"] + ids["cwe"] + ids["atlas"]
-    step("extract", cves=cves, cwes=cwes, ids=all_ids[:10])
+    try:
+        # ---- 1. 实体直提（确定性优先）----
+        ids = extract_ids(question)
+        cves = ids["cve"]
+        cwes = ids["cwe"]
+        all_ids = ids["cve"] + ids["ghsa"] + ids["edb"] + ids["cwe"] + ids["atlas"]
+        step("extract", cves=cves, cwes=cwes, ids=all_ids[:10])
 
-    # ---- 2. CVE 直连（绕过完整 RAG，高置信）----
-    if cves:
-        direct = await _cve_direct(cves[0])
-        if direct:
-            step("cve_direct", cve=cves[0], found=True)
-            item = direct["item"]
-            ctx = _format_item_block(item, direct["pocs"], direct["mappings"])
-            cites = [_cite(item, 1)]
-            trace["note"] = f"CVE 直连 {cves[0]}"
-            return [ctx], cites, trace, t0
+        # ---- 2. CVE 直连（绕过完整 RAG，高置信；补轻量 KG 扩展保证 trace ≥3 步）----
+        if cves:
+            direct = await _cve_direct(cves[0])
+            if direct:
+                step("cve_direct", cve=cves[0], found=True)
+                kg_facts = await _kg_expand(cves, hops=1, limit=20)
+                step("kg_expand", facts=len(kg_facts), entities=cves)
+                item = direct["item"]
+                contexts = [_format_item_block(item, direct["pocs"], direct["mappings"])]
+                cites = [_cite(item, 1)]
+                if kg_facts:
+                    contexts.append(_kg_context(kg_facts, len(contexts) + 1))
+                    trace["kg_facts"] = kg_facts[:15]
+                step("context", n=len(contexts))
+                step("generate")
+                trace["note"] = f"CVE 直连 {cves[0]}"
+                return contexts, cites, trace, t0
 
-    # ---- 2.5 快速通道（deep=False：跳过路由/Agent/KG，直接检索生成，≤10s）----
-    if not deep:
-        step("fast_path")
-        hits = await retriever.retrieve(question, top_k=top_k, do_rerank=False)
-        hit_items = await _hydrate([h["item_id"] for h in hits])
-        contexts = []
-        for i, h in enumerate(hits, 1):
+        # ---- 2.5 快速通道（deep=False：跳过路由/Agent/KG，直接检索生成，≤10s）----
+        if not deep:
+            step("fast_path")
+            hits = await _guard(retriever.retrieve(question, top_k=top_k, do_rerank=False),
+                                [], "retrieve")
+            hit_items = await _guard(_hydrate([h["item_id"] for h in hits]), {}, "hydrate")
+            for i, h in enumerate(hits, 1):
+                it = hit_items.get(h["item_id"])
+                struct = _struct_line(it) if it else ""
+                contexts.append({"n": i, "item_id": h["item_id"], "title": h.get("title_zh") or h.get("title"),
+                                 "url": h.get("url"), "text": (struct + "\n" + h.get("text", ""))[:1800],
+                                 "meta": {"cve": h.get("cve")}, "score": h.get("rerank_score", h["score"])})
+            cites = [{"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"],
+                      "score": round(c["score"], 3)} for c in contexts]
+            step("context", n=len(contexts))
+            step("generate")
+            return contexts, cites, trace, t0
+
+        # ---- 3. 三路并发：路由 ∥ 原句混合检索 ∥ KG 种子实体扩展（+KEV 意图直查）----
+        kg_seed = (cves + cwes + ids["ghsa"] + ids["edb"] + ids["atlas"])[:8]
+        kev_intent = bool(re.search(r"kev|在野利用|已被利用|actively exploited", question, re.I))
+        routed, base_hits, kg_facts, kev_ctx = await asyncio.gather(
+            _route(question, history),
+            _guard(retriever.retrieve(question, top_k=top_k, do_rerank=False), [], "retrieve"),
+            _kg_expand(kg_seed, hops=2, limit=40),
+            _guard(_kev_facts(), None, "kev") if kev_intent else _none(),
+        )
+        sub_qs = routed.sub_questions[:3] or [question]
+        step("route", route=routed.route, sub_questions=sub_qs, entities=routed.entities)
+        if kev_ctx:
+            step("kev_facts", n=kev_ctx["meta"]["n_items"])
+
+        # ---- 4. 第二轮并发：Agent 工具循环 ∥ 子问句补充检索 ∥ 路由实体 KG 扩展 ----
+        extra_ents = [e for e in (routed.entities or [])[:5] if e not in kg_seed]
+        sub_extra = [q for q in sub_qs if q != question]
+        filters = routed.filters or {}
+        agent_ev, sub_hit_lists, kg_facts2 = await asyncio.gather(
+            _guard(_agent_evidence(question, history, step), [], "agent")
+            if routed.route != "general" else _nil(),
+            asyncio.gather(*[
+                _guard(retriever.retrieve(q, top_k=top_k, do_rerank=False, **filters),
+                       [], "retrieve")
+                for q in sub_extra]),
+            _kg_expand(extra_ents, hops=2, limit=40),
+        )
+        kg_facts = _dedupe_facts(kg_facts + kg_facts2)
+
+        all_hits: list[dict] = []
+        seen_iid: set[str] = set()
+        for h in agent_ev:
+            if h.get("item_id") and h["item_id"] not in seen_iid:
+                seen_iid.add(h["item_id"])
+                all_hits.append(h)
+        step("agent_evidence", n=len(all_hits))
+        n_agent = len(all_hits)
+        for hits in (base_hits, *sub_hit_lists):
+            for h in hits:
+                if h.get("item_id") and h["item_id"] not in seen_iid:
+                    seen_iid.add(h["item_id"])
+                    all_hits.append(h)
+        step("fallback_retrieve", hits=len(all_hits), added=len(all_hits) - n_agent)
+
+        # ---- 5. 合并重排（512 字 / ≤16 条）与 DB 结构化水合并发 ----
+        hit_items, _ = await asyncio.gather(
+            _guard(_hydrate([h["item_id"] for h in all_hits]), {}, "hydrate"),
+            _merged_rerank(question, all_hits),
+        )
+        all_hits.sort(key=lambda h: h.get("rerank_score", h["score"]), reverse=True)
+        all_hits = all_hits[:top_k * 2]
+        step("retrieve", hits=len(all_hits), sub_qs=len(sub_qs))
+        step("kg_expand", facts=len(kg_facts), entities=(kg_seed + extra_ents)[:8])
+
+        # ---- 6. 组装上下文（检索文本 + 结构化字段 + KG 事实 + KEV 清单）----
+        for i, h in enumerate(all_hits, 1):
             it = hit_items.get(h["item_id"])
             struct = _struct_line(it) if it else ""
             contexts.append({"n": i, "item_id": h["item_id"], "title": h.get("title_zh") or h.get("title"),
                              "url": h.get("url"), "text": (struct + "\n" + h.get("text", ""))[:1800],
-                             "meta": {"cve": h.get("cve")}, "score": h.get("rerank_score", h["score"])})
-        cites = [{"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"],
-                  "score": round(c["score"], 3)} for c in contexts]
-        return contexts, cites, trace, t0
-
-    # ---- 3. 路由/分解 ----
-    routed = await _route(question, history)
-    sub_qs = routed.sub_questions[:3] or [question]
-    step("route", route=routed.route, sub_questions=sub_qs, entities=routed.entities)
-
-    # ---- 3.5 确定性事实注入：KEV/在野利用 意图 → DB 直查（绕过检索）----
-    kev_ctx: dict | None = None
-    if re.search(r"kev|在野利用|已被利用|actively exploited", question, re.I):
-        kev_ctx = await _kev_facts()
+                             "meta": {k: h.get(k) for k in ("cve", "severity", "cvss", "epss", "is_kev", "item_type", "published_at")},
+                             "score": h.get("rerank_score", h["score"])})
+        if kg_facts:
+            contexts.append(_kg_context(kg_facts, len(contexts) + 1))
         if kev_ctx:
-            step("kev_facts", n=kev_ctx["meta"]["n_items"])
+            kev_ctx = {**kev_ctx, "n": len(contexts) + 1}
+            contexts.append(kev_ctx)
+        step("context", n=len(contexts))
+        step("generate")
 
-    # ---- 4. Agent 工具循环（自主决策调用检索/KG/详情/KEV，≤3轮）；证据不足回退确定性检索 ----
-    agent_ev = [] if routed.route == "general" else await _agent_evidence(question, history, step)
-    all_hits: list[dict] = []
-    seen_iid: set[str] = set()
-    for h in agent_ev:
-        if h.get("item_id") and h["item_id"] not in seen_iid:
-            seen_iid.add(h["item_id"])
-            all_hits.append(h)
-    step("agent_evidence", n=len(all_hits))
-
-    if len(all_hits) < 2:
-        per_q = await asyncio.gather(*[
-            retriever.retrieve(q, top_k=top_k, do_rerank=False, **(routed.filters or {}))
-            for q in sub_qs])
-        for hits in per_q:
-            for h in hits:
-                if h["item_id"] not in seen_iid:
-                    seen_iid.add(h["item_id"])
-                    all_hits.append(h)
-        step("fallback_retrieve", hits=len(all_hits))
-    if len(all_hits) > 1:
+        cites = [
+            {"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"], "score": round(c["score"], 3)}
+            for c in contexts if c["item_id"] != "kg"]
+        if kg_facts:
+            trace["kg_facts"] = kg_facts[:15]
+        return contexts, cites, trace, t0
+    except Exception as e:  # noqa: BLE001
+        log.error("prepare_failed", error=str(e)[:300])
         try:
-            from app.rag import embedder
-            docs = [(h.get("text") or "")[:800] for h in all_hits[:24]]
-            ranked = await embedder.rerank(question, docs, top_n=min(24, len(docs)))
-            for idx, s in ranked:
-                all_hits[idx]["rerank_score"] = s
-        except Exception as e:  # noqa: BLE001
-            log.warning("merged_rerank_failed", error=str(e)[:120])
-    all_hits.sort(key=lambda h: h.get("rerank_score", h["score"]), reverse=True)
-    all_hits = all_hits[:top_k * 2]
-    step("retrieve", hits=len(all_hits), sub_qs=len(sub_qs))
-
-    # ---- 5. KG 扩展（multi_hop 或实体存在时）----
-    kg_facts: list[dict] = []
-    kg_entities = cves + cwes + routed.entities[:5]
-    if routed.route in ("multi_hop", "comparison", "trend") or kg_entities:
-        kg_facts = await kg.entity_expand(kg_entities, hops=2, limit=40)
-        step("kg_expand", facts=len(kg_facts), entities=kg_entities[:8])
-
-    # ---- 6. 组装上下文（检索文本 + DB 结构化字段水合）----
-    hit_items = await _hydrate([h["item_id"] for h in all_hits])
-    contexts = []
-    for i, h in enumerate(all_hits, 1):
-        it = hit_items.get(h["item_id"])
-        struct = _struct_line(it) if it else ""
-        contexts.append({"n": i, "item_id": h["item_id"], "title": h.get("title_zh") or h.get("title"),
-                         "url": h.get("url"), "text": (struct + "\n" + h.get("text", ""))[:1800],
-                         "meta": {k: h.get(k) for k in ("cve", "severity", "cvss", "epss", "is_kev", "item_type", "published_at")},
-                         "score": h.get("rerank_score", h["score"])})
-    if kg_facts:
-        facts_txt = "\n".join(
-            f"- {f.get('title','?')} [{f.get('item_id')}] 关联:{f.get('rel')} via {f.get('nid') or f.get('via_cwe','')}"
-            for f in kg_facts[:15])
-        contexts.append({"n": len(contexts) + 1, "item_id": "kg", "title": "知识图谱关联事实",
-                         "url": None, "text": facts_txt, "meta": {"kind": "kg_facts"}, "score": 0.6})
-    if kev_ctx:
-        kev_ctx = {**kev_ctx, "n": len(contexts) + 1}
-        contexts.append(kev_ctx)
-    step("context", n=len(contexts))
-
-    cites = [
-        {"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"], "score": round(c["score"], 3)}
-        for c in contexts if c["item_id"] != "kg"]
-    if kg_facts:
-        trace["kg_facts"] = kg_facts[:15]
-    return contexts, cites, trace, t0
+            step("prepare_error", error=str(e)[:200])
+            if not cites and contexts:
+                cites = [{"n": c["n"], "item_id": c["item_id"], "title": c["title"],
+                          "url": c["url"], "score": round(c.get("score", 0), 3)}
+                         for c in contexts if c["item_id"] != "kg"]
+            if len(trace["steps"]) < 3:  # 兜底：任意路径 trace ≥3 步
+                step("context", n=len(contexts))
+                step("generate")
+        except Exception:  # noqa: BLE001
+            pass
+        return contexts, cites, trace, t0
 
 
 async def answer(question: str, session_id: str | None = None,
@@ -389,9 +513,11 @@ async def _generate(question: str, history: list[dict], contexts: list[dict], tr
 3. 回答结构化：结论 → 关键事实 → 建议；若问题要求枚举（哪些/所有/列出），须逐条列全
 4. 中文回答，技术名词保留原文
 5. 输出 JSON: {"answer": "...", "confidence": 0-1, "followups": ["建议的追问"]}"""
+    # 消息顺序固定 system→证据→history→问题：证据块前置，前缀缓存友好
     msgs = [{"role": "system", "content": sys_p},
+            {"role": "user", "content": f"证据：\n{ctx_txt}"},
             *[{"role": h["role"], "content": h["content"]} for h in history[-6:]],
-            {"role": "user", "content": f"证据：\n{ctx_txt}\n\n问题：{question}"}]
+            {"role": "user", "content": f"问题：{question}"}]
     try:
         return await chat_structured(msgs, AnswerOut, max_retries=1)
     except Exception as e:  # noqa: BLE001
@@ -413,9 +539,11 @@ async def _generate_stream(question: str, history: list[dict], contexts: list[di
     ctx_txt = "\n\n".join(
         f"[{c['n']}] {c['title'] or ''}\nURL: {c['url'] or '-'}\n元数据: {c.get('meta')}\n{c['text']}"
         for c in contexts[:12])
+    # 消息顺序固定 system→证据→history→问题：证据块前置，前缀缓存友好
     msgs = [{"role": "system", "content": _STREAM_SYS},
+            {"role": "user", "content": f"证据：\n{ctx_txt}"},
             *[{"role": h["role"], "content": h["content"]} for h in history[-6:]],
-            {"role": "user", "content": f"证据：\n{ctx_txt}\n\n问题：{question}"}]
+            {"role": "user", "content": f"问题：{question}"}]
     async for piece in chat_stream(msgs, max_tokens=3000):
         yield piece
 

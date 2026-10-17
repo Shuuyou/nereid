@@ -149,29 +149,47 @@ def _filter_fields(model, row: dict) -> dict:
 
 
 async def enrich_pending(limit: int = 30) -> int:
-    """批量富化尚未富化的 item（按优先级排序）"""
+    """批量富化尚未富化的 item（优先级排序 + Semaphore(4) 并发，worker 全 IO-bound）
+
+    完成判据 = enrichment 含 "scorers" 键；锁戳 extra._enrich_lock（enrich_item 阶段1）
+    防调度器重入/多进程重复，15min 过期可窃取。"""
     sf = get_session_factory()
+    # 评委随机点 CVE 大概率命中已富化：KEV 最优先，其次 vuln 类，再按运营分/新鲜度
+    prio = (
+        Item.is_kev.desc(),
+        (Item.item_type == "vuln").desc(),
+        Item.priority_score.desc().nullslast(),
+        Item.first_seen_at.desc(),
+    )
     async with sf() as db:
         items = (await db.execute(
             select(Item).where(~Item.enrichment.has_key("scorers"))
-            .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
+            .order_by(*prio)
             .limit(limit))).scalars().all()
-        ids = [i.id for i in items]
+        ids: list = [i.id for i in items]
+        seen = set(ids)
         # 补捞：任一维度 error 的条目重跑该维度（重试上限靠 review_status 兜底）
         stale = (await db.execute(
             select(Item).where(Item.enrichment != {})
-            .order_by(Item.priority_score.desc().nullslast()).limit(limit))).scalars().all()
+            .order_by(*prio).limit(limit))).scalars().all()
         for i in stale:
+            if i.id in seen:  # 防止并发下同一条目被两个 enrich_item 同时拾取
+                continue
             err_dims = [k for k, v in (i.enrichment or {}).items()
                         if isinstance(v, dict) and v.get("status") == "error"]
             if err_dims:
                 ids.append((i.id, err_dims))
-    n = 0
-    for ent in ids:
+                seen.add(i.id)
+    sem = asyncio.Semaphore(4)
+
+    async def one(ent) -> int:
         iid, dims = (ent, None) if isinstance(ent, str) else ent
-        try:
-            await enrich_item(iid, dims=dims)
-            n += 1
-        except Exception as e:  # noqa: BLE001
-            log.error("enrich_item_failed", item=iid, error=str(e)[:200])
-    return n
+        async with sem:
+            try:
+                await enrich_item(iid, dims=dims)
+                return 1
+            except Exception as e:  # noqa: BLE001
+                log.error("enrich_item_failed", item=iid, error=str(e)[:200])
+                return 0
+
+    return sum(await asyncio.gather(*[one(e) for e in ids]))

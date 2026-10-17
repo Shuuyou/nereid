@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from app.core.http import fetch
 from app.core.logging import get_logger
-from app.enrichment.common import ok, partial, skipped
+from app.enrichment.common import now_iso, ok, partial, skipped
 from app.services.ssvc import fetch_vulnrichment
 
 log = get_logger("enrich.scorers")
@@ -87,6 +87,7 @@ async def run(item, ctx) -> dict:
     try:
         r = await fetch("https://api.first.org/data/v1/epss", params={"cve": ",".join(cves[:50])})
         if r.status_code == 200:
+            extra["epss_fetched_at"] = now_iso()  # UTC ISO：评测"同快照对比"依据
             for row in r.json().get("data", []):
                 fields["epss_score"] = float(row.get("epss") or 0)
                 fields["epss_percentile"] = float(row.get("percentile") or 0)
@@ -190,11 +191,13 @@ async def refresh_epss_all(limit: int = 5000) -> int:
         # 收集全部 CVE 一次批量查 EPSS
         all_cves = sorted({c for it in rows for c in (it.cve_ids or [])})
         epss_map = await _epss_batch(all_cves)
+        fetch_ts = now_iso()  # 本次刷新快照时间戳（评测"同快照对比"依据）
         for it in rows:
             best = max(((epss_map.get(c) for c in it.cve_ids or [])),
                        key=lambda x: x[0] if x else -1)
             changed = False
             if best:
+                it.extra = {**(it.extra or {}), "epss_fetched_at": fetch_ts}
                 if it.epss_score != best[0]:
                     it.epss_score = best[0]
                     changed = True
