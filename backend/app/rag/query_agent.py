@@ -162,16 +162,18 @@ def _tool_args(tc: dict) -> dict:
         return {}
 
 
-async def _merged_rerank(question: str, all_hits: list[dict]) -> None:
-    """候选合并后的单次交叉编码重排：截断 512 字、≤16 条（就地写 rerank_score）"""
-    if len(all_hits) <= 1:
+async def _merged_rerank(question: str, hits: list[dict]) -> None:
+    """候选合并后的单次交叉编码重排：截断 512 字（就地写 rerank_score）。
+    注意：rerank 分是交叉编码 logit（负值域），与 RRF score（正值域）不同量纲——
+    调用方必须先按 score 预排序取 top 段再调本函数，最终排序两段分开做。"""
+    if len(hits) <= 1:
         return
     try:
         from app.rag import embedder
-        docs = [(h.get("text") or "")[:512] for h in all_hits[:16]]
-        ranked = await embedder.rerank(question, docs, top_n=min(16, len(docs)))
+        docs = [(h.get("text") or "")[:512] for h in hits]
+        ranked = await embedder.rerank(question, docs, top_n=len(docs))
         for idx, s in ranked:
-            all_hits[idx]["rerank_score"] = s
+            hits[idx]["rerank_score"] = s
     except Exception as e:  # noqa: BLE001
         log.warning("merged_rerank_failed", error=str(e)[:120])
 
@@ -392,13 +394,17 @@ async def _prepare(question: str, session_id: str | None = None,
                     all_hits.append(h)
         step("fallback_retrieve", hits=len(all_hits), added=len(all_hits) - n_agent)
 
-        # ---- 5. 合并重排（512 字 / ≤16 条）与 DB 结构化水合并发 ----
+        # ---- 5. 合并重排与 DB 结构化水合并发 ----
+        # 量纲纪律：rerank_score 是 logit（负值）≠ RRF score（正值），不得混排。
+        # 先按 RRF 预排序 → rerank 只处理真实 top 候选段 → 段内按 logit 排，尾部按 RRF 追加
+        all_hits.sort(key=lambda h: h["score"], reverse=True)
+        rerank_seg, tail_hits = all_hits[:24], all_hits[24:]
         hit_items, _ = await asyncio.gather(
             _guard(_hydrate([h["item_id"] for h in all_hits]), {}, "hydrate"),
-            _merged_rerank(question, all_hits),
+            _merged_rerank(question, rerank_seg),
         )
-        all_hits.sort(key=lambda h: h.get("rerank_score", h["score"]), reverse=True)
-        all_hits = all_hits[:top_k * 2]
+        rerank_seg.sort(key=lambda h: h.get("rerank_score", h["score"]), reverse=True)
+        all_hits = (rerank_seg + tail_hits)[:top_k * 2]
         step("retrieve", hits=len(all_hits), sub_qs=len(sub_qs))
         step("kg_expand", facts=len(kg_facts), entities=(kg_seed + extra_ents)[:8])
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """富化准确率评测：库内已富化字段 vs 权威源实时地面真值
 
-抽样 items（cve_ids 非空且 enrichment 非空，按 priority_score 取前 N），
+抽样 items（cve_ids 非空且 enrichment 非空）：ID 层均匀随机 + severity×发布年份
+分层抽取（可辩护口径；--head 可回退 priority_score 降序），
 对每条 item 的 CVE 与三个权威源逐项对比：
   - EPSS  api.first.org（批量 ≤100/次）       → epss_score / epss_percentile，容差 ±0.05
   - KEV   cisagov/kev-data github 镜像兜底     → is_kev 布尔（真值 = 任一 cve 命中）
@@ -45,17 +46,46 @@ FLAG = {"ok": "✓", "diff": "✗", "missing": "∅", "extra": "+",
         "no_truth": "-", "source_unavailable": "?"}
 
 
-async def load_items(n: int):
-    """取有 cve_ids 且已富化的 item，按 priority_score 降序（与 pipeline 口径一致）"""
+async def load_items(n: int, stratified: bool = True, seed: int = 42):
+    """评测抽样：ID 层均匀随机 + severity×发布年份分层抽取（消除"高优先条目
+    EPSS 波动大"的抽样偏差；FIRST 口径：评测集须代表总体而非只取头部）。
+    stratified=False 回退按 priority_score 降序（与 pipeline 口径一致）。"""
+    import random
     from sqlalchemy import select
     from app.db.models import Item
     from app.db.session import get_session_factory
+    rng = random.Random(seed)
     async with get_session_factory()() as db:
-        return (await db.execute(
-            select(Item)
-            .where(Item.cve_ids != [], Item.enrichment != {})
-            .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
-            .limit(n))).scalars().all()
+        if not stratified:
+            return (await db.execute(
+                select(Item)
+                .where(Item.cve_ids != [], Item.enrichment != {})
+                .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
+                .limit(n))).scalars().all()
+        # ID 层全量随机（只取 id 轻量），oversample ×6 后分层抽 n
+        ids = (await db.execute(
+            select(Item.id).where(Item.cve_ids != [], Item.enrichment != {}))).scalars().all()
+        rng.shuffle(ids)
+        rows = (await db.execute(
+            select(Item).where(Item.id.in_(ids[:n * 6])))).scalars().all()
+    if len(rows) <= n:
+        return rows
+    buckets: dict[str, list] = {}
+    for it in rows:
+        sev = it.severity or "none"
+        year = str(it.published_at.year) if it.published_at else "unk"
+        buckets.setdefault(f"{sev}|{year}", []).append(it)
+    out: list = []
+    keys = sorted(buckets)
+    while len(out) < n:
+        progressed = False
+        for k in keys:
+            if buckets[k] and len(out) < n:
+                out.append(buckets[k].pop(rng.randrange(len(buckets[k]))))
+                progressed = True
+        if not progressed:
+            break
+    return out
 
 
 # ---------- 地面真值拉取（经 app.core.http.fetch，自带限流+重试） ----------

@@ -18,12 +18,14 @@
 - 测绘：Hunter（key 已给但**账号无API权限**，走 is_simulated 降级）
 
 ## 运行
-- 基础设施：`cd deploy && docker compose up -d postgres qdrant neo4j redis`
+- **systemd 自愈（推荐）**：`~/.config/systemd/user/nereid-{backend,scheduler,frontend}.service`，linger 已开 → 重启自动拉起。手动起进程前先 `systemctl --user stop nereid-*` 防端口冲突
+- 基础设施：`cd deploy && docker compose up -d postgres qdrant neo4j redis`（compose restart 策略自愈）
 - 后端：`cd backend && .venv/bin/uvicorn app.main:app --port 8000`（venv 在 backend/.venv）
 - 调度：`.venv/bin/python -m app.scheduler.runner`；演示数据：`.venv/bin/python ../scripts/demo_seed.py`
 - 前端生产预览：`scripts/start_frontend.sh`（standalone 需拷 static/public，端口 3200）
 - 测试：`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests -q`（必须禁用插件自加载，系统装有ROS会冲突）
 - Notion 同步：`NOTION_TOKEN=xxx python3 scripts/build_notion_doc.py`
+- 批量回填：`scripts/enrich_backfill.py --limit N --type vuln`（Semaphore(4)并发+断点续跑）
 
 ## 环境坑（已踩过）
 - 本机 GPU 驱动版本不匹配不可用 → embedding/reranker 全走 CPU ONNX
@@ -62,3 +64,12 @@
 ## 子 Agent 注意事项
 - 后台子 Agent 曾被回收且仍可能写盘冲突 → 实现类任务自己写，别让子 Agent 写共享文件
 - enrichment/*.py 曾被覆写导致 extract_cwes/item.lang/ai_layers 旧版回归，修复后需 grep 验证
+
+## 新增契约（2026-10-18 SOTA 对齐后）
+- **LangGraph durable execution**：pipeline_graph 挂 AsyncPostgresSaver checkpointer，run 与 thread_id=`pipeline-{run_id}` 绑定；PG 挂降级 MemorySaver；`resume_pipeline(run_id, sid)` 断点续跑
+- **优先级两段式（Qualys QVS 式）**：ingest._priority —— KEV/weaponized/SSVC-active 直接置顶桶 [6,8]；其余 65%CVSS+35%(EPSS+exploit成熟度+AI相关)
+- **EPSS 官方口径**：refresh_epss_all 走每日 CSV 全量（epss_scores-current.csv.gz，1 请求覆盖全库，~39万 CVE）；CSV 挂回退批量 API；extra.epss_as_of/epss_model_version/epss_fetched_at 记录快照
+- **CVSS 层级兜底**：cvelistV5 本地克隆解析 CNA + **ADP 容器**（CISA Vulnrichment 给无评分 CVE 补 CVSS/CWE）；NVD metrics 按 type=="Primary" 优先；extra.cvss_source 记录分值出处（cna|adp:xxx|nvd）
+- **评测口径可辩护**：eval_enrichment 分层随机抽样（severity×年份，ID 层均匀随机）；EPSS 评测前对样本同快照刷新消除漂移假阴性
+- **个性化推荐**：PUT/GET /api/profile/{name}；GET /api/feed/personalized；POST /api/feed/{id}/feedback；GET /api/feed/digest（规则匹配+向量召回+matched_entities/why 解释+反馈闭环）
+- **systemd**：三 user service + linger；前端 standalone 每次 build 后 systemd 重启（旧 nohup 进程会抢端口——先杀再起）

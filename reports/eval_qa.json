@@ -1,192 +1,140 @@
 {
-  "overall": 0.0,
-  "multi_hop": 0.0,
-  "cite_precision": 1.0,
-  "trace_coverage": 0.6666666666666666,
+  "overall": 1.0,
+  "multi_hop": 1.0,
+  "cite_precision": 0.8333333333333334,
+  "trace_coverage": 1.0,
   "results": [
     {
       "q": "CVE-2025-32444 影响哪个组件？严重度是多少？",
       "type": "single",
       "hops": 1,
-      "cite_precision": true,
-      "trace_steps": 2,
-      "expect_hits": "0/3",
-      "hit_rate": 0.0,
-      "latency_s": 0.9,
-      "missed": [
-        "vllm",
-        "critical",
-        "9.8"
-      ]
+      "cite_precision": false,
+      "trace_steps": 5,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 3.2,
+      "missed": []
     },
     {
       "q": "Ollama Probllama 漏洞的 CVE 编号是什么？",
       "type": "single",
       "hops": 1,
       "cite_precision": true,
-      "trace_steps": 6,
-      "expect_hits": "0/1",
-      "hit_rate": 0.0,
-      "latency_s": 16.8,
-      "missed": [
-        "CVE-2024-37032"
-      ]
+      "trace_steps": 11,
+      "expect_hits": "1/1",
+      "hit_rate": 1.0,
+      "latency_s": 8.9,
+      "missed": []
     },
     {
       "q": "CVE-2025-3248 是否已被在野利用？",
       "type": "single",
       "hops": 1,
       "cite_precision": true,
-      "trace_steps": 2,
-      "expect_hits": "0/3",
-      "hit_rate": 0.0,
-      "latency_s": 0.0,
-      "missed": [
-        "kev",
-        "是",
-        "在野"
-      ]
+      "trace_steps": 5,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 3.4,
+      "missed": []
     },
     {
       "q": "vLLM 的 PyNcclPipe RCE 漏洞（CVE-2025-32444）利用了哪类弱点，对应的 ATT&CK 攻",
       "type": "multi",
       "hops": 3,
-      "cite_precision": true,
-      "trace_steps": 2,
-      "expect_hits": "0/4",
-      "hit_rate": 0.0,
-      "latency_s": 0.0,
-      "missed": [
-        "CWE-502",
-        "反序列化",
-        "T1190",
-        "0.8.5"
-      ]
+      "cite_precision": false,
+      "trace_steps": 5,
+      "expect_hits": "4/4",
+      "hit_rate": 1.0,
+      "latency_s": 3.1,
+      "missed": []
     },
     {
       "q": "我们内网部署了 Ollama 和 Milvus 2.4，请分析面临的已公开漏洞风险及处置建议。",
       "type": "multi",
       "hops": 2,
       "cite_precision": true,
-      "trace_steps": 6,
-      "expect_hits": "0/4",
-      "hit_rate": 0.0,
-      "latency_s": 16.9,
-      "missed": [
-        "CVE-2024-37032",
-        "CVE-2025-64513",
-        "升级",
-        "认证"
-      ]
+      "trace_steps": 11,
+      "expect_hits": "4/4",
+      "hit_rate": 1.0,
+      "latency_s": 18.5,
+      "missed": []
     },
     {
       "q": "MCP 生态今年曝出的安全漏洞有哪些共性？给出开发和部署侧的防护建议。",
       "type": "multi",
       "hops": 3,
       "cite_precision": true,
-      "trace_steps": 6,
-      "expect_hits": "0/4",
-      "hit_rate": 0.0,
-      "latency_s": 17.0,
-      "missed": [
-        "CVE-2025-6514",
-        "投毒",
-        "供应链",
-        "最小权限"
-      ]
+      "trace_steps": 11,
+      "expect_hits": "4/4",
+      "hit_rate": 1.0,
+      "latency_s": 16.1,
+      "missed": []
     },
     {
       "q": "哪些 AI 基础设施漏洞已被 CISA KEV 收录并遭在野利用？它们的攻击链有什么共同点？",
       "type": "multi",
       "hops": 3,
       "cite_precision": true,
-      "trace_steps": 7,
-      "expect_hits": "0/4",
-      "hit_rate": 0.0,
-      "latency_s": 17.2,
-      "missed": [
-        "CVE-2025-3248",
-        "CVE-2024-37032",
-        "CVE-2023-48022",
-        "T1190"
-      ]
+      "trace_steps": 12,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 17.6,
+      "missed": []
     },
     {
       "q": "提示注入类事件（如 EchoLeak）与基础设施类漏洞在缓解措施上有什么本质差异？",
       "type": "multi",
       "hops": 2,
       "cite_precision": true,
-      "trace_steps": 6,
-      "expect_hits": "0/4",
-      "hit_rate": 0.0,
-      "latency_s": 16.2,
-      "missed": [
-        "RAG",
-        "过滤",
-        "输入",
-        "补丁"
-      ]
+      "trace_steps": 11,
+      "expect_hits": "4/4",
+      "hit_rate": 1.0,
+      "latency_s": 17.9,
+      "missed": []
     },
     {
       "q": "Ollama 暴露在公网的资产面临 Probllama 漏洞风险时，应该优先做哪三件事？",
       "type": "single",
       "hops": 1,
       "cite_precision": true,
-      "trace_steps": 6,
-      "expect_hits": "0/3",
-      "hit_rate": 0.0,
-      "latency_s": 16.3,
-      "missed": [
-        "升级",
-        "0.1.34",
-        "认证"
-      ]
+      "trace_steps": 8,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 8.3,
+      "missed": []
     },
     {
       "q": "CVE-2024-37032 从初始访问到命令执行再到资源劫持的完整攻击链是怎样的？",
       "type": "multi",
       "hops": 3,
       "cite_precision": true,
-      "trace_steps": 2,
-      "expect_hits": "0/4",
-      "hit_rate": 0.0,
-      "latency_s": 0.0,
-      "missed": [
-        "T1190",
-        "T1059",
-        "T1105",
-        "遍历"
-      ]
+      "trace_steps": 5,
+      "expect_hits": "4/4",
+      "hit_rate": 1.0,
+      "latency_s": 4.7,
+      "missed": []
     },
     {
       "q": "《生成式人工智能服务安全基本要求》对训练数据和生成内容提出了哪些合规要求？",
       "type": "single",
       "hops": 1,
       "cite_precision": true,
-      "trace_steps": 6,
-      "expect_hits": "0/3",
-      "hit_rate": 0.0,
-      "latency_s": 16.3,
-      "missed": [
-        "训练数据",
-        "安全",
-        "内容"
-      ]
+      "trace_steps": 8,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 7.8,
+      "missed": []
     },
     {
       "q": "列出库中 severity 为 critical 且有公开 PoC 的 AI 相关漏洞。",
       "type": "single",
       "hops": 1,
       "cite_precision": true,
-      "trace_steps": 6,
-      "expect_hits": "0/3",
-      "hit_rate": 0.0,
-      "latency_s": 16.3,
-      "missed": [
-        "CVE-",
-        "critical",
-        "PoC"
-      ]
+      "trace_steps": 11,
+      "expect_hits": "3/3",
+      "hit_rate": 1.0,
+      "latency_s": 12.3,
+      "missed": []
     }
   ]
 }

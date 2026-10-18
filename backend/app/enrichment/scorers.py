@@ -13,7 +13,9 @@ _ROOT = __import__("os").path.dirname(__import__("os").path.dirname(
 
 
 def _cvelist_local(cve_id: str) -> dict:
-    """从本地 cvelistV5 git 克隆读取 CVSS/CWE（免外部 API，离线可复现）"""
+    """从本地 cvelistV5 git 克隆读取 CVSS/CWE（免外部 API，离线可复现）。
+    CNA + ADP(CISA Vulnrichment 等) 容器都吃——NIST 2026-04 起放弃全量富化，
+    约 80% 新 CVE 的权威分值只在 CNA/ADP 容器里。"""
     import json as _j
     import os as _o
     try:
@@ -23,10 +25,10 @@ def _cvelist_local(cve_id: str) -> dict:
             return {}
         d = _j.load(open(path, encoding="utf-8"))
         out: dict = {}
-        # CNA + ADP 容器都可能有 metrics
-        for cont in ("cna",):
-            m = (d.get("containers", {}).get(cont, {}).get("metrics") or [])
-            for mm in m:
+        cwes: set = set()
+
+        def _eat_metrics(metrics, src):
+            for mm in metrics or []:
                 for ver, fk, fv, fs in (("cvssV3_1", "cvss_v31_score", "cvss_v31_vector", "severity"),
                                         ("cvssV3_0", "cvss_v31_score", "cvss_v31_vector", "severity"),
                                         ("cvssV4_0", "cvss_v40_score", "cvss_v40_vector", None)):
@@ -37,12 +39,24 @@ def _cvelist_local(cve_id: str) -> dict:
                             out[fv] = v.get("vectorString")
                         if fs and v.get("baseSeverity"):
                             out[fs] = v["baseSeverity"].lower()
-        cwes = sorted({d2.get("cweId") for pt in
-                       (d.get("containers", {}).get("cna", {}).get("problemTypes") or [])
-                       for d2 in (pt.get("descriptions") or [])
-                       if str(d2.get("cweId") or "").startswith("CWE-")})
+                        out["cvss_source"] = src
+
+        def _eat_problems(pts):
+            for pt in pts or []:
+                for d2 in (pt.get("descriptions") or []):
+                    cid = str(d2.get("cweId") or "")
+                    if cid.startswith("CWE-"):
+                        cwes.add(cid)
+
+        containers = d.get("containers", {})
+        cna = containers.get("cna") or {}
+        _eat_metrics(cna.get("metrics"), "cna")
+        _eat_problems(cna.get("problemTypes"))
+        for adp in (containers.get("adp") or []):
+            _eat_metrics(adp.get("metrics"), f"adp:{adp.get('title') or 'adp'}")
+            _eat_problems(adp.get("problemTypes"))
         if cwes:
-            out["cwe_ids"] = sorted(set(cwes))
+            out["cwe_ids"] = sorted(cwes)
         return out
     except Exception:  # noqa: BLE001
         return {}
@@ -109,8 +123,10 @@ async def run(item, ctx) -> dict:
     if not item.cvss_v31_score and cves:
         cv = _cvelist_local(cves[0])
         if cv:
+            src = cv.pop("cvss_source", "cna")
+            extra["cvss_source"] = src
             fields.update({k: v for k, v in cv.items() if v is not None})
-            notes.append("cvss:cvelistV5-local")
+            notes.append(f"cvss:cvelistV5-{src}")
 
     # ---- NVD 补分（仅当缺 CVSS 且本地克隆未覆盖）----
     if not item.cvss_v31_score and not fields.get("cvss_v31_score") and cves:
@@ -124,15 +140,25 @@ async def run(item, ctx) -> dict:
                 if vs:
                     c = vs[0]["cve"]
                     metrics = c.get("metrics", {})
+                    # metrics 列表按 type=="Primary"(NIST/CNA官方) 优先于 Secondary(GHSA等)
+                    def _pick(key):
+                        arr = metrics.get(key) or []
+                        for m in arr:
+                            if (m.get("type") or "").lower() == "primary":
+                                return m
+                        return arr[0] if arr else None
                     for key in ("cvssMetricV31", "cvssMetricV30"):
-                        if metrics.get(key) and not fields.get("cvss_v31_score"):
-                            mm = metrics[key][0]["cvssData"]
+                        m = _pick(key)
+                        if m and not fields.get("cvss_v31_score"):
+                            mm = m["cvssData"]
                             fields["cvss_v31_score"] = mm.get("baseScore")
                             fields["cvss_v31_vector"] = mm.get("vectorString")
-                            fields["severity"] = ((metrics[key][0].get("baseSeverity")
+                            fields["severity"] = ((m.get("baseSeverity")
                                                     or mm.get("baseSeverity") or "").lower() or None)
-                    if metrics.get("cvssMetricV40"):
-                        mm = metrics["cvssMetricV40"][0]["cvssData"]
+                            extra["cvss_source"] = "nvd"
+                    m = _pick("cvssMetricV40")
+                    if m:
+                        mm = m["cvssData"]
                         fields["cvss_v40_score"] = mm.get("baseScore")
                         fields["cvss_v40_vector"] = mm.get("vectorString")
                     # CWE 补充
@@ -158,6 +184,9 @@ async def run(item, ctx) -> dict:
               data_keys=["epss", "kev", "nvd", "ssvc"])
 
 
+EPSS_CSV_URL = "https://epss.empiricalsecurity.com/epss_scores-current.csv.gz"
+
+
 async def _epss_batch(cves: list[str]) -> dict[str, tuple[float, float]]:
     """EPSS 批量查询（≤100/次）→ {cve: (score, percentile)}"""
     out: dict[str, tuple[float, float]] = {}
@@ -175,29 +204,63 @@ async def _epss_batch(cves: list[str]) -> dict[str, tuple[float, float]]:
     return out
 
 
-async def refresh_epss_all(limit: int = 5000) -> int:
-    """周期刷新 EPSS+KEV（评分随时间漂移）：批量 API，非 per-item worker"""
+async def _epss_csv_map() -> tuple[dict, dict]:
+    """FIRST 官方推荐口径：每日 CSV 全量同步（1 次请求覆盖全量 CVE，
+    替代 ~140 次批量 API）。返回 ({cve:(score,pct)}, meta)；失败返回空。"""
+    import csv
+    import gzip
+    import io
+    import re as _re
+    try:
+        r = await fetch(EPSS_CSV_URL)
+        if r.status_code != 200:
+            return {}, {}
+        text = gzip.decompress(r.content).decode("utf-8", "replace")
+        meta: dict = {}
+        m = _re.search(r"model_version[:=]?\s*([\w.\-]+)", text[:2000])
+        if m:
+            meta["model_version"] = m.group(1)
+        out: dict[str, tuple[float, float]] = {}
+        for row in csv.DictReader(l for l in io.StringIO(text) if not l.startswith("#")):
+            try:
+                out[row["cve"].strip().upper()] = (
+                    float(row["epss"]), float(row["percentile"]))
+            except Exception:  # noqa: BLE001
+                continue
+        return out, meta
+    except Exception as e:  # noqa: BLE001
+        log.warning("epss_csv_failed", error=str(e)[:120])
+        return {}, {}
+
+
+async def refresh_epss_all(limit: int = 100000) -> int:
+    """周期刷新 EPSS+KEV（评分随时间漂移）：每日 CSV 全量 join，非 per-item worker；
+    CSV 不可达回退批量 API（仅覆盖高优先 CVE）。limit 默认放开到全库。"""
     from sqlalchemy import select
     from app.db.models import Item
     from app.db.session import get_session_factory
     global _kev_cache
     _kev_cache = None
     kev = await _kev_set()
+    epss_map, epss_meta = await _epss_csv_map()
     n = 0
     async with get_session_factory()() as db:
         rows = (await db.execute(
             select(Item).where(Item.cve_ids != [])
             .order_by(Item.first_seen_at.desc()).limit(limit))).scalars().all()
-        # 收集全部 CVE 一次批量查 EPSS
-        all_cves = sorted({c for it in rows for c in (it.cve_ids or [])})
-        epss_map = await _epss_batch(all_cves)
+        if not epss_map:  # CSV 失败 → 回退批量 API
+            all_cves = sorted({c for it in rows for c in (it.cve_ids or [])})
+            epss_map = await _epss_batch(all_cves[:5000])
         fetch_ts = now_iso()  # 本次刷新快照时间戳（评测"同快照对比"依据）
         for it in rows:
-            best = max(((epss_map.get(c) for c in it.cve_ids or [])),
+            best = max(((epss_map.get(str(c).upper()) for c in it.cve_ids or [])),
                        key=lambda x: x[0] if x else -1)
             changed = False
             if best:
-                it.extra = {**(it.extra or {}), "epss_fetched_at": fetch_ts}
+                it.extra = {**(it.extra or {}), "epss_fetched_at": fetch_ts,
+                            "epss_as_of": fetch_ts[:10],
+                            **({"epss_model_version": epss_meta["model_version"]}
+                               if epss_meta.get("model_version") else {})}
                 if it.epss_score != best[0]:
                     it.epss_score = best[0]
                     changed = True
