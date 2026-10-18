@@ -5,6 +5,7 @@ import { Nav } from "@/components/Nav";
 export const metadata = {
   title: "捞针 · nereid — AI 安全情报系统",
   description: "智能体驱动的 AI 安全知识情报系统",
+  icons: { icon: "/icon.svg" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
