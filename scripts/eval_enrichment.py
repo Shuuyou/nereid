@@ -361,7 +361,9 @@ async def run_eval(n: int) -> int:
         "tolerances": {"epss": EPSS_TOL, "cvss": CVSS_TOL, "cwe_iou_min": CWE_IOU_MIN},
         "metric_defs": {"accuracy": "correct / (truth非空且我们已填)",
                         "recall": "我们非空 / truth非空",
-                        "is_kev": "布尔字段报混淆矩阵"},
+                        "is_kev": "布尔字段报混淆矩阵",
+                        "epss": "评测前对样本做实时刷新（refresh_epss_all 同口径 max-over-cves，"
+                                "记 extra.epss_fetched_at），再与官方即时值同快照对比，消除天级漂移"},
         "fields": field_metrics,
         "overall": {"accuracy": round(overall_acc, 4) if overall_acc is not None else None,
                     "recall": round(overall_rec, 4) if overall_rec is not None else None},

@@ -1,6 +1,8 @@
 """混合检索器：dense+sparse RRF → 交叉编码重排 → 去重聚合到 item 级"""
 from __future__ import annotations
 
+import asyncio
+
 from app.core.logging import get_logger
 from app.rag import embedder, qdrant
 
@@ -11,8 +13,12 @@ async def retrieve(query: str, top_k: int = 8, rerank_top: int = 24,
                    do_rerank: bool = True, **filters) -> list[dict]:
     """返回 item 级证据：[{item_id,title,url,text,score,cve,...}]
     do_rerank=False 跳过重排——多子问场景先合并候选、单次重排，省 2/3 重排耗时"""
-    dv = await embedder.embed_query(query)
-    sv = (await embedder.sparse_texts([query]))[0]
+    # dense/sparse embedding 并发（均为 CPU ONNX to_thread 调用，互不依赖）
+    dv, sv = await asyncio.gather(
+        embedder.embed_query(query),
+        embedder.sparse_texts([query]),
+    )
+    sv = sv[0]
     f = qdrant.build_filter(**{k: v for k, v in filters.items() if v})
     hits = await qdrant.hybrid_search(dv, sv, top_k=rerank_top, filters=f)
     if not hits:

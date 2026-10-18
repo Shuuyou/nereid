@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.responses import Response
 
+from app.api.personalization import router as personalization_router
 from app.api.routes import router
 from app.core import metrics as _metrics  # noqa: F401 注册全部自定义指标
 from app.core.logging import get_logger, setup_logging
@@ -70,6 +71,7 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(personalization_router)
 
 
 @app.get("/metrics")

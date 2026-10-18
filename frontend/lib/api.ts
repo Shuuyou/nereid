@@ -70,6 +70,21 @@ export async function* streamChat(question: string, sessionId: string | null, de
   if (sid) yield { type: "status", data: { session_id: sid } };
 }
 
+// ===== 个性化推荐（/for-you 页）：画像 CRUD / 个性化流 / 反馈 / 晨报 =====
+export const getProfile = (name: string) =>
+  j(`/api/profile/${encodeURIComponent(name)}`);
+export const saveProfile = (name: string, profile: any) =>
+  j(`/api/profile/${encodeURIComponent(name)}`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profile),
+  });
+export const getPersonalized = (name: string, days = 7, limit = 50) =>
+  j(`/api/feed/personalized?name=${encodeURIComponent(name)}&days=${days}&limit=${limit}`);
+export const sendFeedback = (name: string, itemId: string, signal: string) =>
+  j(`/api/feed/${itemId}/feedback?name=${encodeURIComponent(name)}&signal=${signal}`, { method: "POST" });
+export const getDigest = (name: string, days = 7) =>
+  j(`/api/feed/digest?name=${encodeURIComponent(name)}&days=${days}`);
+
 /** 订阅实时情报流（SSE /api/feed/stream），返回取消函数 */
 export function subscribeFeed(onItem: (item: any) => void): () => void {
   if (typeof window === "undefined") return () => {};

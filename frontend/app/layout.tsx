@@ -6,7 +6,7 @@ export const metadata = { title: "捞针 · Nereid — AI 安全情报系统", d
 const NAV = [
   ["/", "态势总览"], ["/items", "情报库"], ["/qa", "深度问答"],
   ["/graph", "知识图谱"], ["/sources", "数据源"], ["/reports", "报告"],
-  ["/pipeline", "流水线"], ["/review", "复核队列"],
+  ["/pipeline", "流水线"], ["/review", "复核队列"], ["/for-you", "为你推荐"],
 ] as const;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
