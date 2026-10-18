@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-18T02:27:44.540634+00:00",
+  "generated_at": "2026-10-18T03:07:21.556201+00:00",
   "n_requested": 30,
   "n_evaluated": 30,
   "sources": {
@@ -20,44 +20,44 @@
   },
   "fields": {
     "epss_score": {
-      "truth_n": 3,
-      "filled_n": 3,
-      "correct_n": 3,
-      "extra_n": 27,
+      "truth_n": 5,
+      "filled_n": 5,
+      "correct_n": 5,
+      "extra_n": 25,
       "accuracy": 1.0,
       "recall": 1.0
     },
     "epss_percentile": {
-      "truth_n": 3,
-      "filled_n": 3,
-      "correct_n": 3,
-      "extra_n": 27,
+      "truth_n": 5,
+      "filled_n": 5,
+      "correct_n": 5,
+      "extra_n": 25,
       "accuracy": 1.0,
       "recall": 1.0
     },
     "cvss_v31_score": {
-      "truth_n": 27,
-      "filled_n": 25,
-      "correct_n": 25,
+      "truth_n": 26,
+      "filled_n": 26,
+      "correct_n": 26,
       "extra_n": 0,
       "accuracy": 1.0,
-      "recall": 0.9259
+      "recall": 1.0
     },
     "severity": {
-      "truth_n": 27,
-      "filled_n": 25,
+      "truth_n": 26,
+      "filled_n": 26,
       "correct_n": 25,
-      "extra_n": 0,
-      "accuracy": 1.0,
-      "recall": 0.9259
+      "extra_n": 4,
+      "accuracy": 0.9615,
+      "recall": 1.0
     },
     "cwe_ids": {
-      "truth_n": 23,
-      "filled_n": 20,
-      "correct_n": 20,
+      "truth_n": 28,
+      "filled_n": 28,
+      "correct_n": 28,
       "extra_n": 0,
       "accuracy": 1.0,
-      "recall": 0.8696
+      "recall": 1.0
     },
     "is_kev": {
       "confusion": {
@@ -72,22 +72,22 @@
     }
   },
   "overall": {
-    "accuracy": 1.0,
-    "recall": 0.9222
+    "accuracy": 0.9917,
+    "recall": 1.0
   },
   "items": [
     {
-      "item_id": "37f966fda5c647dfb2f4e4081cfb4769",
-      "cve": "CVE-2020-5902",
-      "title": "[KEV] F5 BIG-IP Traffic Management User Interface (TMUI) Rem",
+      "item_id": "4dc80d2949d44db088ae64f7a556af23",
+      "cve": "CVE-2021-37973",
+      "title": "[KEV] Google Chromium Portals Use-After-Free Vulnerability",
       "fields": {
         "epss_score": {
-          "ours": 0.99999,
+          "ours": 0.11735,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 1.0,
+          "ours": 0.96032,
           "truth": null,
           "status": "extra"
         },
@@ -97,8 +97,8 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 9.8,
-          "truth": 9.8,
+          "ours": 9.6,
+          "truth": 9.6,
           "status": "ok"
         },
         "severity": {
@@ -108,10 +108,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-22"
+            "CWE-416"
           ],
           "truth": [
-            "CWE-22"
+            "CWE-416"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -120,19 +120,19 @@
       "score": "4/4"
     },
     {
-      "item_id": "80ccc728ae934643a28bb437fa5e69a8",
-      "cve": "CVE-2018-10561",
-      "title": "[KEV] Dasan GPON Routers Command Injection Vulnerability",
+      "item_id": "a51ad765fe924b41ad2f42ad92c21a93",
+      "cve": "CVE-2024-5217",
+      "title": "[KEV] ServiceNow Incomplete List of Disallowed Inputs Vulner",
       "fields": {
         "epss_score": {
+          "ours": 0.99628,
+          "truth": 0.99628,
+          "status": "ok"
+        },
+        "epss_percentile": {
           "ours": 0.99949,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.99974,
-          "truth": null,
-          "status": "extra"
+          "truth": 0.99949,
+          "status": "ok"
         },
         "is_kev": {
           "ours": true,
@@ -151,70 +151,30 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-287"
+            "CWE-184"
           ],
           "truth": [
-            "CWE-287"
+            "CWE-184",
+            "CWE-697"
           ],
-          "iou": 1.0,
+          "iou": 0.5,
           "status": "ok"
         }
       },
-      "score": "4/4"
+      "score": "6/6"
     },
     {
-      "item_id": "acec89b068544618b037a09f17c8d45e",
-      "cve": "CVE-2024-37079",
-      "title": "[KEV] Broadcom VMware vCenter Server Out-of-bounds Write Vul",
+      "item_id": "8f1fda9a62c5488e95627d4174c9541e",
+      "cve": "CVE-2026-42716",
+      "title": "CVE-2026-42716: Unauthenticated PHP Object Injection in Paye",
       "fields": {
         "epss_score": {
-          "ours": 0.22377,
+          "ours": 0.00386,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.97672,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 9.8,
-          "truth": 9.8,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "critical",
-          "truth": "critical",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [
-            "CWE-787"
-          ],
-          "iou": 0.0,
-          "status": "missing"
-        }
-      },
-      "score": "3/3"
-    },
-    {
-      "item_id": "60bf4a2f94aa4ba49b7e6def08f2ec5a",
-      "cve": "CVE-2023-31069",
-      "title": "[EDB-51681] TSPlus 16.0.0.0 - Remote Work Insecure Credentia",
-      "fields": {
-        "epss_score": {
-          "ours": 0.03686,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.89545,
+          "ours": 0.31141,
           "truth": null,
           "status": "extra"
         },
@@ -235,10 +195,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-312"
+            "CWE-502"
           ],
           "truth": [
-            "CWE-312"
+            "CWE-502"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -247,17 +207,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "7cfcd1e583cd4668b3fd7be26b1fcb4b",
-      "cve": "CVE-2019-15847",
-      "title": "CVE-2019-15847: The POWER9 backend in GNU Compiler Collectio",
+      "item_id": "329c7e2691914710b48a5e369ea73229",
+      "cve": "CVE-2020-15920",
+      "title": "[EDB-48768] Mida eFramework 2.9.0 - Remote Code Execution",
       "fields": {
         "epss_score": {
-          "ours": 0.03181,
+          "ours": 0.98239,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.87864,
+          "ours": 0.99916,
           "truth": null,
           "status": "extra"
         },
@@ -267,21 +227,21 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 7.5,
-          "truth": 7.5,
+          "ours": 9.8,
+          "truth": 9.8,
           "status": "ok"
         },
         "severity": {
-          "ours": "high",
-          "truth": "high",
+          "ours": "critical",
+          "truth": "critical",
           "status": "ok"
         },
         "cwe_ids": {
           "ours": [
-            "CWE-331"
+            "CWE-78"
           ],
           "truth": [
-            "CWE-331"
+            "CWE-78"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -290,99 +250,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "10299b11d90a42a68ec87d5005124ebd",
-      "cve": "CVE-2021-43396",
-      "title": "CVE-2021-43396: In iconvdata/iso-2022-jp-3.c in the GNU C Li",
+      "item_id": "d9e0a28c07d14aee8492cf382938cc76",
+      "cve": "CVE-2016-0025",
+      "title": "CVE-2016-0025: Microsoft Word 2007 SP3, Office 2010 SP2, Wor",
       "fields": {
         "epss_score": {
-          "ours": 0.03293,
-          "truth": 0.03293,
-          "status": "ok"
-        },
-        "epss_percentile": {
-          "ours": 0.88316,
-          "truth": 0.88316,
-          "status": "ok"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 7.5,
-          "truth": 7.5,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "high",
-          "truth": "high",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
-        }
-      },
-      "score": "5/5"
-    },
-    {
-      "item_id": "9e4f7efd3c034621bf08ef2147b968e7",
-      "cve": "CVE-2013-1347",
-      "title": "[KEV] Microsoft Internet Explorer Remote Code Execution Vuln",
-      "fields": {
-        "epss_score": {
-          "ours": 0.7774,
+          "ours": 0.15435,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.99566,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 8.8,
-          "truth": 8.8,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "high",
-          "truth": "high",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-416"
-          ],
-          "truth": [
-            "CWE-416"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "744ce7860ecd47ba97069a2609225950",
-      "cve": "CVE-2024-38552",
-      "title": "CVE-2024-38552: In the Linux kernel, the following vulnerabi",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00297,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.20942,
+          "ours": 0.96765,
           "truth": null,
           "status": "extra"
         },
@@ -403,10 +281,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-129"
+            "CWE-20"
           ],
           "truth": [
-            "CWE-129"
+            "CWE-20"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -415,17 +293,103 @@
       "score": "4/4"
     },
     {
-      "item_id": "ab4fcc4c39694c79878b6a1f0bcefd63",
-      "cve": "CVE-2025-38232",
-      "title": "CVE-2025-38232: In the Linux kernel, the following vulnerabi",
+      "item_id": "4256bfd58e9843bd9ac56d781c58dfb5",
+      "cve": "CVE-2020-0683",
+      "title": "[KEV] Microsoft Windows Installer Privilege Escalation Vulne",
       "fields": {
         "epss_score": {
-          "ours": 0.00168,
+          "ours": 0.07605,
+          "truth": 0.07605,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.94484,
+          "truth": 0.94484,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.8,
+          "truth": 7.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-59"
+          ],
+          "truth": [
+            "CWE-59"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "3a72f8b579ef412c82bad5b50c5a5816",
+      "cve": "CVE-2022-0847",
+      "title": "[KEV] Linux Kernel Privilege Escalation Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.92795,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.05764,
+          "ours": 0.9983,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.8,
+          "truth": 7.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-665"
+          ],
+          "truth": [
+            "CWE-665"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "b31706353ecd4dc1b678b207205cd2b9",
+      "cve": "CVE-2024-50127",
+      "title": "CVE-2024-50127: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00247,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.1491,
           "truth": null,
           "status": "extra"
         },
@@ -446,10 +410,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-362"
+            "CWE-416"
           ],
           "truth": [
-            "CWE-362"
+            "CWE-416"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -458,17 +422,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "3a094725eaa94e4bbe4f4ffec1cde124",
-      "cve": "CVE-2026-78180",
-      "title": "CVE-2026-78180: A security flaw has been discovered in aliba",
+      "item_id": "530e8a71cf97463b89a50c95876fe1c3",
+      "cve": "CVE-2025-67442",
+      "title": "CVE-2025-67442: EVE-NG 6.4.0-13-PRO is vulnerable to Directo",
       "fields": {
         "epss_score": {
-          "ours": 0.00539,
+          "ours": 0.00574,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.44139,
+          "ours": 0.46257,
           "truth": null,
           "status": "extra"
         },
@@ -478,8 +442,8 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 7.3,
-          "truth": 7.3,
+          "ours": 7.6,
+          "truth": 7.6,
           "status": "ok"
         },
         "severity": {
@@ -489,10 +453,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-94"
+            "CWE-22"
           ],
           "truth": [
-            "CWE-94"
+            "CWE-22"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -501,19 +465,148 @@
       "score": "4/4"
     },
     {
-      "item_id": "c90cc331f48843c2aba8383f3903a7bf",
-      "cve": "CVE-2025-66549",
-      "title": "CVE-2025-66549: Nextcloud Desktop is the desktop sync client",
+      "item_id": "2d19d9c7e8ae4c01a8aa0c416d329b54",
+      "cve": "CVE-2026-54100",
+      "title": "CVE-2026-54100: A flaw was found in the Windows Machine Conf",
       "fields": {
         "epss_score": {
-          "ours": 0.00297,
+          "ours": 0.00303,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.2093,
+          "ours": 0.21503,
           "truth": null,
           "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 8.3,
+          "truth": 8.3,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-295"
+          ],
+          "truth": [
+            "CWE-295"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "440447a3be49496abd2db25b03ddb8f9",
+      "cve": "CVE-2012-6066",
+      "title": "[EDB-23079] freeFTPd 1.2.6 - Remote Authentication Bypass",
+      "fields": {
+        "epss_score": {
+          "ours": 0.39513,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.98599,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": null,
+          "status": "extra"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-287"
+          ],
+          "truth": [
+            "CWE-287"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "2/2"
+    },
+    {
+      "item_id": "fe353db99e524e119d478647c409f76a",
+      "cve": "CVE-2024-28085",
+      "title": "CVE-2024-28085",
+      "fields": {
+        "epss_score": {
+          "ours": 0.02242,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.82565,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 3.3,
+          "truth": 3.3,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "low",
+          "truth": "low",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-150"
+          ],
+          "truth": [
+            "CWE-150"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "51e935ca881f475f9597d59e2f9f1eb9",
+      "cve": "CVE-2025-59546",
+      "title": "CVE-2025-59546: DNN (formerly DotNetNuke) is an open-source ",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00183,
+          "truth": 0.00183,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.07348,
+          "truth": 0.07348,
+          "status": "ok"
         },
         "is_kev": {
           "ours": false,
@@ -532,29 +625,29 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-209"
+            "CWE-79"
           ],
           "truth": [
-            "CWE-209"
+            "CWE-79"
           ],
           "iou": 1.0,
           "status": "ok"
         }
       },
-      "score": "4/4"
+      "score": "6/6"
     },
     {
-      "item_id": "311afdcf36d94e1989b2033a007a09f7",
-      "cve": "CVE-2026-88842",
-      "title": "CVE-2026-88842: A flaw was found in BusyBox dpkg. The write_",
+      "item_id": "f91cbd857f7e47f5b91fe80a9530e7de",
+      "cve": "CVE-2026-0266",
+      "title": "PAN-OS: Stored Cross-Site Scripting (XSS) Vulnerability in t",
       "fields": {
         "epss_score": {
-          "ours": 0.00169,
+          "ours": 0.00138,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.05881,
+          "ours": 0.02845,
           "truth": null,
           "status": "extra"
         },
@@ -564,21 +657,146 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 3.3,
-          "truth": 3.3,
+          "ours": 4.8,
+          "truth": 4.8,
           "status": "ok"
         },
         "severity": {
           "ours": "low",
-          "truth": "low",
+          "truth": "medium",
+          "status": "diff"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-79"
+          ],
+          "truth": [
+            "CWE-79"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "3/4"
+    },
+    {
+      "item_id": "5c5ffb8c6d304755ad7aedcc3a38248a",
+      "cve": "CVE-2000-0336",
+      "title": "[EDB-19946] OpenLDAP 1.2.7/1.2.8/1.2.9/1.2.10 - '/usr/tmp/' ",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00904,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.59085,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": "low",
+          "truth": null,
+          "status": "extra"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
+        }
+      },
+      "score": "1/1"
+    },
+    {
+      "item_id": "68f73a952dca4150a9bfd562976bd780",
+      "cve": "CVE-2012-5886",
+      "title": "CVE-2012-5886: The HTTP Digest Access Authentication impleme",
+      "fields": {
+        "epss_score": {
+          "ours": 0.08768,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.95114,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": "medium",
+          "truth": null,
+          "status": "extra"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-287"
+          ],
+          "truth": [
+            "CWE-287"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "2/2"
+    },
+    {
+      "item_id": "d6ef207cd9994f6c8a11fb693f03921c",
+      "cve": "CVE-2017-0022",
+      "title": "[KEV] Microsoft XML Core Services Information Disclosure Vul",
+      "fields": {
+        "epss_score": {
+          "ours": 0.18069,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.97167,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 6.5,
+          "truth": 6.5,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "medium",
+          "truth": "medium",
           "status": "ok"
         },
         "cwe_ids": {
           "ours": [
-            "CWE-125"
+            "CWE-119"
           ],
           "truth": [
-            "CWE-125"
+            "CWE-119"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -587,17 +805,61 @@
       "score": "4/4"
     },
     {
-      "item_id": "f98ba2cbee6d4cc8bbbbb5e891020809",
-      "cve": "CVE-2022-42328",
-      "title": "CVE-2022-42328: Guests can trigger deadlock in Linux netback",
+      "item_id": "00db0e2e59184e2383fb95a425aaf781",
+      "cve": "CVE-2022-28810",
+      "title": "[KEV] Zoho ManageEngine ADSelfService Plus Remote Code Execu",
       "fields": {
         "epss_score": {
-          "ours": 0.00224,
+          "ours": 0.70966,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.12143,
+          "ours": 0.99399,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 6.8,
+          "truth": 6.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "medium",
+          "truth": "medium",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-798"
+          ],
+          "truth": [
+            "CWE-78",
+            "CWE-798"
+          ],
+          "iou": 0.5,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "d0739d6d668646368d11e49962b68478",
+      "cve": "CVE-2024-35983",
+      "title": "CVE-2024-35983: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00236,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.13585,
           "truth": null,
           "status": "extra"
         },
@@ -617,280 +879,112 @@
           "status": "ok"
         },
         "cwe_ids": {
-          "ours": [
-            "CWE-667"
-          ],
-          "truth": [
-            "CWE-667"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "8821c912b3654bd5a5758d376f7d6a92",
-      "cve": "CVE-2023-1206",
-      "title": "CVE-2023-1206: A hash collision flaw was found in the IPv6 c",
-      "fields": {
-        "epss_score": {
-          "ours": 0.0063,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.4917,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 5.7,
-          "truth": 5.7,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-400"
-          ],
-          "truth": [
-            "CWE-400"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "ea844ccf3610492eab827e41ebe12451",
-      "cve": "CVE-2024-7322",
-      "title": "CVE-2024-7322: A ZigBee coordinator, router, or end device m",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00327,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.2428,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 5.8,
-          "truth": 5.8,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-940"
-          ],
-          "truth": [
-            "CWE-940"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "e608297b814b4aea8acb797564d06afa",
-      "cve": "CVE-2026-69902",
-      "title": "CVE-2026-69902: Untrusted pointer dereference in Windows NTF",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00348,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.26886,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 6.7,
-          "truth": 6.7,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-822"
-          ],
-          "truth": [
-            "CWE-822"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "4cd30595c8284d6fa9ff65f84d22ae0f",
-      "cve": "CVE-2022-4135",
-      "title": "[KEV] Google Chromium GPU Heap Buffer Overflow Vulnerability",
-      "fields": {
-        "epss_score": {
-          "ours": 0.31864,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.98291,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": 9.6,
-          "status": "missing"
-        },
-        "severity": {
-          "ours": null,
-          "truth": "critical",
-          "status": "missing"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [
-            "CWE-787"
-          ],
-          "iou": 0.0,
-          "status": "missing"
-        }
-      },
-      "score": "1/1"
-    },
-    {
-      "item_id": "9673881f603647f88ab527d54ad49b15",
-      "cve": "CVE-2023-29492",
-      "title": "[KEV] Novi Survey Insecure Deserialization Vulnerability",
-      "fields": {
-        "epss_score": {
-          "ours": 0.0269,
-          "truth": 0.0269,
-          "status": "ok"
-        },
-        "epss_percentile": {
-          "ours": 0.85627,
-          "truth": 0.85627,
-          "status": "ok"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": 9.8,
-          "status": "missing"
-        },
-        "severity": {
-          "ours": null,
-          "truth": "critical",
-          "status": "missing"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [
-            "CWE-94"
-          ],
-          "iou": 0.0,
-          "status": "missing"
-        }
-      },
-      "score": "3/3"
-    },
-    {
-      "item_id": "c111a2cc99db4911bc4dd21529d68aa4",
-      "cve": "CVE-2025-68363",
-      "title": "CVE-2025-68363: In the Linux kernel, the following vulnerabi",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00212,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.10777,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "severity": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "cwe_ids": {
           "ours": [],
           "truth": [],
           "iou": null,
           "status": "no_truth"
         }
       },
-      "score": "1/1"
+      "score": "3/3"
     },
     {
-      "item_id": "dd965194aa9c4fe3aea3919fdcc6a462",
-      "cve": "CVE-2026-97334",
-      "title": "CVE-2026-97334: The network messaging layer contained improp",
+      "item_id": "ec9e7c5236364058aab60fc410667464",
+      "cve": "CVE-2025-10952",
+      "title": "CVE-2025-10952: A security flaw has been discovered in geyan",
       "fields": {
         "epss_score": {
-          "ours": 0.00356,
+          "ours": 0.00537,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.27719,
+          "ours": 0.44016,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 5.3,
+          "truth": 5.3,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "medium",
+          "truth": "medium",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-200"
+          ],
+          "truth": [
+            "CWE-200"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "9570ae8ed1b446cdbecec2228718ab7e",
+      "cve": "CVE-2026-107708",
+      "title": "CVE-2026-107708: MIT krb5 through 1.22.2 contains a NULL poi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00521,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.42967,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 4.9,
+          "truth": 4.9,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "medium",
+          "truth": "medium",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-476"
+          ],
+          "truth": [
+            "CWE-476"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "4114bceaf96040d4b28815ee99ca51d8",
+      "cve": "CVE-2009-1912",
+      "title": "[EDB-8622] webSPELL 4.2.0e - 'page' Blind SQL Injection",
+      "fields": {
+        "epss_score": {
+          "ours": 0.03184,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.87876,
           "truth": null,
           "status": "extra"
         },
@@ -905,16 +999,16 @@
           "status": "no_truth"
         },
         "severity": {
-          "ours": null,
+          "ours": "medium",
           "truth": null,
-          "status": "no_truth"
+          "status": "extra"
         },
         "cwe_ids": {
           "ours": [
-            "CWE-409"
+            "CWE-22"
           ],
           "truth": [
-            "CWE-409"
+            "CWE-22"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -923,62 +1017,23 @@
       "score": "2/2"
     },
     {
-      "item_id": "b896bf87f81749c5a8e4fa8efc5d8e8c",
-      "cve": "CVE-2006-3252",
-      "title": "[EDB-16760] Private Wire Gateway - Remote Buffer Overflow (M",
+      "item_id": "6c3fb28c57b24aa09737825cf1619f7a",
+      "cve": "CVE-2021-35464",
+      "title": "[KEV] ForgeRock Access Management (AM) Core Server Remote Co",
       "fields": {
         "epss_score": {
-          "ours": 0.6221,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.99175,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
+          "ours": 0.99999,
+          "truth": 0.99999,
           "status": "ok"
         },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "severity": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
-        }
-      },
-      "score": "1/1"
-    },
-    {
-      "item_id": "9e3207e84b424af782db15ba234986c1",
-      "cve": "CVE-2026-84249",
-      "title": "CVE-2026-84249: IBM Guardium Data Protection 12.2, and 12.2.",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00411,
-          "truth": null,
-          "status": "extra"
-        },
         "epss_percentile": {
-          "ours": 0.33851,
-          "truth": null,
-          "status": "extra"
+          "ours": 0.99994,
+          "truth": 0.99994,
+          "status": "ok"
         },
         "is_kev": {
-          "ours": false,
-          "truth": false,
+          "ours": true,
+          "truth": true,
           "status": "ok"
         },
         "cvss_v31_score": {
@@ -993,53 +1048,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-306"
+            "CWE-502"
           ],
           "truth": [
-            "CWE-306"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "4f9ce43045a84272be6ab68dde0665d1",
-      "cve": "CVE-2017-11467",
-      "title": "[EDB-44068] OrientDB - Code Execution",
-      "fields": {
-        "epss_score": {
-          "ours": 0.73071,
-          "truth": 0.73071,
-          "status": "ok"
-        },
-        "epss_percentile": {
-          "ours": 0.99454,
-          "truth": 0.99454,
-          "status": "ok"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 9.8,
-          "truth": 9.8,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "critical",
-          "truth": "critical",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-269"
-          ],
-          "truth": [
-            "CWE-269"
+            "CWE-502"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -1048,23 +1060,152 @@
       "score": "6/6"
     },
     {
-      "item_id": "ebed476fd5b0427db6a08055ea8b52b4",
-      "cve": "CVE-2009-3129",
-      "title": "[KEV] Microsoft Excel Featheader Record Memory Corruption Vu",
+      "item_id": "132c8dcea38d4cf889e5ebca71b8bc3a",
+      "cve": "CVE-2026-94130",
+      "title": "CVE-2026-94130: Joomla Extension - joomlaboat.com - Unauthen",
       "fields": {
         "epss_score": {
-          "ours": 0.84034,
+          "ours": 0.00421,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.99693,
+          "ours": 0.34942,
           "truth": null,
           "status": "extra"
         },
         "is_kev": {
-          "ours": true,
-          "truth": true,
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-89"
+          ],
+          "truth": [
+            "CWE-89"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "7624f5bc80c9488b932fa8653980df8d",
+      "cve": "CVE-2026-38526",
+      "title": "[EDB-52518] JuzaWeb CMS 3.4.2 - Authenticated Remote Code Ex",
+      "fields": {
+        "epss_score": {
+          "ours": 0.02353,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.83445,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.9,
+          "truth": 9.9,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-434"
+          ],
+          "truth": [
+            "CWE-434"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "3967dd970ec3494382e5ec05389c5ccc",
+      "cve": "CVE-2022-23990",
+      "title": "CVE-2022-23990: Expat (aka libexpat) before 2.4.4 has an int",
+      "fields": {
+        "epss_score": {
+          "ours": 0.04688,
+          "truth": 0.04688,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.91666,
+          "truth": 0.91666,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.5,
+          "truth": 7.5,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-190"
+          ],
+          "truth": [
+            "CWE-190"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "83e6faf7b9164953bc7cc31f408ba023",
+      "cve": "CVE-2024-40958",
+      "title": "CVE-2024-40958: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00269,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.17839,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
           "status": "ok"
         },
         "cvss_v31_score": {
@@ -1079,10 +1220,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-787"
+            "CWE-416"
           ],
           "truth": [
-            "CWE-787"
+            "CWE-416"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -1091,17 +1232,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "5d93e5c46a4745d78dfa983e61525caf",
-      "cve": "CVE-2024-36922",
-      "title": "CVE-2024-36922: In the Linux kernel, the following vulnerabi",
+      "item_id": "beac4d1e20d84031abc77d84cf623ee9",
+      "cve": "CVE-2025-66434",
+      "title": "CVE-2025-66434: An SSTI (Server-Side Template Injection) vul",
       "fields": {
         "epss_score": {
-          "ours": 0.00347,
+          "ours": 0.0059,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.26667,
+          "ours": 0.4714,
           "truth": null,
           "status": "extra"
         },
@@ -1121,26 +1262,75 @@
           "status": "ok"
         },
         "cwe_ids": {
-          "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
+          "ours": [
+            "CWE-1336",
+            "CWE-94"
+          ],
+          "truth": [
+            "CWE-1336",
+            "CWE-94"
+          ],
+          "iou": 1.0,
+          "status": "ok"
         }
       },
-      "score": "3/3"
+      "score": "4/4"
     },
     {
-      "item_id": "fad9ced6a5514a968a13eafeae386fd6",
-      "cve": "CVE-2022-50697",
-      "title": "CVE-2022-50697: In the Linux kernel, the following vulnerabi",
+      "item_id": "8b57bfab43014851b35074fd835e42eb",
+      "cve": "CVE-2026-111710",
+      "title": "CVE-2026-111710: Netcore NR256CN through 1.5.140116 contains",
       "fields": {
         "epss_score": {
-          "ours": 0.00158,
+          "ours": 0.00291,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.04461,
+          "ours": 0.2027,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.5,
+          "truth": 7.5,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-476"
+          ],
+          "truth": [
+            "CWE-476"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "0b9d949da45642ec95193deff72774ba",
+      "cve": "CVE-2017-16237",
+      "title": "[EDB-43109] Vir.IT eXplorer Anti-Virus 8.5.39 - 'VIAGLT64.SY",
+      "fields": {
+        "epss_score": {
+          "ours": 0.01512,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.74042,
           "truth": null,
           "status": "extra"
         },
@@ -1160,177 +1350,17 @@
           "status": "ok"
         },
         "cwe_ids": {
-          "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
-        }
-      },
-      "score": "3/3"
-    },
-    {
-      "item_id": "8530b47271e848babaefb837c2da2302",
-      "cve": "CVE-2026-74349",
-      "title": "CVE-2026-74349: In the Linux kernel, the following vulnerabi",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00171,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.06095,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 7.1,
-          "truth": 7.1,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "high",
-          "truth": "high",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
-        }
-      },
-      "score": "3/3"
-    },
-    {
-      "item_id": "6fa7c8952b594258b8a83281ca6f3dac",
-      "cve": "CVE-2025-66548",
-      "title": "CVE-2025-66548: Nextcloud Deck is a kanban style organizatio",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00154,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.04103,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 3.3,
-          "truth": 3.3,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "low",
-          "truth": "low",
-          "status": "ok"
-        },
-        "cwe_ids": {
           "ours": [
-            "CWE-116"
+            "CWE-20"
           ],
           "truth": [
-            "CWE-116"
+            "CWE-20"
           ],
           "iou": 1.0,
           "status": "ok"
         }
       },
       "score": "4/4"
-    },
-    {
-      "item_id": "153a97450f5a4332880bcd188d1afe84",
-      "cve": "CVE-2025-60099",
-      "title": "CVE-2025-60099: Improper Neutralization of Input During Web ",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00209,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.1028,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 6.5,
-          "truth": 6.5,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-79"
-          ],
-          "truth": [
-            "CWE-79"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "bd6a8fc3ef21478791220c22aaf751af",
-      "cve": "CVE-2026-43026",
-      "title": "CVE-2026-43026: In the Linux kernel, the following vulnerabi",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00171,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.05997,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 5.5,
-          "truth": 5.5,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
-        }
-      },
-      "score": "3/3"
     }
   ]
 }

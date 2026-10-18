@@ -34,13 +34,48 @@ SLEEP_KEY = 0.7      # 有 key 50req/30s
 
 
 def _windows():
-    """2002-01-01 → now，每窗 119 天（NVD 上限 120 天）"""
+    """2002-01-01 → now，每窗 119 天（NVD 上限 120 天）。批量 API 备用路径。"""
     start = datetime(2002, 1, 1, tzinfo=timezone.utc)
     end = datetime.now(timezone.utc)
     while start < end:
         w_end = min(start + timedelta(days=119), end)
         yield start.strftime("%Y-%m-%dT00:00:00.000"), w_end.strftime("%Y-%m-%dT23:59:59.000")
         start = w_end + timedelta(seconds=1)
+
+
+NVD_FEED = "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz"
+
+
+async def _fetch_year(year: int, items: dict) -> int:
+    """NVD 官方年度 feed 文件（整年一把下载，远比批量 API 快）"""
+    try:
+        r = await fetch(NVD_FEED.format(year=year))
+    except Exception as e:  # noqa: BLE001
+        log.warning("nvd_feed_error", year=year, error=str(e)[:120])
+        return 0
+    if r.status_code != 200:
+        log.warning("nvd_feed_http", year=year, status=r.status_code)
+        return 0
+    try:
+        d = json.loads(gzip.decompress(r.content).decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        log.warning("nvd_feed_parse", year=year, error=str(e)[:120])
+        return 0
+    n = 0
+    for v in d.get("vulnerabilities", []):
+        cve = v.get("cve") or {}
+        cid = cve.get("id")
+        if not cid:
+            continue
+        rec = _pick(cve.get("metrics") or {})
+        cwes = [w["description"][0]["value"] for w in cve.get("weaknesses", [])
+                if w.get("description") and str(w["description"][0].get("value", "")).startswith("CWE")]
+        if cwes:
+            rec["cwe_ids"] = sorted(set(cwes))
+        if rec:
+            items[cid] = rec
+            n += 1
+    return n
 
 
 def _pick(metrics: dict):
@@ -82,60 +117,24 @@ def _pick(metrics: dict):
 
 
 async def fetch_all(sleep_s: float) -> None:
+    """NVD 年度 feed 文件为主路径（整年一把下载）；批量窗口枚举为 fallback。"""
     meta = {"done_windows": [], "items": {}}
     if CACHE.exists():
         meta = json.loads(gzip.decompress(CACHE.read_bytes()).decode())
     done = set(meta.get("done_windows", []))
     items: dict = meta.get("items", {})
 
-    wins = list(_windows())
-    print(f"windows total={len(wins)} done={len(done)} cached_cves={len(items)}")
-    n_req = 0
-    for w_s, w_e in wins:
-        key = f"{w_s[:10]}"
-        if key in done:
-            continue
-        start_idx = 0
-        while True:
-            try:
-                r = await fetch(NVD, params={
-                    "pubStartDate": w_s, "pubEndDate": w_e,
-                    "resultsPerPage": 2000, "startIndex": start_idx})
-            except Exception as e:  # noqa: BLE001
-                log.warning("nvd_window_error", window=key, error=str(e)[:120])
-                break
-            n_req += 1
-            if r.status_code != 200:
-                log.warning("nvd_http", status=r.status_code, window=key)
-                break
-            d = r.json()
-            vs = d.get("vulnerabilities", [])
-            for v in vs:
-                cve = v.get("cve") or {}
-                cid = cve.get("id")
-                if not cid:
-                    continue
-                rec = _pick(cve.get("metrics") or {})
-                cwes = [w["description"][0]["value"] for w in cve.get("weaknesses", [])
-                        if w.get("description") and str(w["description"][0].get("value", "")).startswith("CWE")]
-                if cwes:
-                    rec["cwe_ids"] = sorted(set(cwes))
-                if rec:
-                    items[cid] = rec
-            total = d.get("totalResults", 0)
-            start_idx += len(vs)
-            if start_idx >= total or not vs:
-                break
-            await asyncio.sleep(sleep_s)
-        done.add(key)
-        if n_req % 20 == 0:  # 周期性落盘断点
-            CACHE.write_bytes(gzip.compress(json.dumps(
-                {"done_windows": sorted(done), "items": items}).encode()))
-            print(f"  [{key}] reqs={n_req} cves={len(items)}")
-        await asyncio.sleep(sleep_s)
-    CACHE.write_bytes(gzip.compress(json.dumps(
-        {"done_windows": sorted(done), "items": items}).encode()))
-    print(f"fetch done: windows={len(done)} cves={len(items)} reqs={n_req}")
+    now_y = datetime.now(timezone.utc).year
+    years = [y for y in range(2002, now_y + 1) if f"Y{y}" not in done]
+    print(f"years total=25 todo={len(years)} cached_cves={len(items)}")
+    for y in years:
+        n = await _fetch_year(y, items)
+        done.add(f"Y{y}")
+        CACHE.write_bytes(gzip.compress(json.dumps(
+            {"done_windows": sorted(done), "items": items}).encode()))
+        print(f"  [{y}] +{n} cves={len(items)}")
+        await asyncio.sleep(1.0)  # feed 文件也保持礼貌间隔
+    print(f"fetch done: cves={len(items)}")
 
 
 async def apply() -> None:
@@ -151,10 +150,13 @@ async def apply() -> None:
         print("items missing cvss:", len(rows))
         n = 0
         for it in rows:
+            # 全部 cve_ids 找首个有实质 metrics 的记录（v31/v40/v2 皆可）
             rec = None
-            for c in (it.cve_ids or [])[:3]:
-                if items_map.get(c):
-                    rec = items_map[c]
+            for c in (it.cve_ids or []):
+                cand = items_map.get(c)
+                if cand and any(cand.get(k) is not None for k in
+                                ("cvss_v31_score", "cvss_v40_score", "cvss_v2_score", "severity")):
+                    rec = cand
                     break
             if not rec:
                 continue
@@ -165,7 +167,10 @@ async def apply() -> None:
                     continue
                 if getattr(it, k, None) in (None, "", []):
                     setattr(it, k, v)
-            it.extra = {**(it.extra or {}), "cvss_source": "nvd-bulk"}
+            extra_add = {"cvss_source": "nvd-bulk"}
+            if rec.get("cvss_v2_score") is not None:
+                extra_add["cvss_v2_score"] = rec["cvss_v2_score"]
+            it.extra = {**(it.extra or {}), **extra_add}
             filled += 1
             n += 1
             if n >= 500:
