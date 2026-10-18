@@ -13,7 +13,7 @@ const SEV_FLOORS: [string, string][] = [
   ["medium", "medium 及以上"], ["high", "high 及以上"], ["critical", "仅 critical"],
 ];
 
-const sel = "rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-fg";
+const sel = "input !w-auto";
 
 function TagEditor({ types, tags, onChange, placeholder }: {
   types: string[]; tags: Tag[]; onChange: (t: Tag[]) => void; placeholder: string;
@@ -39,7 +39,7 @@ function TagEditor({ types, tags, onChange, placeholder }: {
       </div>
       <div className="flex flex-wrap gap-1.5">
         {tags.map((x, i) => (
-          <span key={`${x.type}:${x.value}`} className="tag-accent inline-flex items-center gap-1">
+          <span key={`${x.type}:${x.value}`} className="tag-accent">
             <span className="text-dim">{x.type}:</span>{x.value}
             <button className="text-dim hover:text-fg"
               onClick={() => onChange(tags.filter((_, j) => j !== i))}>×</button>
@@ -109,9 +109,9 @@ export default function ForYouPage() {
   return (
     <div className="space-y-4">
       {/* 画像编辑器 */}
-      <div className="card space-y-3">
+      <div className="card space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-sm font-semibold">我的画像</h2>
+          <h2 className="h2">我的画像</h2>
           <input className="input max-w-56" placeholder="画像名（如 secops-01）"
             value={name} onChange={(e) => setName(e.target.value)} />
           <select className={sel} value={floor} onChange={(e) => setFloor(e.target.value)}>
@@ -120,7 +120,7 @@ export default function ForYouPage() {
           <button className="btn" onClick={save}>保存画像并推荐</button>
           <button className="btn-ghost" onClick={() => name.trim() && loadAll(name.trim())}>刷新</button>
           {notice && <span className="text-xs text-accent">{notice}</span>}
-          {loading && <span className="text-xs text-dim">加载中…</span>}
+          {loading && <span className="text-[11px] text-faint">加载中…</span>}
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div>
@@ -138,8 +138,8 @@ export default function ForYouPage() {
 
       {/* 个性化晨报 */}
       {digest && (
-        <div className="card border-accent/30">
-          <div className="mb-1 text-xs font-semibold text-accent">个性化晨报 · 近 7 天命中 {digest.count} 条</div>
+        <div className="card border-accent/20 bg-accent/[0.03]">
+          <div className="h3 mb-1.5 !text-accent">个性化晨报 · 近 7 天命中 {digest.count} 条</div>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-fg/90">{digest.digest}</p>
         </div>
       )}
@@ -151,7 +151,7 @@ export default function ForYouPage() {
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {feed.items.map((it: any) => (
-          <div key={it.id} className="card hover:border-accent/50 transition-colors">
+          <div key={it.id} className="card card-hover">
             <div className="mb-2 flex flex-wrap items-center gap-1.5">
               <SevBadge s={it.severity} />
               {it.is_kev && <span className="tag-kev">KEV</span>}
@@ -161,10 +161,10 @@ export default function ForYouPage() {
               {(it.cve_ids || []).slice(0, 2).map((c: string) => <span key={c} className="tag mono">{c}</span>)}
               {it.score != null && <span className="ml-auto text-xs text-accent">{Math.round(it.score * 100)}分</span>}
             </div>
-            <Link href={`/items/${it.id}`} className="line-clamp-2 text-sm font-medium leading-snug hover:text-accent">
+            <Link href={`/items/${it.id}`} className="line-clamp-2 text-[13px] font-medium leading-snug text-fg/90 hover:text-fg">
               {it.title_zh || it.title}
             </Link>
-            <div className="mt-2 rounded-lg border border-accent/20 bg-accent/5 px-2 py-1.5 text-xs text-accent">
+            <div className="mt-2 rounded-lg border border-accent/20 bg-accent/[0.06] px-2.5 py-1.5 text-[11px] text-accent">
               为什么推荐：{it.why}
             </div>
             {(it.matched_entities || []).length > 0 && (
@@ -174,7 +174,7 @@ export default function ForYouPage() {
                 ))}
               </div>
             )}
-            <div className="mt-2 flex items-center gap-2 text-xs text-dim">
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-faint">
               <span className="truncate">{(it.source_names || []).slice(0, 2).join(" · ")}</span>
               {it.published_at && <span>{it.published_at.slice(0, 10)}</span>}
               <span className="ml-auto flex gap-1.5">
@@ -182,8 +182,8 @@ export default function ForYouPage() {
                   <span className="tag-accent">已标记有用</span>
                 ) : (
                   <>
-                    <button className="btn-ghost px-2 py-1" onClick={() => fb(it.id, "useful")}>有用</button>
-                    <button className="btn-ghost px-2 py-1" onClick={() => fb(it.id, "mute")}>不感兴趣</button>
+                    <button className="btn-ghost !px-2 !py-1" onClick={() => fb(it.id, "useful")}>有用</button>
+                    <button className="btn-ghost !px-2 !py-1" onClick={() => fb(it.id, "mute")}>不感兴趣</button>
                   </>
                 )}
               </span>
@@ -192,7 +192,7 @@ export default function ForYouPage() {
         ))}
       </div>
       {!loading && feed.count === 0 && (
-        <div className="card text-sm text-dim">
+        <div className="card text-[13px] text-faint">
           暂无推荐。先填写画像名与资产/关注标签，点击「保存画像并推荐」；
           若已有画像，可降低严重度下限或扩大关注范围。
         </div>

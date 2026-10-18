@@ -22,42 +22,39 @@ export default function SourcesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="card flex items-center justify-between">
+      <div className="mb-1 flex items-end justify-between">
         <div>
-          <h1 className="text-lg font-semibold">数据源监控</h1>
-          <p className="text-sm text-dim">{rows.length} 个源 · {ok} 健康</p>
+          <h1 className="h2">数据源监控</h1>
+          <p className="mt-0.5 text-[12px] text-faint">{rows.length} 个源 · <span className="text-low">{ok} 健康</span></p>
         </div>
         <div className="flex items-center gap-3">
-          {msg && <span className="text-sm text-low">{msg}</span>}
+          {msg && <span className="text-[12px] text-low">{msg}</span>}
           <button className="btn" onClick={() => api.runAll().then(load)}>立即采集全部</button>
         </div>
       </div>
-      <div className="card overflow-x-auto p-0">
-        <table className="w-full text-sm">
+      <div className="card overflow-x-auto !p-0">
+        <table className="tbl">
           <thead>
-            <tr className="border-b border-border text-left text-xs text-dim">
-              <th className="p-3">源</th><th className="p-3">类型</th><th className="p-3">级别</th>
-              <th className="p-3">最近运行</th><th className="p-3">状态</th><th className="p-3">累计</th><th className="p-3"></th>
-            </tr>
+            <tr><th>源</th><th>类型</th><th>级别</th><th>最近运行</th><th>状态</th><th>累计</th><th></th></tr>
           </thead>
           <tbody>
             {rows.map((s) => (
-              <tr key={s.id} className="border-b border-border/50 hover:bg-border/30">
-                <td className="p-3">
+              <tr key={s.id}>
+                <td>
                   <div className="font-medium">{s.name}</div>
                   {s.last_error && <div className="mt-0.5 max-w-md truncate text-xs text-critical" title={s.last_error}>{s.last_error}</div>}
                 </td>
-                <td className="p-3 text-dim">{s.source_type}</td>
-                <td className="p-3"><span className="tag">T{s.tier}</span></td>
-                <td className="p-3 text-xs text-dim">{s.last_run_at ? s.last_run_at.slice(5, 19).replace("T", " ") : "—"}</td>
-                <td className="p-3">
+                <td className="mono text-[11px] text-dim">{s.source_type}</td>
+                <td><span className="tag">T{s.tier}</span></td>
+                <td className="mono text-[11px] text-faint">{s.last_run_at ? s.last_run_at.slice(5, 19).replace("T", " ") : "—"}</td>
+                <td>
                   {s.consecutive_failures > 0
                     ? <span className="badge sev-critical">失败×{s.consecutive_failures}</span>
                     : s.last_success_at ? <span className="badge sev-low">正常</span>
                     : <span className="badge tag">未运行</span>}
                 </td>
-                <td className="p-3 text-dim">{s.total_items}</td>
-                <td className="p-3"><button className="btn-ghost !px-2 !py-1 text-xs" disabled={running[s.id]} onClick={() => run(s.id)}>{running[s.id] ? "…" : "采集"}</button></td>
+                <td className="tabular-nums text-dim">{(s.total_items || 0).toLocaleString()}</td>
+                <td><button className="btn-ghost !px-2 !py-1 text-xs" disabled={running[s.id]} onClick={() => run(s.id)}>{running[s.id] ? "…" : "采集"}</button></td>
               </tr>
             ))}
           </tbody>

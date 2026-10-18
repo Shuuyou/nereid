@@ -98,28 +98,28 @@ export default function PipelinePage() {
 
   const nodeCls = (id: string) => {
     const st = nodeState(id);
-    if (st === "done") return "border-low/50 bg-low/5";
-    if (st === "running") return "border-accent bg-accent/10 animate-pulse";
-    if (st === "error") return "border-crit/60 bg-crit/10";
-    return "border-border";
+    if (st === "done") return "border-low/30 bg-low/[0.06]";
+    if (st === "running") return "border-accent/60 bg-accent/[0.10] shadow-[0_0_18px_rgba(62,200,232,0.18)]";
+    if (st === "error") return "border-critical/50 bg-critical/[0.08]";
+    return "border-line";
   };
   const badgeCls = (id: string) => {
     const st = nodeState(id);
-    if (st === "done") return "bg-low/15 text-low";
-    if (st === "running") return "bg-accent/15 text-accent";
-    if (st === "error") return "bg-crit/15 text-crit";
-    return "bg-border text-dim";
+    if (st === "done") return "border-low/30 bg-low/[0.12] text-low";
+    if (st === "running") return "border-accent/40 bg-accent/[0.15] text-accent";
+    if (st === "error") return "border-critical/40 bg-critical/[0.15] text-critical";
+    return "border-line bg-white/[0.04] text-faint";
   };
 
-  const sel = "rounded-lg border border-border bg-bg px-2 py-1.5 text-sm text-fg";
+  const sel = "input";
   const running = run?.status === "running";
 
   return (
     <div className="space-y-4">
       <div className="card flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold">LangGraph 流水线</h1>
-          <p className="text-sm text-dim">
+          <h1 className="h2">LangGraph 流水线</h1>
+          <p className="text-[12px] text-faint">
             {dag?.engine || "LangGraph StateGraph"} 编排 · collect → enrich → index → kg → notify
           </p>
         </div>
@@ -133,9 +133,9 @@ export default function PipelinePage() {
           <div className="flex min-w-max items-stretch">
             {ordered.map((n, i) => (
               <div key={n.id} className="flex items-center">
-                <div className={`w-44 rounded-xl border p-3 transition-colors ${nodeCls(n.id)}`}>
+                <div className={`w-44 rounded-lg border p-3 transition-all duration-200 ${nodeCls(n.id)}`}>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className={`badge ${badgeCls(n.id)}`}>
+                    <span className={`badge mono ${badgeCls(n.id)}`}>
                       {nodeState(n.id) === "done" ? "✓" : i + 1}
                     </span>
                     <span className="font-medium">{n.label}</span>
@@ -143,11 +143,11 @@ export default function PipelinePage() {
                   </div>
                   <p className="text-xs leading-snug text-dim">{n.desc}</p>
                   {nodeState(n.id) === "running" && <div className="mt-2 text-[11px] text-accent">执行中…</div>}
-                  {nodeState(n.id) === "error" && <div className="mt-2 text-[11px] text-crit">失败</div>}
+                  {nodeState(n.id) === "error" && <div className="mt-2 text-[11px] text-critical">失败</div>}
                 </div>
                 {i < ordered.length - 1 && (
                   <div className="mx-3 flex flex-col items-center text-dim">
-                    <span className="text-xl leading-none">→</span>
+                    <span className="text-lg leading-none text-faint">→</span>
                   </div>
                 )}
               </div>
@@ -155,17 +155,17 @@ export default function PipelinePage() {
           </div>
         )}
         {run && (
-          <div className="mt-4 border-t border-border pt-3 text-xs text-dim">
+          <div className="mt-4 border-t border-line pt-3 text-xs text-dim">
             当前运行：<span className="mono text-fg">{run.run_id}</span>
             {run.current && <span> · 当前节点 <span className="text-accent">{run.current}</span></span>}
-            <span> · 状态 <span className={run.status === "done" ? "text-low" : run.status === "error" ? "text-crit" : "text-accent"}>{run.status}</span></span>
-            {run.error && <span className="text-crit"> · {run.error}</span>}
+            <span> · 状态 <span className={run.status === "done" ? "text-low" : run.status === "error" ? "text-critical" : "text-accent"}>{run.status}</span></span>
+            {run.error && <span className="text-critical"> · {run.error}</span>}
           </div>
         )}
       </div>
 
       <div className="card space-y-3">
-        <h2 className="text-sm font-semibold">手动触发</h2>
+        <h2 className="h3 mb-1">手动触发</h2>
         <div className="flex flex-wrap items-center gap-3">
           <select className={sel} value={sid} onChange={(e) => setSid(Number(e.target.value))}>
             {sources.length === 0 && <option value="">（无数据源）</option>}
@@ -185,8 +185,8 @@ export default function PipelinePage() {
       </div>
 
       {runs.length > 0 && (
-        <div className="card">
-          <h2 className="mb-2 text-sm font-semibold">最近运行</h2>
+        <div className="card !p-0">
+          <h2 className="h3 px-4 pt-3">最近运行</h2>
           <table className="tbl">
             <thead><tr><th>run_id</th><th>source</th><th>状态</th><th>开始</th><th>结束</th></tr></thead>
             <tbody>
@@ -195,7 +195,7 @@ export default function PipelinePage() {
                   <td className="mono text-xs">{r.run_id}</td>
                   <td className="text-xs">{r.source_id}</td>
                   <td>
-                    <span className={`badge ${r.status === "done" ? "bg-low/15 text-low" : r.status === "error" ? "bg-crit/15 text-crit" : "bg-accent/15 text-accent"}`}>
+                    <span className={`badge ${r.status === "done" ? "bg-low/15 text-low" : r.status === "error" ? "bg-critical/15 text-critical" : "bg-accent/15 text-accent"}`}>
                       {r.status}
                     </span>
                   </td>
@@ -209,7 +209,7 @@ export default function PipelinePage() {
       )}
 
       {msg && (
-        <div className="card fixed bottom-6 right-6 z-50 border-accent/40 px-4 py-3 text-sm shadow-lg">{msg}</div>
+        <div className="card fixed bottom-6 right-6 z-50 border-accent/30 bg-overlay px-4 py-3 text-[13px] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">{msg}</div>
       )}
     </div>
   );
