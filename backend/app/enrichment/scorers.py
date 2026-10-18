@@ -120,13 +120,19 @@ async def run(item, ctx) -> dict:
         fields["exploit_maturity"] = "weaponized"
 
     # ---- cvelistV5 本地克隆优先（免 NVD 限流，离线可用）----
+    # 多 CVE 条目：遍历前 3 个取首个有 metrics 的结果（此前只读 cves[0] 会漏）
     if not item.cvss_v31_score and cves:
-        cv = _cvelist_local(cves[0])
+        cv, cv_cve = {}, None
+        for c in cves[:3]:
+            cv = _cvelist_local(c)
+            if cv:
+                cv_cve = c
+                break
         if cv:
             src = cv.pop("cvss_source", "cna")
             extra["cvss_source"] = src
             fields.update({k: v for k, v in cv.items() if v is not None})
-            notes.append(f"cvss:cvelistV5-{src}")
+            notes.append(f"cvss:cvelistV5-{src}({cv_cve})")
 
     # ---- NVD 补分（仅当缺 CVSS 且本地克隆未覆盖）----
     if not item.cvss_v31_score and not fields.get("cvss_v31_score") and cves:

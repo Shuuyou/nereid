@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-18T02:03:06.189245+00:00",
+  "generated_at": "2026-10-18T02:27:44.540634+00:00",
   "n_requested": 30,
   "n_evaluated": 30,
   "sources": {
@@ -20,50 +20,50 @@
   },
   "fields": {
     "epss_score": {
-      "truth_n": 0,
-      "filled_n": 0,
-      "correct_n": 0,
-      "extra_n": 29,
-      "accuracy": null,
-      "recall": null
+      "truth_n": 3,
+      "filled_n": 3,
+      "correct_n": 3,
+      "extra_n": 27,
+      "accuracy": 1.0,
+      "recall": 1.0
     },
     "epss_percentile": {
-      "truth_n": 0,
-      "filled_n": 0,
-      "correct_n": 0,
-      "extra_n": 29,
-      "accuracy": null,
-      "recall": null
+      "truth_n": 3,
+      "filled_n": 3,
+      "correct_n": 3,
+      "extra_n": 27,
+      "accuracy": 1.0,
+      "recall": 1.0
     },
     "cvss_v31_score": {
-      "truth_n": 28,
-      "filled_n": 24,
-      "correct_n": 23,
-      "extra_n": 0,
-      "accuracy": 0.9583,
-      "recall": 0.8571
-    },
-    "severity": {
-      "truth_n": 28,
-      "filled_n": 24,
-      "correct_n": 22,
-      "extra_n": 0,
-      "accuracy": 0.9167,
-      "recall": 0.8571
-    },
-    "cwe_ids": {
-      "truth_n": 28,
-      "filled_n": 22,
-      "correct_n": 22,
+      "truth_n": 27,
+      "filled_n": 25,
+      "correct_n": 25,
       "extra_n": 0,
       "accuracy": 1.0,
-      "recall": 0.7857
+      "recall": 0.9259
+    },
+    "severity": {
+      "truth_n": 27,
+      "filled_n": 25,
+      "correct_n": 25,
+      "extra_n": 0,
+      "accuracy": 1.0,
+      "recall": 0.9259
+    },
+    "cwe_ids": {
+      "truth_n": 23,
+      "filled_n": 20,
+      "correct_n": 20,
+      "extra_n": 0,
+      "accuracy": 1.0,
+      "recall": 0.8696
     },
     "is_kev": {
       "confusion": {
-        "tp": 10,
+        "tp": 7,
         "fp": 0,
-        "tn": 20,
+        "tn": 23,
         "fn": 0,
         "skipped": 0
       },
@@ -72,22 +72,108 @@
     }
   },
   "overall": {
-    "accuracy": 0.97,
-    "recall": 0.8511
+    "accuracy": 1.0,
+    "recall": 0.9222
   },
   "items": [
     {
-      "item_id": "6403ae4d3a564425a83b3cea7b3ebc33",
-      "cve": "CVE-2016-4117",
-      "title": "[KEV] Adobe Flash Player Arbitrary Code Execution Vulnerabil",
+      "item_id": "37f966fda5c647dfb2f4e4081cfb4769",
+      "cve": "CVE-2020-5902",
+      "title": "[KEV] F5 BIG-IP Traffic Management User Interface (TMUI) Rem",
       "fields": {
         "epss_score": {
-          "ours": 0.94354,
+          "ours": 0.99999,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.99852,
+          "ours": 1.0,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-22"
+          ],
+          "truth": [
+            "CWE-22"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "80ccc728ae934643a28bb437fa5e69a8",
+      "cve": "CVE-2018-10561",
+      "title": "[KEV] Dasan GPON Routers Command Injection Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.99949,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.99974,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-287"
+          ],
+          "truth": [
+            "CWE-287"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "acec89b068544618b037a09f17c8d45e",
+      "cve": "CVE-2024-37079",
+      "title": "[KEV] Broadcom VMware vCenter Server Out-of-bounds Write Vul",
+      "fields": {
+        "epss_score": {
+          "ours": 0.22377,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.97672,
           "truth": null,
           "status": "extra"
         },
@@ -108,66 +194,27 @@
         },
         "cwe_ids": {
           "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
-        }
-      },
-      "score": "3/3"
-    },
-    {
-      "item_id": "2fef8e08e01249b098c7ca570d4efcf9",
-      "cve": "CVE-2024-29824",
-      "title": "[KEV] Ivanti Endpoint Manager (EPM) SQL Injection Vulnerabil",
-      "fields": {
-        "epss_score": {
-          "ours": 0.99938,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.99972,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 9.6,
-          "truth": 8.8,
-          "status": "diff"
-        },
-        "severity": {
-          "ours": "critical",
-          "truth": "high",
-          "status": "diff"
-        },
-        "cwe_ids": {
-          "ours": [],
           "truth": [
-            "CWE-89"
+            "CWE-787"
           ],
           "iou": 0.0,
           "status": "missing"
         }
       },
-      "score": "1/3"
+      "score": "3/3"
     },
     {
-      "item_id": "7c9a854e184c40869f02d51f04cb02df",
-      "cve": "CVE-2026-109109",
-      "title": "CVE-2026-109109: A vulnerability was detected in Wavlink WL-",
+      "item_id": "60bf4a2f94aa4ba49b7e6def08f2ec5a",
+      "cve": "CVE-2023-31069",
+      "title": "[EDB-51681] TSPlus 16.0.0.0 - Remote Work Insecure Credentia",
       "fields": {
         "epss_score": {
-          "ours": 0.00584,
+          "ours": 0.03686,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.46788,
+          "ours": 0.89545,
           "truth": null,
           "status": "extra"
         },
@@ -177,8 +224,8 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 10.0,
-          "truth": 10.0,
+          "ours": 9.8,
+          "truth": 9.8,
           "status": "ok"
         },
         "severity": {
@@ -188,10 +235,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-119"
+            "CWE-312"
           ],
           "truth": [
-            "CWE-119"
+            "CWE-312"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -200,28 +247,28 @@
       "score": "4/4"
     },
     {
-      "item_id": "bac514649abe412489682e74273e360b",
-      "cve": "CVE-2020-11978",
-      "title": "[KEV] Apache Airflow Command Injection",
+      "item_id": "7cfcd1e583cd4668b3fd7be26b1fcb4b",
+      "cve": "CVE-2019-15847",
+      "title": "CVE-2019-15847: The POWER9 backend in GNU Compiler Collectio",
       "fields": {
         "epss_score": {
-          "ours": 0.99931,
+          "ours": 0.03181,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.9997,
+          "ours": 0.87864,
           "truth": null,
           "status": "extra"
         },
         "is_kev": {
-          "ours": true,
-          "truth": true,
+          "ours": false,
+          "truth": false,
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 8.8,
-          "truth": 8.8,
+          "ours": 7.5,
+          "truth": 7.5,
           "status": "ok"
         },
         "severity": {
@@ -231,10 +278,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-78"
+            "CWE-331"
           ],
           "truth": [
-            "CWE-78"
+            "CWE-331"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -243,23 +290,23 @@
       "score": "4/4"
     },
     {
-      "item_id": "a445fe3ee403445693110cf13f85d8f7",
-      "cve": "CVE-2024-21287",
-      "title": "[KEV] Oracle Agile Product Lifecycle Management (PLM) Incorr",
+      "item_id": "10299b11d90a42a68ec87d5005124ebd",
+      "cve": "CVE-2021-43396",
+      "title": "CVE-2021-43396: In iconvdata/iso-2022-jp-3.c in the GNU C Li",
       "fields": {
         "epss_score": {
-          "ours": 0.01723,
-          "truth": null,
-          "status": "extra"
+          "ours": 0.03293,
+          "truth": 0.03293,
+          "status": "ok"
         },
         "epss_percentile": {
-          "ours": 0.77117,
-          "truth": null,
-          "status": "extra"
+          "ours": 0.88316,
+          "truth": 0.88316,
+          "status": "ok"
         },
         "is_kev": {
-          "ours": true,
-          "truth": true,
+          "ours": false,
+          "truth": false,
           "status": "ok"
         },
         "cvss_v31_score": {
@@ -274,33 +321,31 @@
         },
         "cwe_ids": {
           "ours": [],
-          "truth": [
-            "CWE-863"
-          ],
-          "iou": 0.0,
-          "status": "missing"
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
         }
       },
-      "score": "3/3"
+      "score": "5/5"
     },
     {
-      "item_id": "8cf963db1ba241c4bb53638a3aef2a83",
-      "cve": "CVE-2025-39961",
-      "title": "CVE-2025-39961: In the Linux kernel, the following vulnerabi",
+      "item_id": "9e4f7efd3c034621bf08ef2147b968e7",
+      "cve": "CVE-2013-1347",
+      "title": "[KEV] Microsoft Internet Explorer Remote Code Execution Vuln",
       "fields": {
         "epss_score": {
-          "ours": 0.00115,
+          "ours": 0.7774,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.01438,
+          "ours": 0.99566,
           "truth": null,
           "status": "extra"
         },
         "is_kev": {
-          "ours": false,
-          "truth": false,
+          "ours": true,
+          "truth": true,
           "status": "ok"
         },
         "cvss_v31_score": {
@@ -315,10 +360,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-362"
+            "CWE-416"
           ],
           "truth": [
-            "CWE-362"
+            "CWE-416"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -327,17 +372,60 @@
       "score": "4/4"
     },
     {
-      "item_id": "9649f7348c9240e7beb0cddfffa4f6f0",
-      "cve": "CVE-2026-64463",
-      "title": "CVE-2026-64463: In the Linux kernel, the following vulnerabi",
+      "item_id": "744ce7860ecd47ba97069a2609225950",
+      "cve": "CVE-2024-38552",
+      "title": "CVE-2024-38552: In the Linux kernel, the following vulnerabi",
       "fields": {
         "epss_score": {
-          "ours": 0.00138,
+          "ours": 0.00297,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.02845,
+          "ours": 0.20942,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.3,
+          "truth": 7.3,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-129"
+          ],
+          "truth": [
+            "CWE-129"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "ab4fcc4c39694c79878b6a1f0bcefd63",
+      "cve": "CVE-2025-38232",
+      "title": "CVE-2025-38232: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00168,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.05764,
           "truth": null,
           "status": "extra"
         },
@@ -357,26 +445,30 @@
           "status": "ok"
         },
         "cwe_ids": {
-          "ours": [],
-          "truth": [],
-          "iou": null,
-          "status": "no_truth"
+          "ours": [
+            "CWE-362"
+          ],
+          "truth": [
+            "CWE-362"
+          ],
+          "iou": 1.0,
+          "status": "ok"
         }
       },
-      "score": "3/3"
+      "score": "4/4"
     },
     {
-      "item_id": "df9afc7b00944756bb7cfc0ea1b31d4c",
-      "cve": "CVE-2017-11893",
-      "title": "[EDB-43466] Microsoft Edge Chakra JIT - Op_MaxInAnArray and ",
+      "item_id": "3a094725eaa94e4bbe4f4ffec1cde124",
+      "cve": "CVE-2026-78180",
+      "title": "CVE-2026-78180: A security flaw has been discovered in aliba",
       "fields": {
         "epss_score": {
-          "ours": 0.68491,
+          "ours": 0.00539,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.99331,
+          "ours": 0.44139,
           "truth": null,
           "status": "extra"
         },
@@ -386,8 +478,8 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 7.5,
-          "truth": 7.5,
+          "ours": 7.3,
+          "truth": 7.3,
           "status": "ok"
         },
         "severity": {
@@ -397,10 +489,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-119"
+            "CWE-94"
           ],
           "truth": [
-            "CWE-119"
+            "CWE-94"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -409,17 +501,60 @@
       "score": "4/4"
     },
     {
-      "item_id": "a7a63b3c81b2426f8d7407fae2697901",
-      "cve": "CVE-2025-68469",
-      "title": "CVE-2025-68469: ImageMagick is free and open-source software",
+      "item_id": "c90cc331f48843c2aba8383f3903a7bf",
+      "cve": "CVE-2025-66549",
+      "title": "CVE-2025-66549: Nextcloud Desktop is the desktop sync client",
       "fields": {
         "epss_score": {
-          "ours": 0.00209,
+          "ours": 0.00297,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.10421,
+          "ours": 0.2093,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 2.4,
+          "truth": 2.4,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "low",
+          "truth": "low",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-209"
+          ],
+          "truth": [
+            "CWE-209"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "311afdcf36d94e1989b2033a007a09f7",
+      "cve": "CVE-2026-88842",
+      "title": "CVE-2026-88842: A flaw was found in BusyBox dpkg. The write_",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00169,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.05881,
           "truth": null,
           "status": "extra"
         },
@@ -440,10 +575,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-122"
+            "CWE-125"
           ],
           "truth": [
-            "CWE-122"
+            "CWE-125"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -452,101 +587,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "0b55d58ff944467ea273c5d93c9d118a",
-      "cve": "CVE-2025-71435",
-      "title": "Coder before 2.23.0 Session Expiration Bypass via OIDC Witho",
+      "item_id": "f98ba2cbee6d4cc8bbbbb5e891020809",
+      "cve": "CVE-2022-42328",
+      "title": "CVE-2022-42328: Guests can trigger deadlock in Linux netback",
       "fields": {
         "epss_score": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "epss_percentile": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 4.2,
-          "truth": 4.2,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "low",
-          "truth": "medium",
-          "status": "diff"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-613"
-          ],
-          "truth": [
-            "CWE-613"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "3/4"
-    },
-    {
-      "item_id": "7e4b8ff3449f4bb9ac990e18598d25fe",
-      "cve": "CVE-2018-13374",
-      "title": "[KEV] Fortinet FortiOS and FortiADC Improper Access Control ",
-      "fields": {
-        "epss_score": {
-          "ours": 0.38088,
+          "ours": 0.00224,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.98546,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 4.3,
-          "truth": 4.3,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [
-            "CWE-732"
-          ],
-          "iou": 0.0,
-          "status": "missing"
-        }
-      },
-      "score": "3/3"
-    },
-    {
-      "item_id": "3179e9ad746d45368fe169d9e53edf13",
-      "cve": "CVE-2020-19186",
-      "title": "CVE-2020-19186: Buffer Overflow vulnerability in _nc_find_en",
-      "fields": {
-        "epss_score": {
-          "ours": 0.02036,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.80764,
+          "ours": 0.12143,
           "truth": null,
           "status": "extra"
         },
@@ -556,8 +607,8 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 6.5,
-          "truth": 6.5,
+          "ours": 5.5,
+          "truth": 5.5,
           "status": "ok"
         },
         "severity": {
@@ -567,308 +618,11 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-787"
+            "CWE-667"
           ],
-          "truth": [
-            "CWE-787"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "67d92b569d6a40fd9e0ade6657b57921",
-      "cve": "CVE-2025-67168",
-      "title": "CVE-2025-67168: RiteCMS v3.1.0 was discovered to use insecur",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00142,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.03185,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 5.3,
-          "truth": 5.3,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-916"
-          ],
-          "truth": [
-            "CWE-916"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "85041bb55717463e98af8fc1c639b3ac",
-      "cve": "CVE-2026-85000",
-      "title": "CVE-2026-85000: The EmbedPress  WordPress plugin before 4.6.",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00239,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.13905,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 5.3,
-          "truth": 5.3,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "medium",
-          "truth": "medium",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-284"
-          ],
-          "truth": [
-            "CWE-284"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "8ed334631c1941b88fa8a1c567b63a1f",
-      "cve": "CVE-2021-30860",
-      "title": "[KEV] Apple Multiple Products Integer Overflow Vulnerability",
-      "fields": {
-        "epss_score": {
-          "ours": 0.75994,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.99527,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": 7.8,
-          "status": "missing"
-        },
-        "severity": {
-          "ours": null,
-          "truth": "high",
-          "status": "missing"
-        },
-        "cwe_ids": {
-          "ours": [],
-          "truth": [
-            "CWE-190"
-          ],
-          "iou": 0.0,
-          "status": "missing"
-        }
-      },
-      "score": "1/1"
-    },
-    {
-      "item_id": "ef98be2ecc024336bed5df7932adb9b0",
-      "cve": "CVE-2018-0159",
-      "title": "[KEV] Cisco IOS and XE Software Internet Key Exchange Versio",
-      "fields": {
-        "epss_score": {
-          "ours": 0.0687,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.93983,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": 7.5,
-          "status": "missing"
-        },
-        "severity": {
-          "ours": null,
-          "truth": "high",
-          "status": "missing"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-20"
-          ],
-          "truth": [
-            "CWE-20"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "2/2"
-    },
-    {
-      "item_id": "e52f4334680b4a6f95ed5d28f06af41c",
-      "cve": "CVE-2026-77029",
-      "title": "CVE-2026-77029: Joomla Extension - yootheme.com - Missing CS",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00207,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.10122,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "severity": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-352"
-          ],
-          "truth": [
-            "CWE-352"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "2/2"
-    },
-    {
-      "item_id": "1773b2d009294c3cb91a7a86c22bef3b",
-      "cve": "CVE-2026-24182",
-      "title": "[NVIDIA] CVE-2026-24182.json",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00125,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.02011,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": 6.5,
-          "status": "missing"
-        },
-        "severity": {
-          "ours": null,
-          "truth": "medium",
-          "status": "missing"
-        },
-        "cwe_ids": {
-          "ours": [],
           "truth": [
             "CWE-667"
           ],
-          "iou": 0.0,
-          "status": "missing"
-        }
-      },
-      "score": "1/1"
-    },
-    {
-      "item_id": "e27fee43583241738138738d1346ae7c",
-      "cve": "CVE-2024-28987",
-      "title": "[KEV] SolarWinds Web Help Desk Hardcoded Credential Vulnerab",
-      "fields": {
-        "epss_score": {
-          "ours": 0.93299,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.99838,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 9.1,
-          "truth": 9.1,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "critical",
-          "truth": "critical",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-798"
-          ],
-          "truth": [
-            "CWE-798"
-          ],
           "iou": 1.0,
           "status": "ok"
         }
@@ -876,17 +630,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "b477b944e44440ba8399165d1a27dd7b",
-      "cve": "CVE-2026-62077",
-      "title": "CVE-2026-62077: Unauthenticated PHP Object Injection in Aval",
+      "item_id": "8821c912b3654bd5a5758d376f7d6a92",
+      "cve": "CVE-2023-1206",
+      "title": "CVE-2023-1206: A hash collision flaw was found in the IPv6 c",
       "fields": {
         "epss_score": {
-          "ours": 0.00386,
+          "ours": 0.0063,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.31138,
+          "ours": 0.4917,
           "truth": null,
           "status": "extra"
         },
@@ -896,21 +650,21 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 9.8,
-          "truth": 9.8,
+          "ours": 5.7,
+          "truth": 5.7,
           "status": "ok"
         },
         "severity": {
-          "ours": "critical",
-          "truth": "critical",
+          "ours": "medium",
+          "truth": "medium",
           "status": "ok"
         },
         "cwe_ids": {
           "ours": [
-            "CWE-502"
+            "CWE-400"
           ],
           "truth": [
-            "CWE-502"
+            "CWE-400"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -919,60 +673,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "9c44eda64df44cbaa01439af4b009af6",
-      "cve": "CVE-2019-7286",
-      "title": "[KEV] Apple Multiple Products Memory Corruption Vulnerabilit",
+      "item_id": "ea844ccf3610492eab827e41ebe12451",
+      "cve": "CVE-2024-7322",
+      "title": "CVE-2024-7322: A ZigBee coordinator, router, or end device m",
       "fields": {
         "epss_score": {
-          "ours": 0.15939,
+          "ours": 0.00327,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.96863,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 7.8,
-          "truth": 7.8,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "high",
-          "truth": "high",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-787"
-          ],
-          "truth": [
-            "CWE-787"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "83e6faf7b9164953bc7cc31f408ba023",
-      "cve": "CVE-2024-40958",
-      "title": "CVE-2024-40958: In the Linux kernel, the following vulnerabi",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00269,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.17839,
+          "ours": 0.2428,
           "truth": null,
           "status": "extra"
         },
@@ -982,21 +693,21 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 7.8,
-          "truth": 7.8,
+          "ours": 5.8,
+          "truth": 5.8,
           "status": "ok"
         },
         "severity": {
-          "ours": "high",
-          "truth": "high",
+          "ours": "medium",
+          "truth": "medium",
           "status": "ok"
         },
         "cwe_ids": {
           "ours": [
-            "CWE-416"
+            "CWE-940"
           ],
           "truth": [
-            "CWE-416"
+            "CWE-940"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -1005,146 +716,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "cfc47bb6fb2247dc9c373d3071178539",
-      "cve": "CVE-2025-13743",
-      "title": "CVE-2025-13743: Docker Desktop diagnostics bundles were foun",
+      "item_id": "e608297b814b4aea8acb797564d06afa",
+      "cve": "CVE-2026-69902",
+      "title": "CVE-2026-69902: Untrusted pointer dereference in Windows NTF",
       "fields": {
         "epss_score": {
-          "ours": 0.00215,
+          "ours": 0.00348,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.11073,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 7.5,
-          "truth": 7.5,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "high",
-          "truth": "high",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-532"
-          ],
-          "truth": [
-            "CWE-532"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "f4db349d7e8549ce8550bf1a476a614b",
-      "cve": "CVE-2026-66671",
-      "title": "CVE-2026-66671: Unauthenticated Local File Inclusion in Verd",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00467,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.39026,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 8.1,
-          "truth": 8.1,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "high",
-          "truth": "high",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-98"
-          ],
-          "truth": [
-            "CWE-98"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "403d5b11dec9489f827e6593b8d81cac",
-      "cve": "CVE-2026-5027",
-      "title": "[EDB-52659] Langflow  1.8.4 - Path Traversal to Remote Code ",
-      "fields": {
-        "epss_score": {
-          "ours": 0.04758,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.9178,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": 8.8,
-          "truth": 8.8,
-          "status": "ok"
-        },
-        "severity": {
-          "ours": "high",
-          "truth": "high",
-          "status": "ok"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-22"
-          ],
-          "truth": [
-            "CWE-22"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "47f4d80c5df04bb78d5fbae1af4327ea",
-      "cve": "CVE-2022-43750",
-      "title": "CVE-2022-43750: drivers/usb/mon/mon_bin.c in usbmon in the L",
-      "fields": {
-        "epss_score": {
-          "ours": 0.00347,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.26725,
+          "ours": 0.26886,
           "truth": null,
           "status": "extra"
         },
@@ -1165,6 +747,338 @@
         },
         "cwe_ids": {
           "ours": [
+            "CWE-822"
+          ],
+          "truth": [
+            "CWE-822"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "4cd30595c8284d6fa9ff65f84d22ae0f",
+      "cve": "CVE-2022-4135",
+      "title": "[KEV] Google Chromium GPU Heap Buffer Overflow Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.31864,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.98291,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": 9.6,
+          "status": "missing"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "critical",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [
+            "CWE-787"
+          ],
+          "iou": 0.0,
+          "status": "missing"
+        }
+      },
+      "score": "1/1"
+    },
+    {
+      "item_id": "9673881f603647f88ab527d54ad49b15",
+      "cve": "CVE-2023-29492",
+      "title": "[KEV] Novi Survey Insecure Deserialization Vulnerability",
+      "fields": {
+        "epss_score": {
+          "ours": 0.0269,
+          "truth": 0.0269,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.85627,
+          "truth": 0.85627,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": 9.8,
+          "status": "missing"
+        },
+        "severity": {
+          "ours": null,
+          "truth": "critical",
+          "status": "missing"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [
+            "CWE-94"
+          ],
+          "iou": 0.0,
+          "status": "missing"
+        }
+      },
+      "score": "3/3"
+    },
+    {
+      "item_id": "c111a2cc99db4911bc4dd21529d68aa4",
+      "cve": "CVE-2025-68363",
+      "title": "CVE-2025-68363: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00212,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.10777,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
+        }
+      },
+      "score": "1/1"
+    },
+    {
+      "item_id": "dd965194aa9c4fe3aea3919fdcc6a462",
+      "cve": "CVE-2026-97334",
+      "title": "CVE-2026-97334: The network messaging layer contained improp",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00356,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.27719,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-409"
+          ],
+          "truth": [
+            "CWE-409"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "2/2"
+    },
+    {
+      "item_id": "b896bf87f81749c5a8e4fa8efc5d8e8c",
+      "cve": "CVE-2006-3252",
+      "title": "[EDB-16760] Private Wire Gateway - Remote Buffer Overflow (M",
+      "fields": {
+        "epss_score": {
+          "ours": 0.6221,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.99175,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "severity": {
+          "ours": null,
+          "truth": null,
+          "status": "no_truth"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
+        }
+      },
+      "score": "1/1"
+    },
+    {
+      "item_id": "9e3207e84b424af782db15ba234986c1",
+      "cve": "CVE-2026-84249",
+      "title": "CVE-2026-84249: IBM Guardium Data Protection 12.2, and 12.2.",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00411,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.33851,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-306"
+          ],
+          "truth": [
+            "CWE-306"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "4f9ce43045a84272be6ab68dde0665d1",
+      "cve": "CVE-2017-11467",
+      "title": "[EDB-44068] OrientDB - Code Execution",
+      "fields": {
+        "epss_score": {
+          "ours": 0.73071,
+          "truth": 0.73071,
+          "status": "ok"
+        },
+        "epss_percentile": {
+          "ours": 0.99454,
+          "truth": 0.99454,
+          "status": "ok"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 9.8,
+          "truth": 9.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "critical",
+          "truth": "critical",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-269"
+          ],
+          "truth": [
+            "CWE-269"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "6/6"
+    },
+    {
+      "item_id": "ebed476fd5b0427db6a08055ea8b52b4",
+      "cve": "CVE-2009-3129",
+      "title": "[KEV] Microsoft Excel Featheader Record Memory Corruption Vu",
+      "fields": {
+        "epss_score": {
+          "ours": 0.84034,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.99693,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": true,
+          "truth": true,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.8,
+          "truth": 7.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
             "CWE-787"
           ],
           "truth": [
@@ -1177,17 +1091,177 @@
       "score": "4/4"
     },
     {
-      "item_id": "ab5234a81af644d4b549c22a381ae077",
-      "cve": "CVE-2025-14157",
-      "title": "CVE-2025-14157: GitLab has remediated an issue in GitLab CE/",
+      "item_id": "5d93e5c46a4745d78dfa983e61525caf",
+      "cve": "CVE-2024-36922",
+      "title": "CVE-2024-36922: In the Linux kernel, the following vulnerabi",
       "fields": {
         "epss_score": {
-          "ours": 0.00314,
+          "ours": 0.00347,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.22764,
+          "ours": 0.26667,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 8.8,
+          "truth": 8.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
+        }
+      },
+      "score": "3/3"
+    },
+    {
+      "item_id": "fad9ced6a5514a968a13eafeae386fd6",
+      "cve": "CVE-2022-50697",
+      "title": "CVE-2022-50697: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00158,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.04461,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.8,
+          "truth": 7.8,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
+        }
+      },
+      "score": "3/3"
+    },
+    {
+      "item_id": "8530b47271e848babaefb837c2da2302",
+      "cve": "CVE-2026-74349",
+      "title": "CVE-2026-74349: In the Linux kernel, the following vulnerabi",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00171,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.06095,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 7.1,
+          "truth": 7.1,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "high",
+          "truth": "high",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [],
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
+        }
+      },
+      "score": "3/3"
+    },
+    {
+      "item_id": "6fa7c8952b594258b8a83281ca6f3dac",
+      "cve": "CVE-2025-66548",
+      "title": "CVE-2025-66548: Nextcloud Deck is a kanban style organizatio",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00154,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.04103,
+          "truth": null,
+          "status": "extra"
+        },
+        "is_kev": {
+          "ours": false,
+          "truth": false,
+          "status": "ok"
+        },
+        "cvss_v31_score": {
+          "ours": 3.3,
+          "truth": 3.3,
+          "status": "ok"
+        },
+        "severity": {
+          "ours": "low",
+          "truth": "low",
+          "status": "ok"
+        },
+        "cwe_ids": {
+          "ours": [
+            "CWE-116"
+          ],
+          "truth": [
+            "CWE-116"
+          ],
+          "iou": 1.0,
+          "status": "ok"
+        }
+      },
+      "score": "4/4"
+    },
+    {
+      "item_id": "153a97450f5a4332880bcd188d1afe84",
+      "cve": "CVE-2025-60099",
+      "title": "CVE-2025-60099: Improper Neutralization of Input During Web ",
+      "fields": {
+        "epss_score": {
+          "ours": 0.00209,
+          "truth": null,
+          "status": "extra"
+        },
+        "epss_percentile": {
+          "ours": 0.1028,
           "truth": null,
           "status": "extra"
         },
@@ -1208,10 +1282,10 @@
         },
         "cwe_ids": {
           "ours": [
-            "CWE-770"
+            "CWE-79"
           ],
           "truth": [
-            "CWE-770"
+            "CWE-79"
           ],
           "iou": 1.0,
           "status": "ok"
@@ -1220,17 +1294,17 @@
       "score": "4/4"
     },
     {
-      "item_id": "7aec666e07ec49ffadd998995ad090b2",
-      "cve": "CVE-2026-44414",
-      "title": "CVE-2026-44414: A vulnerability has been identified in Indus",
+      "item_id": "bd6a8fc3ef21478791220c22aaf751af",
+      "cve": "CVE-2026-43026",
+      "title": "CVE-2026-43026: In the Linux kernel, the following vulnerabi",
       "fields": {
         "epss_score": {
-          "ours": 0.00453,
+          "ours": 0.00171,
           "truth": null,
           "status": "extra"
         },
         "epss_percentile": {
-          "ours": 0.37915,
+          "ours": 0.05997,
           "truth": null,
           "status": "extra"
         },
@@ -1240,8 +1314,8 @@
           "status": "ok"
         },
         "cvss_v31_score": {
-          "ours": 6.8,
-          "truth": 6.8,
+          "ours": 5.5,
+          "truth": 5.5,
           "status": "ok"
         },
         "severity": {
@@ -1250,101 +1324,13 @@
           "status": "ok"
         },
         "cwe_ids": {
-          "ours": [
-            "CWE-35"
-          ],
-          "truth": [
-            "CWE-35"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "4/4"
-    },
-    {
-      "item_id": "edfb6fe0da8840d38b5b3eeda525eea5",
-      "cve": "CVE-2019-1130",
-      "title": "[KEV] Microsoft Windows AppX Deployment Service Privilege Es",
-      "fields": {
-        "epss_score": {
-          "ours": 0.01719,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.77078,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": true,
-          "truth": true,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": 7.8,
-          "status": "missing"
-        },
-        "severity": {
-          "ours": null,
-          "truth": "high",
-          "status": "missing"
-        },
-        "cwe_ids": {
           "ours": [],
-          "truth": [
-            "CWE-59"
-          ],
-          "iou": 0.0,
-          "status": "missing"
+          "truth": [],
+          "iou": null,
+          "status": "no_truth"
         }
       },
-      "score": "1/1"
-    },
-    {
-      "item_id": "e627a930354c4dc2ba27f637cd86cc44",
-      "cve": "CVE-2026-53529",
-      "title": "CVE-2026-53529: LeafWiki is a self-hosted wiki. Prior to ver",
-      "fields": {
-        "epss_score": {
-          "ours": 0.0039,
-          "truth": null,
-          "status": "extra"
-        },
-        "epss_percentile": {
-          "ours": 0.31518,
-          "truth": null,
-          "status": "extra"
-        },
-        "is_kev": {
-          "ours": false,
-          "truth": false,
-          "status": "ok"
-        },
-        "cvss_v31_score": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "severity": {
-          "ours": null,
-          "truth": null,
-          "status": "no_truth"
-        },
-        "cwe_ids": {
-          "ours": [
-            "CWE-79"
-          ],
-          "truth": [
-            "CWE-79"
-          ],
-          "iou": 1.0,
-          "status": "ok"
-        }
-      },
-      "score": "2/2"
+      "score": "3/3"
     }
   ]
 }
