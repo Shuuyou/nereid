@@ -138,10 +138,10 @@ export default function DutyDesk() {
           { label: "AI 相关", v: (stats.ai_items || 0).toLocaleString(), href: "/items" },
           { label: "数据源", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, href: "/sources" },
         ] as const).map((m) => (
-          <Link key={m.label} href={m.href} className="group flex items-baseline gap-2">
-            <span className={`mono text-[22px] font-medium tnum transition-colors group-hover:text-accent ${
+          <Link key={m.label} href={m.href} className="group block">
+            <span className={`block mono text-[26px] font-medium leading-none tnum transition-colors group-hover:text-accent ${
               m.label === "待复核" && reviewTotal > 0 ? "text-err" : "text-fg"}`}>{m.v}</span>
-            <span className="text-[12px] text-faint transition-colors group-hover:text-dim">{m.label}</span>
+            <span className="mt-1 block text-[12px] text-faint transition-colors group-hover:text-dim">{m.label}</span>
           </Link>
         ))}
       </div>
