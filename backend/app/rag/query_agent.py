@@ -804,9 +804,30 @@ async def stream_answer(question: str, session_id: str | None = None,
         ans = "（置信度不足，无法给出可靠答案）\n\n" + ans
     _observe_qa(trace, time.time() - t0)
     res = {"answer": ans, "confidence": conf, "abstain": abstain,
-           "followups": [], "citations": cites[:12], "trace": trace,
+           "followups": _rule_followups(q, cites), "citations": cites[:12], "trace": trace,
            "latency_ms": int((time.time() - t0) * 1000)}
     yield {"type": "done", "data": res}
+
+
+def _rule_followups(q: str, cites: list[dict]) -> list[str]:
+    """规则式追问建议（Perplexity related 式：预测下一步，零 LLM 成本）。
+    从引用证据文本推导同域变角度的问题：深挖实体 → 共性 → 时间追问。"""
+    import re
+    blob = " ".join((c.get("title") or "") + " " + (c.get("snippet") or "") for c in cites)
+    cves = list(dict.fromkeys(re.findall(r"CVE-\d{4}-\d{4,7}", blob)))
+    kev = "KEV" in blob or "在野利用" in blob
+    fups: list[str] = []
+    if cves:
+        fups.append(f"深查 {cves[0]} 的利用方式与修复建议")
+    if kev:
+        fups.append("这些 KEV 漏洞的攻击链共性是什么？")
+    elif len(cves) > 1:
+        fups.append("这些漏洞的攻击面共性是什么？")
+    if "最近" in q or "趋势" in q or re.search(r"\d+\s*(天|周|月)", q):
+        fups.append("时间窗放宽到 30 天，同类条目还有什么？")
+    else:
+        fups.append("相关条目近 7 天有无新的在野利用（KEV）？")
+    return fups[:3]
 
 
 def _observe_qa(trace: dict, lat: float) -> None:

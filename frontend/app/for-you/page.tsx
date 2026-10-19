@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getDigest, getPersonalized, getProfile, saveProfile, sendFeedback } from "@/lib/api";
 import { SpecRow, SpecDot, Empty, Sev, St } from "@/components/ui";
-import { Flame, Zap, ThumbsUp, ThumbsDown, Save, RefreshCw, Newspaper } from "lucide-react";
+import { Flame, Zap, ThumbsUp, ThumbsDown, Save, RefreshCw, Newspaper, Sparkles } from "lucide-react";
 
 type Tag = { type: string; value: string };
 
@@ -60,6 +60,7 @@ export default function ForYouPage() {
   const [voted, setVoted] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [profileOk, setProfileOk] = useState(false);
 
   const loadAll = useCallback((n: string) => {
     if (!n) return;
@@ -69,8 +70,9 @@ export default function ForYouPage() {
         const pf = p.profile || {};
         setAssets(pf.assets || []); setInterests(pf.interests || []);
         setFloor(pf.severity_floor ?? "low");
+        setProfileOk(true);
       })
-      .catch(() => { /* 画像未建：保留当前编辑态 */ });
+      .catch(() => { setProfileOk(false); /* 画像未建：保留当前编辑态 */ });
     getPersonalized(n, 7).then(setFeed).catch(() => setFeed({ count: 0, items: [] }));
     getDigest(n, 7).then(setDigest).catch(() => setDigest(null));
     setLoading(false);
@@ -93,6 +95,20 @@ export default function ForYouPage() {
       loadAll(name.trim());
       setTimeout(() => setNotice(""), 3000);
     } catch { setNotice("保存失败：后端不可达或参数错误"); }
+  };
+
+  /** 空态引导：示例画像预填表单（不提交），映射到本页 schema —
+      products→assets(product)；watch→interests(layer/owasp/keyword)；min_severity→severity_floor */
+  const useExample = () => {
+    if (!name.trim()) setName("demo-ai-sec");
+    setAssets([{ type: "product", value: "Ollama" }, { type: "product", value: "vLLM" }]);
+    setInterests([
+      { type: "layer", value: "L1" },      // “AI 基础设施” → L1 基础设施与推理层
+      { type: "keyword", value: "RCE" },
+      { type: "owasp", value: "LLM01" },   // “提示注入” → OWASP LLM01 Prompt Injection
+    ]);
+    setFloor("high");
+    setNotice("示例画像已填入左侧表单，确认后点击「保存画像并推荐」");
   };
 
   const fb = async (itemId: string, signal: string) => {
@@ -186,8 +202,23 @@ export default function ForYouPage() {
             <span className="font-mono text-[10.5px] text-faint">规则召回 ∪ 向量召回 · RRF · 画像加权</span>
           </div>
           {feed.items.length === 0 ? (
-            <Empty text="暂无推荐"
-              hint="先填写画像名与资产/关注标签，点击「保存画像并推荐」；已有画像可降低严重度门槛" />
+            profileOk ? (
+              <Empty text="暂无推荐"
+                hint="画像已加载：近 7 天无命中条目，可降低严重度门槛或补充资产/关注标签" />
+            ) : (
+              /* 无画像引导空态：说状态 + 预填示例直达动作 */
+              <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
+                <Sparkles size={18} strokeWidth={1.5} className="text-faint" />
+                <div className="text-[12.5px] text-dim">还没有画像</div>
+                <div className="text-[11px] text-faint">保存画像后，这里出现为你过滤的情报流</div>
+                <button className="btn btn-sm mt-1.5" onClick={useExample}>
+                  <Sparkles size={11} strokeWidth={1.75} />使用示例画像
+                </button>
+                <div className="text-[10.5px] text-faint">
+                  示例：product Ollama/vLLM · layer L1 / owasp LLM01 / keyword RCE · high 门槛（预填不提交）
+                </div>
+              </div>
+            )
           ) : (
             <div className="divide-y divide-[rgba(33,31,38,0.05)] border-t border-line">
               {feed.items.map((it: any) => (

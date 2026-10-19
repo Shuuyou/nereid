@@ -29,6 +29,7 @@ export default function GraphPage() {
   const [loading, setLoading] = useState(false);
   const [kinds, setKinds] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState<Sel | null>(null);
+  const [note, setNote] = useState("");
 
   useEffect(() => { api.kgStats().then(setStats).catch(() => {}); }, []);
   useEffect(() => {
@@ -123,6 +124,17 @@ export default function GraphPage() {
     setQuery(id);
   }
 
+  /** 空态示例：取优先级最高的 KEV 条目 → 以其 CVE/条目 id 居中展开 */
+  async function recenterKev() {
+    try {
+      const d = await api.items({ kev: true, size: 1, sort: "priority" });
+      const it = (d.items || [])[0];
+      const t = it?.cve_ids?.[0] || it?.id;
+      if (t) { setNote(""); recenter(t); }
+      else setNote("未找到 KEV 条目（先在流水线页运行采集）");
+    } catch { setNote("后端不可达，无法取 KEV 条目"); }
+  }
+
   return (
     <div>
       <SpecRow>
@@ -169,10 +181,30 @@ export default function GraphPage() {
           {nodes.length > 0 ? (
             <Chart option={opt} style={{ height: "100%" }} notMerge
               onEvents={{ click: pick }} />
-          ) : (
+          ) : loading ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-[12.5px] text-faint">
-              <Share2 size={18} strokeWidth={1.5} className="opacity-60" />
-              {loading ? "加载子图…" : "无图谱数据（等待 KG 同步或该实体无邻边）"}
+              <Share2 size={18} strokeWidth={1.5} className="animate-pulse opacity-60" />
+              加载子图…
+            </div>
+          ) : (
+            /* 空态引导：说状态 + 示例直达动作 + 无输入时的推荐入口 */
+            <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+              <Share2 size={18} strokeWidth={1.5} className="text-faint opacity-60" />
+              <div className="text-[12.5px] text-dim">
+                {query ? `「${query}」暂无邻边数据` : "输入实体名以展开子图"}
+              </div>
+              <div className="text-[11px] text-faint">等待 KG 同步，或换个实体试试：</div>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                <button className="btn btn-sm" onClick={recenterKev}>以 KEV 实体为中心</button>
+                <button className="btn btn-sm" onClick={() => recenter("CVE-2024-37032")}>以 CVE-2024-37032 为中心</button>
+              </div>
+              {!entity.trim() && (
+                <Link href="/items?kev=1"
+                  className="mt-1 inline-flex items-center gap-1 font-mono text-[11px] text-accent transition-colors hover:underline">
+                  推荐入口：KEV 条目<ExternalLink size={10} />
+                </Link>
+              )}
+              {note && <div className="text-[11px] text-err">{note}</div>}
             </div>
           )}
           <div className="pointer-events-none absolute left-3 top-2.5 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">

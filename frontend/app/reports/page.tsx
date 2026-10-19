@@ -1,14 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { FileText, FilePlus2, X, Download } from "lucide-react";
+import Link from "next/link";
+import { FileText, FilePlus2, Download } from "lucide-react";
 import { api } from "@/lib/api";
 import { SpecRow, SpecDot, PageHeader, Empty, Skeleton } from "@/components/ui";
 
 export default function ReportsPage() {
   const [rows, setRows] = useState<any[]>([]);
-  const [cur, setCur] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [msg, setMsg] = useState("");
@@ -24,11 +22,6 @@ export default function ReportsPage() {
     toast("日报生成中（LLM 撰写约 10-20s）…");
     setTimeout(load, 15000);
     setTimeout(() => setGenerating(false), 15000);
-  }
-
-  async function open(id: string) {
-    const r = await api.report(id).catch(() => null);
-    if (r) setCur(r);
   }
 
   async function exportMd(id: string) {
@@ -68,19 +61,21 @@ export default function ReportsPage() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="cursor-pointer" onClick={() => open(r.id)}>
+              <tr key={r.id} className="rowlink">
                 <td className="num text-faint">{r.created_at?.slice(0, 16).replace("T", " ")}</td>
                 <td>
                   <div className="flex items-center gap-2">
                     <FileText size={13} strokeWidth={1.75} className="shrink-0 text-faint" />
-                    <span className="text-[12.5px] text-fg">{r.title}</span>
+                    <Link href={`/reports/${r.id}`}
+                      className="stretched text-[12.5px] text-fg transition-colors hover:text-accent">
+                      {r.title}
+                    </Link>
                   </div>
                 </td>
                 <td><span className="badge mono">{r.report_type}</span></td>
                 <td className="r num text-dim">{r.stats?.total ?? r.stats?.items ?? "—"}</td>
-                <td className="r" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex justify-end gap-1.5">
-                    <button className="btn btn-sm" onClick={() => open(r.id)}>查看</button>
+                <td className="r">
+                  <div className="z-act flex justify-end gap-1.5">
                     <button className="btn btn-sm btn-ghost" title="导出 Markdown" onClick={() => exportMd(r.id)}>
                       <Download size={11} strokeWidth={1.75} />
                     </button>
@@ -90,33 +85,6 @@ export default function ReportsPage() {
             ))}
           </tbody>
         </table>
-      )}
-
-      {/* ── 报告详情：右侧滑出 ── */}
-      {cur && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setCur(null)} />
-          <div className="rise fixed bottom-0 right-0 top-12 z-50 flex w-[760px] max-w-[85vw] flex-col border-l border-line bg-panel">
-            <div className="panel-h shrink-0">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="t shrink-0">REPORT</span>
-                <span className="truncate text-[12.5px] text-fg">{cur.title}</span>
-                <span className="mono shrink-0 text-[10px] text-faint">{cur.created_at?.slice(0, 16).replace("T", " ")}</span>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <button className="btn btn-sm btn-ghost" onClick={() => exportMd(cur.id)}>
-                  <Download size={11} strokeWidth={1.75} />导出
-                </button>
-                <button className="btn btn-sm btn-ghost" onClick={() => setCur(null)}><X size={12} strokeWidth={1.75} /></button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              <div className="prose-a mx-auto max-w-[640px]">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{cur.content_md}</ReactMarkdown>
-              </div>
-            </div>
-          </div>
-        </>
       )}
 
       {msg && (

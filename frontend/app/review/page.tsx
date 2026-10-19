@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { API, api } from "@/lib/api";
 import { SpecRow, SpecDot, PageHeader, Empty, Skeleton, Sev } from "@/components/ui";
+import { PeekDrawer, confText, confTone, type PeekTarget } from "@/components/PeekDrawer";
 import { Check, Undo2, RefreshCw } from "lucide-react";
 
 const TABS = [
@@ -25,20 +26,6 @@ interface ReviewItem {
   first_seen_at?: string | null;
 }
 
-/** 置信度 → 语义色（高可信 ok / 中 warn / 低 err，不吃品牌色） */
-function confTone(c?: number) {
-  if (c == null) return "bg-surface2";
-  if (c >= 0.7) return "bg-ok";
-  if (c >= 0.4) return "bg-warn";
-  return "bg-err";
-}
-function confText(c?: number) {
-  if (c == null) return "text-faint";
-  if (c >= 0.7) return "text-ok";
-  if (c >= 0.4) return "text-warn";
-  return "text-err";
-}
-
 function ReviewInner() {
   const router = useRouter();
   const pathname = usePathname();
@@ -50,12 +37,34 @@ function ReviewInner() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  /* peek 抽屉：本地状态为准（响应即时），?peek= 进 URL 供刷新恢复 */
+  const [peekId, setPeekId] = useState<string | null>(sp.get("peek"));
 
-  const setTab = (v: Tab) => {
+  /* URL → 抽屉状态同步（刷新恢复 / 地址栏直改） */
+  const spPeek = sp.get("peek");
+  useEffect(() => { setPeekId(spPeek); }, [spPeek]);
+
+  /** searchParams 写回（保留 status 等其他参数，不滚屏） */
+  const replaceParams = useCallback((mut: (p: URLSearchParams) => void) => {
     const p = new URLSearchParams(sp.toString());
+    mut(p);
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [sp, router, pathname]);
+
+  const setTab = (v: Tab) => replaceParams((p) => {
     if (v === "needs_review") p.delete("status"); else p.set("status", v);
-    router.replace(p.toString() ? `${pathname}?${p}` : pathname, { scroll: false });
-  };
+  });
+
+  const openPeek = useCallback((id: string) => {
+    setPeekId(id);
+    replaceParams((p) => p.set("peek", id));
+  }, [replaceParams]);
+
+  const closePeek = useCallback(() => {
+    setPeekId(null);
+    replaceParams((p) => p.delete("peek"));
+  }, [replaceParams]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -78,16 +87,23 @@ function ReviewInner() {
     setTimeout(() => setMsg(""), 2500);
   }
 
-  async function act(it: ReviewItem, action: "confirm" | "reject") {
+  async function act(it: PeekTarget, action: "confirm" | "reject") {
     setBusy(it.id + action);
     try {
       const r = await fetch(`${API}/api/review/${encodeURIComponent(it.id)}/${action}`, { method: "POST" });
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      const idx = items.findIndex((x) => x.id === it.id);
       // 操作成功后该条目状态已变更，从当前队列移除
-      setItems((rows) => rows.filter((x) => x.id !== it.id));
+      const rest = items.filter((x) => x.id !== it.id);
+      setItems(rest);
       setCount((c) => Math.max(0, c - 1));
       const name = (it.title || it.id).slice(0, 30);
       toast(action === "confirm" ? `已确认入库：${name}` : `已回炉重富化：${name}`);
+      // 抽屉内复核 → 自动推进到下一条待办（原索引位已是后继）；队列清空则关抽屉
+      if (peekId === it.id && idx >= 0) {
+        if (rest.length === 0) closePeek();
+        else openPeek(rest[Math.min(idx, rest.length - 1)].id);
+      }
     } catch (e) {
       toast(`操作失败：${e}`);
     } finally {
@@ -95,7 +111,7 @@ function ReviewInner() {
     }
   }
 
-  async function reEnrich(it: ReviewItem) {
+  async function reEnrich(it: PeekTarget) {
     setBusy(it.id + "enrich");
     try {
       await api.enrich(it.id);
@@ -107,6 +123,7 @@ function ReviewInner() {
     }
   }
 
+  const peekIdx = peekId ? items.findIndex((x) => x.id === peekId) : -1;
   const pendingLabel = tab === "needs_review" ? "PENDING" : tab === "confirmed" ? "CONFIRMED" : "AUTO";
 
   return (
@@ -117,7 +134,7 @@ function ReviewInner() {
         <span>{count} {pendingLabel}</span>
       </SpecRow>
 
-      <PageHeader title="HITL 复核队列" desc="低置信 / 富化异常条目需人工确认 · reject 后清空富化结果回炉"
+      <PageHeader title="HITL 复核队列" desc="低置信 / 富化异常条目需人工确认 · reject 后清空富化结果回炉 · 点击行速览"
         right={<button className="btn" onClick={load}><RefreshCw size={12} strokeWidth={1.75} />刷新</button>} />
 
       {/* 状态 tabs — 下划线式，非药丸 */}
@@ -161,7 +178,13 @@ function ReviewInner() {
             {items.map((it) => (
               <tr key={it.id} className="rowlink">
                 <td className="max-w-[380px]">
+                  {/* 真 <Link> 保留 href 语义：⌘/Ctrl+click 开新标签；普通点击 → peek 抽屉 */}
                   <Link href={`/items/${it.id}`}
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                      e.preventDefault();
+                      openPeek(it.id);
+                    }}
                     className="stretched block truncate text-[12.5px] text-fg transition-colors hover:text-accent">
                     {it.title || it.id}
                   </Link>
@@ -220,8 +243,22 @@ function ReviewInner() {
         </table>
       )}
 
+      {/* ── 右抽屉 peek：Chronicle/Elastic 式队列速览 ── */}
+      <PeekDrawer
+        id={peekId}
+        index={peekIdx}
+        total={items.length}
+        title={peekIdx >= 0 ? items[peekIdx].title : undefined}
+        busy={busy !== null}
+        onClose={closePeek}
+        onPrev={() => { if (peekIdx > 0) openPeek(items[peekIdx - 1].id); }}
+        onNext={() => { if (peekIdx >= 0 && peekIdx < items.length - 1) openPeek(items[peekIdx + 1].id); }}
+        onAct={act}
+        onReEnrich={reEnrich}
+      />
+
       {msg && (
-        <div className="rise fixed bottom-5 right-5 z-50 rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[12.5px] text-fg">
+        <div className="rise fixed bottom-5 right-5 z-[60] rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[12.5px] text-fg">
           {msg}
         </div>
       )}

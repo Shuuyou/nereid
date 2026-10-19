@@ -136,6 +136,24 @@ export default function ItemDetail() {
     },
   ].filter(Boolean) as any[];
 
+  /* ── 分诊动线锚点目录：簇内第一个有数据的块承担锚点落点（无数据分区条件渲染，锚点同步缺席） ── */
+  const hasSummary = !!(it.summary_zh || it.summary);
+  const hasImpact = !!(ex.impact_zh || ex.exploitability_zh || ex.mitigation_zh || ex.kev_required_action || it.affected_versions);
+  const mapAnchor = it.mappings?.length > 0 ? "sec-mappings"
+    : chain.length > 0 ? "sec-chain"
+    : it.d3fend?.length > 0 ? "sec-d3fend" : "";
+  const evAnchor = it.pocs?.length > 0 ? "sec-pocs"
+    : it.assets?.length > 0 ? "sec-assets"
+    : it.papers?.length > 0 ? "sec-papers"
+    : ex.references?.length > 0 ? "sec-refs" : "";
+  const toc: [string, string][] = [];
+  if (hasSummary) toc.push(["#sec-summary", "摘要"]);
+  if (scoreRows.length) toc.push(["#sec-score", "评分"]);
+  if (hasImpact) toc.push(["#sec-impact", "影响"]);
+  if (mapAnchor) toc.push([`#${mapAnchor}`, "映射"]);
+  if (evAnchor) toc.push([`#${evAnchor}`, "证据"]);
+  if (related.length) toc.push(["#sec-related", "相关"]);
+
   return (
     <div>
       <SpecRow>
@@ -264,10 +282,22 @@ export default function ItemDetail() {
           )}
         </aside>
 
-        {/* 右主区：.sect 分区 */}
+        {/* 右主区：.sect 分区（分诊动线：摘要→评分→影响→映射/攻击链→证据附件） */}
         <div className="min-w-0">
+          {toc.length > 1 && (
+            <nav className="mb-4 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+              <span className="mr-2">§</span>
+              {toc.map(([href, label], i) => (
+                <span key={href}>
+                  {i > 0 && " · "}
+                  <a href={href} className="transition-colors hover:text-accent">{label}</a>
+                </span>
+              ))}
+            </nav>
+          )}
+
           {(it.summary_zh || it.summary) && (
-            <div>
+            <div id="sec-summary" className="scroll-mt-[60px]">
               <h2 className="sect-title">摘要</h2>
               <p className="mt-2.5 text-[13px] leading-relaxed text-dim">{it.summary_zh || it.summary}</p>
               {it.summary_zh && it.summary && it.summary !== it.summary_zh && (
@@ -291,8 +321,27 @@ export default function ItemDetail() {
             </div>
           )}
 
+          {scoreRows.length > 0 && (
+            <div id="sec-score" className="sect scroll-mt-[60px]">
+              <h2 className="sect-title">评分构成</h2>
+              <div className="sect-sub">CVSS / EPSS / KEV / SSVC · 行内展开评分依据</div>
+              <table className="dt mt-3">
+                <thead>
+                  <tr><th className="w-[110px]">指标</th><th className="r w-[110px]">值</th><th>依据</th><th className="r w-[64px]"></th></tr>
+                </thead>
+                <tbody>
+                  {scoreRows.map((r) => (
+                    <ScoreRow key={r.k} r={r}
+                      open={!!why[r.k]}
+                      onToggle={() => setWhy((w) => ({ ...w, [r.k]: !w[r.k] }))} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {(ex.impact_zh || ex.exploitability_zh || ex.mitigation_zh || ex.kev_required_action || it.affected_versions) && (
-            <div className="sect">
+            <div id="sec-impact" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">影响与修复</h2>
               <div className="mt-3 space-y-3">
                 {ex.impact_zh && (
@@ -329,48 +378,8 @@ export default function ItemDetail() {
             </div>
           )}
 
-          {scoreRows.length > 0 && (
-            <div className="sect">
-              <h2 className="sect-title">评分构成</h2>
-              <div className="sect-sub">CVSS / EPSS / KEV / SSVC · 行内展开评分依据</div>
-              <table className="dt mt-3">
-                <thead>
-                  <tr><th className="w-[110px]">指标</th><th className="r w-[110px]">值</th><th>依据</th><th className="r w-[64px]"></th></tr>
-                </thead>
-                <tbody>
-                  {scoreRows.map((r) => (
-                    <ScoreRow key={r.k} r={r}
-                      open={!!why[r.k]}
-                      onToggle={() => setWhy((w) => ({ ...w, [r.k]: !w[r.k] }))} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {chain.length > 0 && (
-            <div className="sect">
-              <h2 className="sect-title">攻击链推演</h2>
-              <div className="sect-sub">ATT&CK 步序 · {chain.length} 阶段</div>
-              <ol className="mt-3">
-                {chain.map((s: any, i: number) => (
-                  <li key={i} className="flex gap-3 border-b border-line py-2 last:border-0">
-                    <span className="num w-6 shrink-0 pt-px text-faint">{String(i + 1).padStart(2, "0")}</span>
-                    <div className="min-w-0">
-                      <span className="text-[12px] font-medium text-fg">{s.stage}</span>
-                      <div className="mt-0.5 text-[12.5px] leading-relaxed text-dim">{s.desc}</div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              {ex.attack_chain_desc && (
-                <p className="mt-3 text-[12.5px] leading-relaxed text-dim">{ex.attack_chain_desc}</p>
-              )}
-            </div>
-          )}
-
           {it.mappings?.length > 0 && (
-            <div className="sect">
+            <div id="sec-mappings" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">技术映射 <span className="ml-1 font-normal text-faint">{it.mappings.length}</span></h2>
               <table className="dt mt-3">
                 <thead>
@@ -392,8 +401,29 @@ export default function ItemDetail() {
             </div>
           )}
 
+          {chain.length > 0 && (
+            <div id="sec-chain" className="sect scroll-mt-[60px]">
+              <h2 className="sect-title">攻击链推演</h2>
+              <div className="sect-sub">ATT&CK 步序 · {chain.length} 阶段</div>
+              <ol className="mt-3">
+                {chain.map((s: any, i: number) => (
+                  <li key={i} className="flex gap-3 border-b border-line py-2 last:border-0">
+                    <span className="num w-6 shrink-0 pt-px text-faint">{String(i + 1).padStart(2, "0")}</span>
+                    <div className="min-w-0">
+                      <span className="text-[12px] font-medium text-fg">{s.stage}</span>
+                      <div className="mt-0.5 text-[12.5px] leading-relaxed text-dim">{s.desc}</div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              {ex.attack_chain_desc && (
+                <p className="mt-3 text-[12.5px] leading-relaxed text-dim">{ex.attack_chain_desc}</p>
+              )}
+            </div>
+          )}
+
           {it.d3fend?.length > 0 && (
-            <div className="sect">
+            <div id="sec-d3fend" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">D3FEND 防御对策 <span className="ml-1 font-normal text-faint">{it.d3fend.length}</span></h2>
               <div className="mt-2">
                 {it.d3fend.map((d: any) => (
@@ -410,7 +440,7 @@ export default function ItemDetail() {
           )}
 
           {it.pocs?.length > 0 && (
-            <div className="sect">
+            <div id="sec-pocs" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">PoC / EXP <span className="ml-1 font-normal text-faint">{it.pocs.length}</span></h2>
               <table className="dt mt-3">
                 <thead>
@@ -445,7 +475,7 @@ export default function ItemDetail() {
           )}
 
           {it.assets?.length > 0 && (
-            <div className="sect">
+            <div id="sec-assets" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">资产暴露</h2>
               <div className="sect-sub">
                 互联网测绘聚合{it.assets.some((a: any) => a.is_simulated) ? " · 含模拟数据" : ""}
@@ -471,7 +501,7 @@ export default function ItemDetail() {
           )}
 
           {it.papers?.length > 0 && (
-            <div className="sect">
+            <div id="sec-papers" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">关联论文 / 分析 <span className="ml-1 font-normal text-faint">{it.papers.length}</span></h2>
               <div className="mt-2">
                 {it.papers.map((p: any, i: number) => (
@@ -489,7 +519,7 @@ export default function ItemDetail() {
           )}
 
           {ex.references?.length > 0 && (
-            <div className="sect">
+            <div id="sec-refs" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">参考链接 <span className="ml-1 font-normal text-faint">{ex.references.length}</span></h2>
               <div className="mt-2">
                 {ex.references.slice(0, 10).map((u: string, i: number) => (
@@ -507,7 +537,7 @@ export default function ItemDetail() {
 
       {/* 相关情报：hairline 行列表 */}
       {related.length > 0 && (
-        <div className="sect">
+        <div id="sec-related" className="sect scroll-mt-[60px]">
           <h2 className="sect-title">相关情报</h2>
           <div className="mt-2 divide-y divide-[rgba(33,31,38,0.06)]">
             {related.map((r: any) => (

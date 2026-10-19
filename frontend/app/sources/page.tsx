@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { SpecRow, SpecDot, PageHeader, StatStrip, St, Empty } from "@/components/ui";
-import { Radio, RefreshCw } from "lucide-react";
+import { SpecRow, SpecDot, PageHeader, StatStrip, St } from "@/components/ui";
+import { Radio, RefreshCw, Inbox } from "lucide-react";
 
 /** 采集间隔格式化：秒 → "15m" / "1.5h" */
 function fmtInterval(sec?: number) {
@@ -16,9 +16,26 @@ export default function SourcesPage() {
   const [running, setRunning] = useState<Record<number, boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState("");
+  const [rechecking, setRechecking] = useState(false);
 
   const load = () => api.sources().then((d) => { setRows(d.sources || []); setLoaded(true); }).catch(() => setLoaded(true));
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, []);
+
+  /** 空态/全失败 CTA：强制重跑全部采集器（等价于重新检测），稍后自动刷新列表 */
+  async function recheckAll() {
+    setRechecking(true);
+    try {
+      await api.runAll();
+      setMsg("已触发全源重新检测");
+      setTimeout(() => setMsg(""), 2500);
+      setTimeout(load, 2000);
+    } catch {
+      setMsg("触发失败：后端不可达");
+      setTimeout(() => setMsg(""), 2500);
+    } finally {
+      setRechecking(false);
+    }
+  }
 
   async function run(id: number) {
     setRunning((r) => ({ ...r, [id]: true }));
@@ -61,14 +78,33 @@ export default function SourcesPage() {
       <div className="sect !mt-6">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="sect-title">采集器清单</h2>
-          <span className="font-mono text-[10.5px] text-faint">POLL 15s AUTO-REFRESH</span>
+          <span className="font-mono text-[10.5px] text-faint">
+            {rows.length > 0 && <>健康 <span className="text-dim">{ok}/{rows.length}</span> · </>}
+            POLL 15s AUTO-REFRESH
+          </span>
         </div>
         {!loaded ? (
           <div className="space-y-px">{[0, 1, 2].map((i) => <div key={i} className="skel h-9" />)}</div>
         ) : rows.length === 0 ? (
-          <Empty text="无数据源" hint="后端未连接或未配置采集器" />
+          /* 空态引导：说状态 + 直达重试动作（数据源在 backend 启动时注册） */
+          <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
+            <Inbox size={18} strokeWidth={1.5} className="text-faint" />
+            <div className="text-[12.5px] text-dim">无数据源</div>
+            <div className="text-[11px] text-faint">后端未连接或未配置采集器（数据源随后端启动自动注册）</div>
+            <button className="btn btn-sm mt-1.5" disabled={rechecking} onClick={recheckAll}>
+              <RefreshCw size={11} strokeWidth={1.75} className={rechecking ? "animate-spin" : ""} />重新检测全部
+            </button>
+          </div>
         ) : (
           <div className="overflow-x-auto">
+            {ok === 0 && (
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-err/30 bg-err/10 px-3 py-2">
+                <span className="text-[11.5px] text-err">全部数据源处于失败/停用状态，采集已停滞</span>
+                <button className="btn btn-sm shrink-0" disabled={rechecking} onClick={recheckAll}>
+                  {rechecking && <RefreshCw size={11} strokeWidth={1.75} className="animate-spin" />}重新检测全部
+                </button>
+              </div>
+            )}
             <table className="dt">
               <thead>
                 <tr>

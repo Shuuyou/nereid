@@ -1,6 +1,7 @@
 import "./globals.css";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
+import { CommandPalette, PaletteButton } from "@/components/CommandPalette";
 
 export const metadata = {
   title: "捞针 · nereid — AI 安全情报系统",
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Nereid · Threat Intel Workbench
               </span>
               <div className="ml-auto flex items-center gap-3">
+                <PaletteButton />
                 <span className="mono text-[11px] text-faint">
                   {new Date().toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "long" })}
                 </span>
@@ -53,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="min-h-0 flex-1 overflow-y-auto">
               <div className="mx-auto max-w-[1480px] px-6 py-5">{children}</div>
             </main>
+            <CommandPalette />
           </div>
         </div>
       </body>

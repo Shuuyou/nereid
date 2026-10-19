@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { API, api } from "@/lib/api";
 import { SpecRow, SpecDot, PageHeader, St, Empty } from "@/components/ui";
-import { Check, X, Play } from "lucide-react";
+import { Check, X, Play, Inbox } from "lucide-react";
 
 interface DagNode { id: string; label: string; desc: string }
 interface Dag { engine?: string; nodes: DagNode[]; edges: [string, string][]; schedule?: string }
@@ -109,6 +109,18 @@ export default function PipelinePage() {
     } catch (e) {
       toast(`触发失败：${e}`);
     }
+  }
+
+  /** 空态 CTA：run-all 触发全源采集 + 对当前选中源启动可观测 DAG（产生 pipeline:runs 记录） */
+  async function runAllNow() {
+    if (running) return;
+    try {
+      await api.runAll();
+    } catch (e) {
+      toast(`全源采集触发失败：${e}`);
+    }
+    if (sid !== "") await triggerRun();
+    else { toast("已触发全源采集（未配置数据源，DAG 未启动）"); setTimeout(refreshRuns, 4000); }
   }
 
   async function inspect(r: RunRec) {
@@ -253,7 +265,16 @@ export default function PipelinePage() {
           <span className="font-mono text-[10.5px] text-faint">REDIS pipeline:runs · LAST 20</span>
         </div>
         {runs.length === 0 ? (
-          <Empty text="暂无运行记录" hint="选择数据源并点击「运行完整 DAG」" />
+          /* 空态引导：说状态 + 内嵌直达动作 + 备选路径提示 */
+          <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
+            <Inbox size={18} strokeWidth={1.5} className="text-faint" />
+            <div className="text-[12.5px] text-dim">暂无运行记录</div>
+            <div className="text-[11px] text-faint">全链 collect→enrich→index→kg→notify 尚未运行过</div>
+            <button className="btn btn-acc btn-sm mt-1.5" disabled={running} onClick={runAllNow}>
+              <Play size={11} strokeWidth={1.75} />立即运行全链
+            </button>
+            <div className="text-[10.5px] text-faint">或在上方选择单个数据源 →「运行完整 DAG」</div>
+          </div>
         ) : (
           <table className="dt">
             <thead>

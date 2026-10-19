@@ -522,4 +522,7 @@ a.stretched::after {
 /* spec-row 段间 dot 收紧：只在前 3 段生效的替代做法——容器超 3 段时第 4+ 段前不画点 */
 .spec-row > .dot { opacity: 0.7; }
 
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+
 ::-webkit-scrollbar-corner { background: transparent; }

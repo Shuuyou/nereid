@@ -1,10 +1,13 @@
 "use client";
 import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { SendHorizontal, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X } from "lucide-react";
+import { SendHorizontal, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X, ArrowUpRight } from "lucide-react";
 import { streamChat, api } from "@/lib/api";
 import { remarkChips } from "@/lib/remark-chips";
+import { SevPill } from "@/components/ui";
+import { LayerTag } from "@/components/cards";
 
 interface Msg {
   role: "user" | "assistant"; content: string; citations?: any[]; trace?: any;
@@ -192,6 +195,11 @@ export default function QaPage() {
   const [citeFocus, setCiteFocus] = useState<number | null>(null);
   const [showUncited, setShowUncited] = useState(false);
   const [openTrace, setOpenTrace] = useState<Record<number, boolean>>({});
+  const [peekId, setPeekId] = useState<string | null>(null);
+  const [peekShown, setPeekShown] = useState(false);
+  const [peekItem, setPeekItem] = useState<any>(null);
+  const [peekErr, setPeekErr] = useState(false);
+  const peekCloseT = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -208,7 +216,7 @@ export default function QaPage() {
 
   async function openSession(s: Sess) {
     if (busy) return;
-    setSessionId(s.id); setMsgs([]); setStatus("");
+    setSessionId(s.id); setMsgs([]); setStatus(""); closePeek();
     try {
       const h = await api.qaHistory(s.id);
       setMsgs((h.messages || []).map((m: any) => ({
@@ -219,15 +227,16 @@ export default function QaPage() {
 
   function newSession() {
     if (busy) return;
-    setSessionId(null); setMsgs([]); setStatus(""); setOpenTrace({});
+    setSessionId(null); setMsgs([]); setStatus(""); setOpenTrace({}); closePeek();
   }
 
   function stop() {
     abortRef.current?.abort();
   }
 
-  /** [n] chip → 右栏证据卡：切 tab + 滚动定位 + 高亮 */
+  /** [n] chip → 右栏证据卡：切 tab + 滚动定位 + 高亮（若抽屉开着先收起，否则高亮被盖住） */
   function focusCite(n: number) {
+    if (peekId) closePeek();
     setTab("evi");
     setCiteFocus(n);
     requestAnimationFrame(() => {
@@ -235,10 +244,40 @@ export default function QaPage() {
     });
   }
 
+  /** 证据 peek：内部 item 就地右侧抽屉预览（不离开对话上下文），自动切到 evi */
+  function openPeek(itemId: string) {
+    if (peekCloseT.current) { clearTimeout(peekCloseT.current); peekCloseT.current = null; }
+    setTab("evi");
+    setPeekItem(null); setPeekErr(false);
+    setPeekId(itemId);
+    api.item(itemId).then(setPeekItem).catch(() => setPeekErr(true));
+  }
+  function closePeek() {
+    setPeekShown(false);
+    if (peekCloseT.current) clearTimeout(peekCloseT.current);
+    peekCloseT.current = setTimeout(() => { setPeekId(null); peekCloseT.current = null; }, 320);
+  }
+
+  // 抽屉滑入：挂载后双 rAF 让 translateX(100%) 先落一帧再过渡到 0
+  useEffect(() => {
+    if (!peekId) return;
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setPeekShown(true)));
+    return () => cancelAnimationFrame(raf);
+  }, [peekId]);
+
+  // Esc 关闭抽屉
+  useEffect(() => {
+    if (!peekId) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closePeek(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peekId]);
+
   async function send(q?: string) {
     const question = (q ?? input).trim();
     if (!question || busy) return;
-    setInput(""); setBusy(true); setSpine([]); setStatus("");
+    setInput(""); setBusy(true); setSpine([]); setStatus(""); closePeek();
     setMsgs((m) => [...m, { role: "user", content: question }, { role: "assistant", content: "" }]);
     const abort = new AbortController();
     abortRef.current = abort;
@@ -446,14 +485,20 @@ export default function QaPage() {
                       if (!shown.length) return null;
                       return (
                         <div className="mt-2.5 flex flex-wrap gap-1.5">
-                          {shown.map((c) => (
-                            <a key={c.n} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
-                              title={c.title}
-                              className="group inline-flex max-w-[280px] items-center gap-1.5 truncate rounded-[5px] border border-line bg-panel px-2 py-1 text-[11px] text-dim transition-colors hover:border-line2 hover:text-fg">
+                          {shown.map((c) => {
+                            const cls = "group inline-flex max-w-[280px] items-center gap-1.5 truncate rounded-[5px] border border-line bg-panel px-2 py-1 text-[11px] text-dim transition-colors hover:border-line2 hover:text-fg";
+                            const inner = (<>
                               <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
                               <span className="truncate">{c.title}</span>
-                            </a>
-                          ))}
+                            </>);
+                            // 外部链接照旧 _blank；内部 item 开右侧 peek 抽屉而非跳页
+                            return c.url ? (
+                              <a key={c.n} href={c.url} target="_blank" rel="noreferrer" title={c.title} className={cls}>{inner}</a>
+                            ) : (
+                              <button key={c.n} type="button" title={c.title} className={cls}
+                                onClick={() => c.item_id && openPeek(String(c.item_id))}>{inner}</button>
+                            );
+                          })}
                         </div>
                       );
                     })()}
@@ -509,8 +554,8 @@ export default function QaPage() {
         </div>
       </div>
 
-      {/* ── 右：Evidence / Trace 面板 ── */}
-      <div className="flex w-[290px] shrink-0 flex-col border-l border-line bg-panel">
+      {/* ── 右：Evidence / Trace 面板（relative + 裁剪供 peek 抽屉滑入） ── */}
+      <div className="relative flex w-[290px] shrink-0 flex-col overflow-hidden border-l border-line bg-panel">
         <div className="flex h-11 items-center gap-4 border-b border-line px-3">
           {([["evi", `证据 ${lastA?.citations?.length || ""}`], ["trace", "推理链"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
@@ -533,11 +578,11 @@ export default function QaPage() {
                 const citedNs = citedNsOf(lastA?.content);
                 const cited = (lastA?.citations || []).filter((c: any) => citedNs.has(c.n));
                 const rest = (lastA?.citations || []).filter((c: any) => !citedNs.has(c.n));
-                const Card = ({ c, dimmed }: { c: any; dimmed?: boolean }) => (
-                  <a key={c.n} id={`evi-${c.n}`} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
-                    className={`group mb-1 block rounded-[6px] border px-2.5 py-2 transition-colors ${
-                      citeFocus === c.n ? "border-accent/50 bg-[rgba(21,122,119,0.12)]"
-                        : "border-transparent hover:border-line hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`}>
+                const Card = ({ c, dimmed }: { c: any; dimmed?: boolean }) => {
+                  const cls = `group mb-1 block w-full rounded-[6px] border px-2.5 py-2 text-left transition-colors ${
+                    citeFocus === c.n ? "border-accent/50 bg-[rgba(21,122,119,0.12)]"
+                      : "border-transparent hover:border-line hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`;
+                  const inner = (<>
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
                       <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-fg">{c.title}</span>
@@ -545,10 +590,19 @@ export default function QaPage() {
                     <div className="mt-1 flex items-center gap-2 pl-6 font-mono text-[10px] text-faint">
                       <span>{c.url ? "external" : `item:${String(c.item_id).slice(0, 8)}`}</span>
                       {dimmed && <span>未引用</span>}
-                      <ExternalLink size={9} className="opacity-0 transition-opacity group-hover:opacity-60" />
+                      {c.url
+                        ? <ExternalLink size={9} className="opacity-0 transition-opacity group-hover:opacity-60" />
+                        : <ChevronRight size={9} className="opacity-0 transition-opacity group-hover:opacity-60" />}
                     </div>
-                  </a>
-                );
+                  </>);
+                  // 外部链接照旧 _blank；内部 item 开右侧 peek 抽屉而非跳页
+                  return c.url ? (
+                    <a id={`evi-${c.n}`} href={c.url} target="_blank" rel="noreferrer" className={cls}>{inner}</a>
+                  ) : (
+                    <button id={`evi-${c.n}`} type="button" className={cls}
+                      onClick={() => c.item_id && openPeek(String(c.item_id))}>{inner}</button>
+                  );
+                };
                 return (<>
                   {cited.map((c: any) => <Card key={c.n} c={c} />)}
                   {rest.length > 0 && (
@@ -597,6 +651,65 @@ export default function QaPage() {
             </div>
           )}
         </div>
+
+        {/* 证据 peek 抽屉：面板内覆盖滑入（全宽贴边直角、无遮罩、不遮对话列） */}
+        {peekId && (
+          <div role="dialog" aria-label="证据预览"
+            className="absolute inset-0 z-20 flex flex-col bg-panel"
+            style={{
+              transform: peekShown ? "translateX(0)" : "translateX(101%)",
+              transition: "transform 300ms var(--ease-drawer)",
+              boxShadow: "-16px 0 40px -20px rgba(60, 50, 90, 0.35)",
+            }}>
+            <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-faint">证据预览</span>
+              <button onClick={closePeek} title="关闭 (Esc)"
+                className="rounded-[5px] p-1 text-faint transition-colors hover:bg-surface2 hover:text-fg">
+                <X size={12} strokeWidth={2} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              {peekErr ? (
+                <div className="px-1 py-8 text-center text-[11.5px] leading-relaxed text-faint">条目加载失败</div>
+              ) : !peekItem ? (
+                <div className="space-y-2.5 pt-1">
+                  <div className="skel h-4 w-4/5" />
+                  <div className="skel h-3 w-full" />
+                  <div className="skel h-3 w-full" />
+                  <div className="skel h-3 w-3/5" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <SevPill level={peekItem.severity} />
+                    {peekItem.is_kev && (
+                      <span className="badge"><span className="dot" style={{ background: "#d92638" }} />KEV</span>
+                    )}
+                  </div>
+                  <div className="mt-2 text-[13px] font-medium leading-snug text-fg">
+                    {peekItem.title_zh || peekItem.title}
+                  </div>
+                  {(peekItem.cve_ids || []).length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {peekItem.cve_ids.map((c: string) => <span key={c} className="badge mono">{c}</span>)}
+                    </div>
+                  )}
+                  {(peekItem.summary_zh || peekItem.summary) && (
+                    <p className="mt-2.5 line-clamp-3 text-[11.5px] leading-relaxed text-dim">
+                      {peekItem.summary_zh || peekItem.summary}
+                    </p>
+                  )}
+                  {peekItem.ai_layer && <div className="mt-2.5"><LayerTag l={peekItem.ai_layer} /></div>}
+                </>
+              )}
+            </div>
+            <div className="shrink-0 border-t border-line p-2.5">
+              <Link href={`/items/${peekId}`} className="btn btn-sm w-full justify-center">
+                打开完整页<ArrowUpRight size={11} strokeWidth={2} />
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
