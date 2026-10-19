@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-10-19T23:09:01+00:00",
+  "metric": "top10 证据文本内 expect 关键词覆盖率（检索层口径，非答案口径）",
+  "n": 12,
+  "modes": {
+    "hybrid": {
+      "keyword_cov": 0.5556,
+      "multi_cov": 0.5556,
+      "p95_ms": 192.5,
+      "p50_ms": 36.7
+    },
+    "dense_only": {
+      "keyword_cov": 0.4583,
+      "multi_cov": 0.4167,
+      "p95_ms": 42.7,
+      "p50_ms": 34.0
+    },
+    "sparse_only": {
+      "keyword_cov": 0.5347,
+      "multi_cov": 0.5694,
+      "p95_ms": 44.6,
+      "p50_ms": 28.5
+    },
+    "no_kg": {
+      "keyword_cov": 0.5556,
+      "multi_cov": 0.5556,
+      "p95_ms": 71.9,
+      "p50_ms": 35.1
+    },
+    "with_kg": {
+      "keyword_cov": 0.6111,
+      "multi_cov": 0.5556,
+      "p95_ms": 425.2,
+      "p50_ms": 153.3
+    }
+  },
+  "end_to_end_baseline": {
+    "fixed_workflow_deep_false": {
+      "overall": 0.9236,
+      "multi": 0.8472,
+      "p50_s": 4.92,
+      "p95_s": 5.61
+    },
+    "note": "非Agent固定链路（answer(deep=False)），12题答案级expect命中率，与eval_qa同口径"
+  }
+}
