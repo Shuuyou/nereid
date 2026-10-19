@@ -25,8 +25,8 @@ export function Empty({ text, hint }: { text: string; hint?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
       <Inbox size={18} strokeWidth={1.5} className="text-faint" />
-      <div className="text-[12.5px] text-dim">{text}</div>
-      {hint && <div className="text-[11px] text-faint">{hint}</div>}
+      <div className="text-[13px] text-dim">{text}</div>
+      {hint && <div className="text-[12px] text-faint">{hint}</div>}
     </div>
   );
 }
@@ -47,11 +47,11 @@ export function StatStrip({ stats }: {
     >
       {stats.map((s, i) => (
         <div key={i} className="bg-bg px-4 py-3.5">
-          <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">{s.label}</div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">{s.label}</div>
           <div className={`mt-1.5 tnum font-mono text-[26px] font-medium leading-none tracking-[-0.02em] ${c[s.tone || "fg"]}`}>
             {s.value}
           </div>
-          {s.sub && <div className="mt-1.5 text-[11px] leading-snug text-faint">{s.sub}</div>}
+          {s.sub && <div className="mt-1.5 text-[12px] leading-snug text-faint">{s.sub}</div>}
         </div>
       ))}
     </div>

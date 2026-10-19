@@ -28,10 +28,10 @@ function QueueRow({ it, kind, onConfirm, onReject }: {
     <div className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface">
       <Sev level={it.severity} />
       <Link href={`/items/${it.id}`} className="min-w-0 flex-1">
-        <div className="truncate text-[13px] text-fg group-hover:text-accent">
+        <div className="truncate text-[14px] font-medium text-fg group-hover:text-accent">
           {it.title_zh || it.title}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 font-mono text-[10.5px] text-faint">
+        <div className="mt-0.5 flex items-center gap-2 font-mono text-[11px] text-faint">
           {(it.cve || it.cve_ids || []).slice(0, 2).map((c: string) => <span key={c}>{c}</span>)}
           {it.is_kev && <span className="font-semibold text-crit">KEV</span>}
           {(it.source_names || []).slice(0, 1).map((s: string) => <span key={s}>{s}</span>)}
@@ -39,16 +39,16 @@ function QueueRow({ it, kind, onConfirm, onReject }: {
         </div>
       </Link>
       {kind === "review" && it.confidence != null && (
-        <span className="tnum w-10 text-right font-mono text-[11px] text-dim" title="AI 置信度">
+        <span className="tnum w-10 text-right font-mono text-[12px] text-dim" title="AI 置信度">
           {(it.confidence * 100).toFixed(0)}%
         </span>
       )}
       {it.epss_score != null && kind !== "review" && (
-        <span className="tnum w-12 text-right font-mono text-[11px] text-dim" title="EPSS">
+        <span className="tnum w-12 text-right font-mono text-[12px] text-dim" title="EPSS">
           {(it.epss_score * 100).toFixed(1)}%
         </span>
       )}
-      <span className="tnum w-11 text-right font-mono text-[10.5px] text-faint">
+      <span className="tnum w-11 text-right font-mono text-[11px] text-faint">
         {relTime(it.published_at || it.first_seen_at)}
       </span>
       {kind === "review" ? (
@@ -174,7 +174,7 @@ export default function DutyDesk() {
         <div className="lg:col-span-7">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="sect-title">需要你处理</h2>
-            <Link href="/review" className="font-mono text-[11px] text-faint transition-colors hover:text-accent">
+            <Link href="/review" className="font-mono text-[12px] text-faint transition-colors hover:text-accent">
               全部队列 →
             </Link>
           </div>
@@ -182,9 +182,9 @@ export default function DutyDesk() {
             {/* 待复核组 — pastel 标签条 */}
             <div className="flex items-center gap-2.5 border-b border-line bg-surface px-3 py-2">
               <span className="h-2 w-2 rounded-[3px] bg-rose" style={{ background: "var(--rose-ink)" }} />
-              <span className="text-[11.5px] font-medium text-fg">待复核</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">AI 初判待确认</span>
-              <span className="ml-auto mono text-[11px] text-faint">{reviewTotal}</span>
+              <span className="text-[12px] font-medium text-fg">待复核</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">AI 初判待确认</span>
+              <span className="ml-auto mono text-[12px] text-faint">{reviewTotal}</span>
             </div>
             {review.length === 0 && <div className="px-3 py-4 text-[12px] text-faint">复核队列已清空 ✓</div>}
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
@@ -197,9 +197,9 @@ export default function DutyDesk() {
             {/* 高优组 */}
             <div className="flex items-center gap-2.5 border-y border-line bg-surface px-3 py-2">
               <span className="h-2 w-2 rounded-[3px]" style={{ background: "var(--sky-ink)" }} />
-              <span className="text-[11.5px] font-medium text-fg">高优先级</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">AI 情报</span>
-              <span className="ml-auto mono text-[11px] text-faint">{queue.length}</span>
+              <span className="text-[12px] font-medium text-fg">高优先级</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">AI 情报</span>
+              <span className="ml-auto mono text-[12px] text-faint">{queue.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {queue.slice(0, 5).map((it) => <QueueRow key={it.id} it={it} kind="pri" />)}
@@ -207,9 +207,9 @@ export default function DutyDesk() {
             {/* KEV 组 */}
             <div className="flex items-center gap-2.5 bg-surface px-3 py-2">
               <span className="h-2 w-2 rounded-[3px]" style={{ background: "var(--peach-ink)" }} />
-              <span className="text-[11.5px] font-medium text-fg">新 KEV</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">在野利用</span>
-              <span className="ml-auto mono text-[11px] text-faint">{kev.length}</span>
+              <span className="text-[12px] font-medium text-fg">新 KEV</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">在野利用</span>
+              <span className="ml-auto mono text-[12px] text-faint">{kev.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {kev.slice(0, 4).map((it) => <QueueRow key={it.id} it={it} kind="kev" />)}
@@ -228,18 +228,18 @@ export default function DutyDesk() {
               <span className="display-en italic ml-auto text-[15px] text-[#a49f8f]">your daily brief</span>
             </div>
             {digest?.digest ? (
-              <div className="mt-3 space-y-2 text-[12.5px] leading-relaxed text-[#b9bcc4]">
+              <div className="mt-3 space-y-2 text-[13px] leading-relaxed text-[#b9bcc4]">
                 {String(digest.digest).split("\n").filter(Boolean).slice(0, 6).map((l: string, i: number) => (
                   <p key={i}>{l}</p>
                 ))}
               </div>
             ) : (
-              <p className="mt-3 text-[12.5px] leading-relaxed text-[#8a8d96]">
+              <p className="mt-3 text-[13px] leading-relaxed text-[#8a8d96]">
                 {digest ? "近 7 天无画像命中摘要。" : "配置「关注需求」画像后，此处将生成每日晨报——昨晚发生了什么、哪些与你相关。"}
               </p>
             )}
             {digest?.item_count != null && (
-              <div className="mt-3 border-t border-[rgba(255,255,255,0.08)] pt-2 font-mono text-[10.5px] text-[#8a8d96]">
+              <div className="mt-3 border-t border-[rgba(255,255,255,0.08)] pt-2 font-mono text-[11px] text-[#8a8d96]">
                 命中 {digest.item_count} 条，画像 {localStorage.getItem("foryou_name") || "—"}
               </div>
             )}
@@ -250,7 +250,7 @@ export default function DutyDesk() {
             <div className="mb-2 flex items-baseline justify-between">
               <h2 className="sect-title">14 天情报流入</h2>
               {fresh && (
-                <span className="font-mono text-[10.5px] text-faint">
+                <span className="font-mono text-[11px] text-faint">
                   P50 {fresh.p50_min != null ? (fresh.p50_min < 60 ? `${fresh.p50_min.toFixed(0)}m` : `${(fresh.p50_min / 60).toFixed(1)}h`) : "—"}
                   {"  "}P95 {fresh.p95_min != null ? (fresh.p95_min < 60 ? `${fresh.p95_min.toFixed(0)}m` : `${(fresh.p95_min / 60).toFixed(1)}h`) : "—"}
                 </span>
@@ -273,7 +273,7 @@ export default function DutyDesk() {
                 {live.map((it) => (
                   <Link key={it.id + it.first_seen_at} href={`/items/${it.id}`}
                     className="rise group flex items-baseline gap-2 px-3 py-2 transition-colors hover:bg-surface">
-                    <span className="tnum shrink-0 font-mono text-[10px] text-faint">
+                    <span className="tnum shrink-0 font-mono text-[11px] text-faint">
                       {new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <span className="truncate text-[12px] text-dim group-hover:text-fg">
@@ -306,7 +306,7 @@ export default function DutyDesk() {
                   <td className="font-medium text-fg">{p.product}</td>
                   <td className="r num text-high">{p.total.toLocaleString()}</td>
                   <td className="r num text-dim">{p.items}</td>
-                  <td className="mono text-[11px] text-faint">{p.cves?.slice(0, 3).join(", ") || "—"}</td>
+                  <td className="mono text-[12px] text-faint">{p.cves?.slice(0, 3).join(", ") || "—"}</td>
                 </tr>
               ))}
             </tbody>

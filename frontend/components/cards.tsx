@@ -19,7 +19,7 @@ export function LayerTag({ l }: { l?: string }) {
   };
   const t = l ? tones[l] : null;
   return t ? (
-    <span className={`inline-flex items-center rounded-badge px-2 py-0.5 font-mono text-[10.5px] font-medium ${t[1]}`}>
+    <span className={`inline-flex items-center rounded-badge px-2 py-0.5 font-mono text-[11px] font-medium ${t[1]}`}>
       {t[0]}
     </span>
   ) : null;
@@ -38,7 +38,7 @@ export function ItemCard({ item: it }: { item: any }) {
         <div className="truncate text-[13px] text-fg transition-colors group-hover:text-accent">
           {it.title_zh || it.title}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 font-mono text-[10.5px] text-faint">
+        <div className="mt-0.5 flex items-center gap-2 font-mono text-[11px] text-faint">
           {(it.cve_ids || []).slice(0, 2).map((c: string) => <span key={c}>{c}</span>)}
           {it.is_kev && <span className="text-err">KEV</span>}
           {it.has_poc && <span className="text-warn">PoC</span>}
@@ -46,11 +46,11 @@ export function ItemCard({ item: it }: { item: any }) {
         </div>
       </div>
       {it.epss_score != null && (
-        <span className="tnum shrink-0 font-mono text-[11px] text-dim">
+        <span className="tnum shrink-0 font-mono text-[12px] text-dim">
           {(it.epss_score * 100).toFixed(1)}%
         </span>
       )}
-      <span className="tnum shrink-0 font-mono text-[11px] text-faint">
+      <span className="tnum shrink-0 font-mono text-[12px] text-faint">
         {it.published_at ? it.published_at.slice(0, 10) : ""}
       </span>
     </Link>

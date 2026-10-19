@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <line x1="8" y1="1" x2="8" y2="11" stroke="#157a77" strokeWidth="1.4" strokeLinecap="round" />
                 <circle cx="8" cy="12.8" r="1.9" fill="none" stroke="#157a77" strokeWidth="1.3" />
               </svg>
-              <span className="text-[13.5px] font-semibold tracking-wide text-ink">捞针</span>
+              <span className="text-[14px] font-semibold tracking-wide text-ink">捞针</span>
               <span className="display-en italic text-[13px] lowercase text-faint">nereid</span>
             </Link>
             <div className="flex-1 overflow-y-auto">
@@ -42,12 +42,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* ── 主列：顶条 + 内容 ── */}
           <div className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-canvas px-5">
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-faint">
+              <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
                 Threat Intel Workbench
               </span>
               <div className="ml-auto flex items-center gap-3">
                 <PaletteButton />
-                <span className="mono text-[11px] text-faint">
+                <span className="mono text-[12px] text-faint">
                   {new Date().toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "long" })}
                 </span>
               </div>

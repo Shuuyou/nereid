@@ -44,7 +44,7 @@ function TagEditor({ types, tags, onChange, placeholder }: {
               onClick={() => onChange(tags.filter((_, j) => j !== i))}>×</button>
           </span>
         ))}
-        {tags.length === 0 && <span className="text-[11px] text-faint">尚未定义</span>}
+        {tags.length === 0 && <span className="text-[12px] text-faint">尚未定义</span>}
       </div>
     </div>
   );
@@ -139,11 +139,11 @@ export default function ForYouPage() {
         <div>
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="sect-title">我的画像</h2>
-            <span className="font-mono text-[10.5px] text-faint">PUT /api/profile</span>
+            <span className="font-mono text-[11px] text-faint">PUT /api/profile</span>
           </div>
           <div className="space-y-3">
             <div>
-              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">画像名</div>
+              <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">画像名</div>
               <div className="flex gap-1.5">
                 <input className="input min-w-0 flex-1" placeholder="如 secops-01"
                   value={name} onChange={(e) => setName(e.target.value)} />
@@ -154,20 +154,20 @@ export default function ForYouPage() {
               </div>
             </div>
             <div>
-              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">严重度门槛</div>
+              <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">严重度门槛</div>
               <select className="input w-full" value={floor} onChange={(e) => setFloor(e.target.value)}>
                 {SEV_FLOORS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             <div>
-              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+              <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
                 资产：product / vendor / pkg / cpe / cve
               </div>
               <TagEditor types={ASSET_TYPES} tags={assets} onChange={setAssets}
                 placeholder="vllm、ollama、nvidia…" />
             </div>
             <div>
-              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+              <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
                 关注：layer / owasp / keyword / tech
               </div>
               <TagEditor types={INTEREST_TYPES} tags={interests} onChange={setInterests}
@@ -176,7 +176,7 @@ export default function ForYouPage() {
             <button className="btn btn-acc w-full" onClick={save}>
               <Save size={12} strokeWidth={1.75} />保存画像并推荐
             </button>
-            {notice && <div className="text-[11.5px] text-accent">{notice}</div>}
+            {notice && <div className="text-[12px] text-accent">{notice}</div>}
           </div>
 
           {/* 晨报 */}
@@ -186,7 +186,7 @@ export default function ForYouPage() {
                 <span className="t flex items-center gap-1.5">
                   <Newspaper size={11} strokeWidth={1.75} />MORNING DIGEST
                 </span>
-                <span className="mono text-[10px] text-faint">7d，{digest.count} hits</span>
+                <span className="mono text-[11px] text-faint">7d，{digest.count} hits</span>
               </div>
               <div className="panel-b">
                 <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-dim">{digest.digest}</p>
@@ -199,7 +199,7 @@ export default function ForYouPage() {
         <div className="min-w-0">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="sect-title">为你推荐</h2>
-            <span className="font-mono text-[10.5px] text-faint">规则召回 ∪ 向量召回 → RRF → 画像加权</span>
+            <span className="font-mono text-[11px] text-faint">规则召回 ∪ 向量召回 → RRF → 画像加权</span>
           </div>
           {feed.items.length === 0 ? (
             profileOk ? (
@@ -209,12 +209,12 @@ export default function ForYouPage() {
               /* 无画像引导空态：说状态 + 预填示例直达动作 */
               <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
                 <Sparkles size={18} strokeWidth={1.5} className="text-faint" />
-                <div className="text-[12.5px] text-dim">还没有画像</div>
-                <div className="text-[11px] text-faint">保存画像后，这里出现为你过滤的情报流</div>
+                <div className="text-[13px] text-dim">还没有画像</div>
+                <div className="text-[12px] text-faint">保存画像后，这里出现为你过滤的情报流</div>
                 <button className="btn btn-sm mt-1.5" onClick={useExample}>
                   <Sparkles size={11} strokeWidth={1.75} />使用示例画像
                 </button>
-                <div className="text-[10.5px] text-faint">
+                <div className="text-[11px] text-faint">
                   示例：product Ollama/vLLM，layer L1，owasp LLM01，keyword RCE，high 门槛（预填不提交）
                 </div>
               </div>
@@ -243,15 +243,15 @@ export default function ForYouPage() {
                       <span key={c} className="badge mono">{c}</span>
                     ))}
                     {it.score != null && (
-                      <span className="tnum shrink-0 font-mono text-[11px] text-accent" title="画像匹配分">
+                      <span className="tnum shrink-0 font-mono text-[12px] text-accent" title="画像匹配分">
                         {Math.round(it.score * 100)}
                       </span>
                     )}
                   </div>
                   {it.why && (
                     <div className="mt-1.5 flex items-baseline gap-2 px-1">
-                      <span className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-faint">why</span>
-                      <span className="text-[11.5px] text-faint">{it.why}</span>
+                      <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">why</span>
+                      <span className="text-[12px] text-faint">{it.why}</span>
                     </div>
                   )}
                   {(it.matched_entities || []).length > 0 && (
@@ -261,7 +261,7 @@ export default function ForYouPage() {
                       ))}
                     </div>
                   )}
-                  <div className="mt-1.5 flex items-center gap-2 px-1 text-[11px] text-faint">
+                  <div className="mt-1.5 flex items-center gap-2 px-1 text-[12px] text-faint">
                     <span className="truncate">{(it.source_names || []).slice(0, 2).join(" · ")}</span>
                     {it.published_at && <span className="num">{it.published_at.slice(0, 10)}</span>}
                     <span className="ml-auto flex shrink-0 gap-1">

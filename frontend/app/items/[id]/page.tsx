@@ -13,8 +13,8 @@ function Attr({ label, children, mono }: { label: string; children: React.ReactN
   if (children == null || children === "") return null;
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line py-[7px] last:border-0">
-      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">{label}</span>
-      <span className={`min-w-0 break-words text-right text-[12px] text-dim ${mono ? "tnum font-mono text-[11.5px]" : ""}`}>
+      <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">{label}</span>
+      <span className={`min-w-0 break-words text-right text-[12px] text-dim ${mono ? "tnum font-mono text-[12px]" : ""}`}>
         {children}
       </span>
     </div>
@@ -25,7 +25,7 @@ function Attr({ label, children, mono }: { label: string; children: React.ReactN
 function Rail({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-6 first:mt-0">
-      <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">{title}</div>
+      <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.1em] text-faint">{title}</div>
       {children}
     </div>
   );
@@ -206,7 +206,7 @@ export default function ItemDetail() {
           {it.review_status === "needs_review" && <St tone="warn">待复核</St>}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] text-faint">
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[12px] text-faint">
           <span>发布 <span className="tnum text-dim">{it.published_at?.slice(0, 10) || "—"}</span></span>
           <span>收录 <span className="tnum text-dim">{it.first_seen_at?.slice(0, 16).replace("T", " ") || "—"}</span></span>
           <span>来源 <span className="text-dim">{(it.source_names || []).join(" / ") || "—"}</span></span>
@@ -285,7 +285,7 @@ export default function ItemDetail() {
         {/* 右主区：.sect 分区（分诊动线：摘要→评分→影响→映射/攻击链→证据附件） */}
         <div className="min-w-0">
           {toc.length > 1 && (
-            <nav className="mb-4 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+            <nav className="mb-4 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
               <span className="mr-2">§</span>
               {toc.map(([href, label], i) => (
                 <span key={href}>
@@ -302,18 +302,18 @@ export default function ItemDetail() {
               <p className="mt-2.5 text-[13px] leading-relaxed text-dim">{it.summary_zh || it.summary}</p>
               {it.summary_zh && it.summary && it.summary !== it.summary_zh && (
                 <details className="mt-2">
-                  <summary className="cursor-pointer font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-dim">
+                  <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-dim">
                     原文摘要
                   </summary>
-                  <p className="mt-2 text-[12.5px] leading-relaxed text-faint">{it.summary}</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-faint">{it.summary}</p>
                 </details>
               )}
               {it.content_text && (
                 <details className="mt-2">
-                  <summary className="cursor-pointer font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-dim">
+                  <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-dim">
                     原始正文摘录
                   </summary>
-                  <pre className="mono mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-panel p-3 text-[11px] leading-relaxed text-dim">
+                  <pre className="mono mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-panel p-3 text-[12px] leading-relaxed text-dim">
                     {it.content_text.slice(0, 4000)}
                   </pre>
                 </details>
@@ -346,32 +346,32 @@ export default function ItemDetail() {
               <div className="mt-3 space-y-3">
                 {ex.impact_zh && (
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">影响</div>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-dim">{ex.impact_zh}</p>
+                    <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">影响</div>
+                    <p className="mt-1 text-[13px] leading-relaxed text-dim">{ex.impact_zh}</p>
                   </div>
                 )}
                 {ex.exploitability_zh && (
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">可利用性</div>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-dim">{ex.exploitability_zh}</p>
+                    <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">可利用性</div>
+                    <p className="mt-1 text-[13px] leading-relaxed text-dim">{ex.exploitability_zh}</p>
                   </div>
                 )}
                 {ex.kev_required_action && (
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">KEV 要求措施</div>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-warn">{ex.kev_required_action}</p>
+                    <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">KEV 要求措施</div>
+                    <p className="mt-1 text-[13px] leading-relaxed text-warn">{ex.kev_required_action}</p>
                   </div>
                 )}
                 {ex.mitigation_zh && (
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">缓解建议</div>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-dim">{ex.mitigation_zh}</p>
+                    <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">缓解建议</div>
+                    <p className="mt-1 text-[13px] leading-relaxed text-dim">{ex.mitigation_zh}</p>
                   </div>
                 )}
                 {it.affected_versions && (
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">受影响版本</div>
-                    <pre className="mono mt-1 whitespace-pre-wrap text-[11.5px] leading-relaxed text-dim">{it.affected_versions}</pre>
+                    <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">受影响版本</div>
+                    <pre className="mono mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-dim">{it.affected_versions}</pre>
                   </div>
                 )}
               </div>
@@ -411,13 +411,13 @@ export default function ItemDetail() {
                     <span className="num w-6 shrink-0 pt-px text-faint">{String(i + 1).padStart(2, "0")}</span>
                     <div className="min-w-0">
                       <span className="text-[12px] font-medium text-fg">{s.stage}</span>
-                      <div className="mt-0.5 text-[12.5px] leading-relaxed text-dim">{s.desc}</div>
+                      <div className="mt-0.5 text-[13px] leading-relaxed text-dim">{s.desc}</div>
                     </div>
                   </li>
                 ))}
               </ol>
               {ex.attack_chain_desc && (
-                <p className="mt-3 text-[12.5px] leading-relaxed text-dim">{ex.attack_chain_desc}</p>
+                <p className="mt-3 text-[13px] leading-relaxed text-dim">{ex.attack_chain_desc}</p>
               )}
             </div>
           )}
@@ -430,8 +430,8 @@ export default function ItemDetail() {
                   <div key={d.id} className="flex items-baseline gap-3 border-b border-line py-2 last:border-0">
                     <span className="badge mono shrink-0">{d.id}</span>
                     <div className="min-w-0">
-                      <span className="text-[12.5px] font-medium text-fg">{d.name}</span>
-                      <span className="ml-2 text-[11.5px] text-faint">{d.desc} → {d.for_technique}</span>
+                      <span className="text-[13px] font-medium text-fg">{d.name}</span>
+                      <span className="ml-2 text-[12px] text-faint">{d.desc} → {d.for_technique}</span>
                     </div>
                   </div>
                 ))}
@@ -488,10 +488,10 @@ export default function ItemDetail() {
                       <span className="min-w-0 truncate text-[12px] text-dim" title={a.query}>{a.query}</span>
                       <span className="ml-auto shrink-0">
                         <span className="tnum font-mono text-[13px] text-high">≈{(a.total_count || 0).toLocaleString()}</span>
-                        <span className="ml-1 text-[11px] text-faint">暴露</span>
+                        <span className="ml-1 text-[12px] text-faint">暴露</span>
                       </span>
                     </div>
-                    <div className="mono mt-1.5 break-all text-[10.5px] leading-relaxed text-faint">
+                    <div className="mono mt-1.5 break-all text-[11px] leading-relaxed text-faint">
                       {(a.sample || []).slice(0, 6).map((s: any) => `${s.ip}:${s.port}(${s.country || "?"})`).join("  ")}
                     </div>
                   </div>
@@ -507,9 +507,9 @@ export default function ItemDetail() {
                 {it.papers.map((p: any, i: number) => (
                   <div key={i} className="flex items-baseline gap-3 border-b border-line py-2 last:border-0">
                     {p.url
-                      ? <a className="min-w-0 truncate text-[12.5px] text-dim transition-colors hover:text-accent" href={p.url} target="_blank">{p.title}</a>
-                      : <span className="min-w-0 truncate text-[12.5px] text-dim">{p.title}</span>}
-                    <span className="ml-auto shrink-0 font-mono text-[10.5px] text-faint">
+                      ? <a className="min-w-0 truncate text-[13px] text-dim transition-colors hover:text-accent" href={p.url} target="_blank">{p.title}</a>
+                      : <span className="min-w-0 truncate text-[13px] text-dim">{p.title}</span>}
+                    <span className="ml-auto shrink-0 font-mono text-[11px] text-faint">
                       {[p.source, p.venue, p.year].filter(Boolean).join(" · ")}
                     </span>
                   </div>
@@ -524,7 +524,7 @@ export default function ItemDetail() {
               <div className="mt-2">
                 {ex.references.slice(0, 10).map((u: string, i: number) => (
                   <a key={i} href={u} target="_blank"
-                    className="flex items-center gap-2 border-b border-line py-1.5 font-mono text-[11px] text-faint transition-colors last:border-0 hover:text-accent">
+                    className="flex items-center gap-2 border-b border-line py-1.5 font-mono text-[12px] text-faint transition-colors last:border-0 hover:text-accent">
                     <ExternalLink size={10} className="shrink-0" />
                     <span className="truncate">{u}</span>
                   </a>
@@ -544,10 +544,10 @@ export default function ItemDetail() {
               <Link key={r.id} href={`/items/${r.id}`}
                 className="group flex items-center gap-3 py-2 transition-colors hover:bg-surface">
                 <Sev level={r.severity} />
-                <span className="min-w-0 flex-1 truncate text-[12.5px] text-dim transition-colors group-hover:text-fg">
+                <span className="min-w-0 flex-1 truncate text-[13px] text-dim transition-colors group-hover:text-fg">
                   {r.title_zh || r.title}
                 </span>
-                <span className="num shrink-0 text-[11px] text-faint">
+                <span className="num shrink-0 text-[12px] text-faint">
                   {r.published_at ? r.published_at.slice(0, 10) : ""}
                 </span>
               </Link>
@@ -570,7 +570,7 @@ function ScoreRow({ r, open, onToggle }: { r: any; open: boolean; onToggle: () =
         <td className="r">
           {r.whyText && (
             <button onClick={onToggle}
-              className="inline-flex items-center gap-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
+              className="inline-flex items-center gap-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
               为什么<ChevronDown size={10} className={`transition-transform ${open ? "rotate-180" : ""}`} />
             </button>
           )}
@@ -579,7 +579,7 @@ function ScoreRow({ r, open, onToggle }: { r: any; open: boolean; onToggle: () =
       {open && r.whyText && (
         <tr>
           <td colSpan={4} className="!pt-0">
-            <div className="mono -mt-1 border-l-2 border-line2 py-1 pl-3 text-[11px] leading-relaxed text-faint">
+            <div className="mono -mt-1 border-l-2 border-line2 py-1 pl-3 text-[12px] leading-relaxed text-faint">
               {r.whyText}
             </div>
           </td>

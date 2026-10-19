@@ -197,7 +197,7 @@ export default function PipelinePage() {
                   {i > 0 && (
                     /* 边：hairline + 耗时标签 */
                     <div className="mx-1 flex w-14 flex-col items-center justify-center gap-0.5">
-                      <span className={`num text-[10px] ${ms ? "text-dim" : "text-transparent"}`}>{ms || "0"}</span>
+                      <span className={`num text-[11px] ${ms ? "text-dim" : "text-transparent"}`}>{ms || "0"}</span>
                       <div className={`h-px w-full ${st === "pending" ? "bg-line2" : "bg-ok/50"}`} />
                       <span className={`font-mono text-[9px] leading-none ${st === "pending" ? "text-faint" : "text-ok/70"}`}>▸</span>
                     </div>
@@ -213,7 +213,7 @@ export default function PipelinePage() {
                         style={{ animation: "pulse-dot 2.4s ease-in-out infinite" }} />
                     )}
                     <div className="flex items-center gap-2">
-                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border font-mono text-[9.5px] ${
+                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border font-mono text-[11px] ${
                         st === "done" ? "border-ok/40 bg-ok/10 text-ok"
                         : st === "error" ? "border-err/40 bg-err/10 text-err"
                         : st === "running" ? "border-accent/40 bg-accent/10 text-accent"
@@ -222,17 +222,17 @@ export default function PipelinePage() {
                           : st === "error" ? <X size={10} strokeWidth={2.5} />
                           : i + 1}
                       </span>
-                      <span className="truncate text-[12.5px] font-medium text-fg">{n.label}</span>
-                      <span className="mono ml-auto text-[9.5px] text-faint">{n.id}</span>
+                      <span className="truncate text-[13px] font-medium text-fg">{n.label}</span>
+                      <span className="mono ml-auto text-[11px] text-faint">{n.id}</span>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-dim">{n.desc}</p>
+                    <p className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-dim">{n.desc}</p>
                     {st === "running" && (
-                      <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-accent">
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-accent">
                         <span className="h-1 w-1 rounded-full bg-accent" style={{ animation: "pulse-dot 1.4s ease-in-out infinite" }} />
                         执行中…
                       </div>
                     )}
-                    {st === "error" && <div className="mt-1.5 text-[10.5px] text-err">节点失败</div>}
+                    {st === "error" && <div className="mt-1.5 text-[11px] text-err">节点失败</div>}
                   </div>
                 </div>
               );
@@ -241,7 +241,7 @@ export default function PipelinePage() {
         )}
         {/* 运行状态行 */}
         {run && (
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[11.5px] text-dim">
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[12px] text-dim">
             <span>RUN <span className="mono text-fg">{run.run_id}</span></span>
             <SpecDot />
             <span>SRC <span className="mono text-fg">{run.source_id}</span></span>
@@ -253,7 +253,7 @@ export default function PipelinePage() {
             {run.started_at && run.finished_at && (
               <><SpecDot /><span className="num">{dur(run.started_at, run.finished_at)}</span></>
             )}
-            {run.error && <span className="mono text-[10.5px] text-err">{run.error}</span>}
+            {run.error && <span className="mono text-[11px] text-err">{run.error}</span>}
           </div>
         )}
       </div>
@@ -262,18 +262,18 @@ export default function PipelinePage() {
       <div className="sect">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="sect-title">运行历史</h2>
-          <span className="font-mono text-[10.5px] text-faint">REDIS pipeline:runs，LAST 20</span>
+          <span className="font-mono text-[11px] text-faint">REDIS pipeline:runs，LAST 20</span>
         </div>
         {runs.length === 0 ? (
           /* 空态引导：说状态 + 内嵌直达动作 + 备选路径提示 */
           <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
             <Inbox size={18} strokeWidth={1.5} className="text-faint" />
-            <div className="text-[12.5px] text-dim">暂无运行记录</div>
-            <div className="text-[11px] text-faint">全链 collect→enrich→index→kg→notify 尚未运行过</div>
+            <div className="text-[13px] text-dim">暂无运行记录</div>
+            <div className="text-[12px] text-faint">全链 collect→enrich→index→kg→notify 尚未运行过</div>
             <button className="btn btn-acc btn-sm mt-1.5" disabled={running} onClick={runAllNow}>
               <Play size={11} strokeWidth={1.75} />立即运行全链
             </button>
-            <div className="text-[10.5px] text-faint">或在上方选择单个数据源 →「运行完整 DAG」</div>
+            <div className="text-[11px] text-faint">或在上方选择单个数据源 →「运行完整 DAG」</div>
           </div>
         ) : (
           <table className="dt">
@@ -287,7 +287,7 @@ export default function PipelinePage() {
                 return (
                   <tr key={r.run_id} className="cursor-pointer" onClick={() => inspect(r)}
                     title="点击回放该次运行的节点状态">
-                    <td className="mono text-[11.5px] text-accent">{r.run_id}</td>
+                    <td className="mono text-[12px] text-accent">{r.run_id}</td>
                     <td className="text-[12px]">{r.source_id}</td>
                     <td>
                       {r.status === "done" ? <St tone="ok">done</St>
@@ -315,7 +315,7 @@ export default function PipelinePage() {
       </div>
 
       {msg && (
-        <div className="rise fixed bottom-5 right-5 z-50 rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[12.5px] text-fg">
+        <div className="rise fixed bottom-5 right-5 z-50 rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[13px] text-fg">
           {msg}
         </div>
       )}

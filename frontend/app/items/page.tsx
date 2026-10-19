@@ -111,7 +111,7 @@ function ItemsInner() {
         <Search size={14} strokeWidth={1.75}
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
         <input
-          className="input h-9 w-full !pl-9 font-mono text-[12.5px]"
+          className="input h-9 w-full !pl-9 font-mono text-[13px]"
           placeholder="筛选: CVE-ID / 关键词 / 类型…"
           value={q} onChange={(e) => setQ(e.target.value)}
           spellCheck={false}
@@ -135,7 +135,7 @@ function ItemsInner() {
         <div className="mx-1 h-4 w-px bg-line2" />
         {([["kev", "KEV"], ["poc", "PoC"], ["ai_only", "AI 相关"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setF({ ...f, [k]: !f[k], page: 1 })}
-            className={`h-6 rounded-[5px] border px-2.5 text-[11.5px] transition-colors ${
+            className={`h-6 rounded-[5px] border px-2.5 text-[12px] transition-colors ${
               f[k]
                 ? "border-accent/50 bg-[rgba(21,122,119,0.1)] text-accent"
                 : "border-line text-faint hover:border-line2 hover:text-dim"}`}>
@@ -143,7 +143,7 @@ function ItemsInner() {
           </button>
         ))}
         <div className="ml-auto flex items-center gap-2">
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint">sort</span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">sort</span>
           <select className="input w-auto" value={f.sort}
             onChange={(e) => setF({ ...f, sort: e.target.value, page: 1 })}>
             {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -226,7 +226,7 @@ function ItemsInner() {
       </div>
 
       {/* 分页：mono 小字 */}
-      <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint">
+      <div className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.06em] text-faint">
         <span>{range} / {total.toLocaleString()}</span>
         <div className="flex items-center gap-1">
           <button className="btn btn-ghost btn-sm" disabled={f.page <= 1}

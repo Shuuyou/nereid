@@ -47,7 +47,7 @@ export interface PeekDrawerProps {
 function Sect({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="mt-5 first:mt-0">
-      <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">{label}</div>
+      <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-faint">{label}</div>
       {children}
     </section>
   );
@@ -90,13 +90,26 @@ export function PeekDrawer({
     return () => { document.body.style.overflow = prev; };
   }, [mounted]);
 
-  /* Esc 关闭 */
+  /* 键盘流（KYRA/StellaOps 键位）：Esc 关、j/k 或 ↑↓ 翻页、c/r/e 动作；输入框聚焦时抑制 */
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+      else if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); onNext(); }
+      else if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); onPrev(); }
+      else if (!busy && lastIdRef.current) {
+        const target: PeekTarget = { id: lastIdRef.current, title: "" };
+        if (e.key === "c") { e.preventDefault(); onAct(target, "confirm"); }
+        else if (e.key === "r") { e.preventDefault(); onAct(target, "reject"); }
+        else if (e.key === "e") { e.preventDefault(); onReEnrich(target); }
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, busy, onClose, onPrev, onNext, onAct, onReEnrich]);
 
   /* id 变化 → 拉详情（▲▼ 翻页同抽屉内重拉；reqRef 防乱序响应覆写） */
   useEffect(() => {
@@ -151,22 +164,22 @@ export function PeekDrawer({
 
         {/* 头：item id mono + 标题截断 + ▲▼ 队列内翻页 + 关闭 */}
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-3">
-          <span className="mono max-w-[120px] shrink-0 truncate text-[10px] uppercase tracking-[0.04em] text-faint" title={effId ?? undefined}>
+          <span className="mono max-w-[120px] shrink-0 truncate text-[11px] uppercase tracking-[0.04em] text-faint" title={effId ?? undefined}>
             {effId}
           </span>
-          <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-fg" title={headTitle}>
+          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-fg" title={headTitle}>
             {headTitle}
           </span>
           {index >= 0 && total > 0 && (
-            <span className="tnum shrink-0 font-mono text-[10px] text-faint">{index + 1}/{total}</span>
+            <span className="tnum shrink-0 font-mono text-[11px] text-faint">{index + 1}/{total}</span>
           )}
           <div className="flex shrink-0 items-center gap-0.5">
             <button className="btn btn-sm btn-ghost !px-1" onClick={onPrev} disabled={!hasPrev}
-              title="上一条" aria-label="上一条">
+              title="上一条 (K/↑)" aria-label="上一条">
               <ChevronUp size={12} strokeWidth={2} />
             </button>
             <button className="btn btn-sm btn-ghost !px-1" onClick={onNext} disabled={!hasNext}
-              title="下一条" aria-label="下一条">
+              title="下一条 (J/↓)" aria-label="下一条">
               <ChevronDown size={12} strokeWidth={2} />
             </button>
             <button className="btn btn-sm btn-ghost !px-1" onClick={onClose}
@@ -209,7 +222,7 @@ export function PeekDrawer({
                     <div className={`h-full rounded-full ${confTone(item.confidence)}`}
                       style={{ width: `${Math.round((item.confidence ?? 0) * 100)}%` }} />
                   </div>
-                  <span className={`tnum font-mono text-[11.5px] ${confText(item.confidence)}`}>
+                  <span className={`tnum font-mono text-[12px] ${confText(item.confidence)}`}>
                     {item.confidence != null ? `${Math.round(item.confidence * 100)}%` : "—"}
                   </span>
                 </div>
@@ -230,7 +243,7 @@ export function PeekDrawer({
               </Sect>
 
               <Sect label="摘要">
-                <p className="text-[12.5px] leading-relaxed text-dim">
+                <p className="text-[13px] leading-relaxed text-dim">
                   {item.summary_zh || item.summary || "—"}
                 </p>
               </Sect>
@@ -240,10 +253,10 @@ export function PeekDrawer({
                   {scoreRows.map((r) => (
                     <div key={r.k}
                       className="flex items-baseline justify-between gap-3 border-b border-line py-[7px] last:border-0">
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">{r.label}</span>
+                      <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">{r.label}</span>
                       <span className="min-w-0 text-right">
                         <span className="tnum font-mono text-[12px] text-fg">{r.value}</span>
-                        <span className="ml-2 font-mono text-[10px] text-faint">{r.basis}</span>
+                        <span className="ml-2 font-mono text-[11px] text-faint">{r.basis}</span>
                       </span>
                     </div>
                   ))}
@@ -256,19 +269,19 @@ export function PeekDrawer({
         {/* footer：确认 / 回炉 / 重富化 + 完整页外链 */}
         <footer className="shrink-0 border-t border-line px-3 py-2.5">
           <div className="flex items-center gap-1.5">
-            <button className="btn btn-sm !border-ok/40 !text-ok hover:!bg-ok/10"
+            <button className="btn btn-sm !border-ok/40 !text-ok hover:!bg-ok/10" title="确认 (C)"
               disabled={busy} onClick={() => onAct(target, "confirm")}>
-              <Check size={11} strokeWidth={2} />确认
+              <Check size={11} strokeWidth={2} />确认<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">c</kbd>
             </button>
-            <button className="btn btn-sm !border-err/40 !text-err hover:!bg-err/10"
+            <button className="btn btn-sm !border-err/40 !text-err hover:!bg-err/10" title="回炉 (R)"
               disabled={busy} onClick={() => onAct(target, "reject")}>
-              <Undo2 size={11} strokeWidth={2} />回炉
+              <Undo2 size={11} strokeWidth={2} />回炉<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">r</kbd>
             </button>
-            <button className="btn btn-sm btn-ghost" title="重新触发富化 worker"
+            <button className="btn btn-sm btn-ghost" title="重新触发富化 worker (E)"
               disabled={busy} onClick={() => onReEnrich(target)}>
-              <RefreshCw size={11} strokeWidth={2} />重富化
+              <RefreshCw size={11} strokeWidth={2} />重富化<kbd className="ml-1 rounded-[3px] border border-line px-0.5 font-mono text-[9px] opacity-60">e</kbd>
             </button>
-            <Link href={`/items/${effId}`} className="btn btn-sm btn-ghost ml-auto">
+            <Link href={`/items/${effId}`} className="btn btn-sm btn-ghost ml-auto" title="整页详情">
               打开完整页<ArrowUpRight size={11} strokeWidth={2} />
             </Link>
           </div>

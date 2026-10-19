@@ -104,7 +104,7 @@ export default function ReportDetail() {
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="badge mono">{r.report_type || "—"}</span>
           </div>
-          <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] text-faint">
+          <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[12px] text-faint">
             <span>生成 <span className="tnum text-dim">{r.created_at?.slice(0, 16).replace("T", " ") || "—"}</span></span>
             {covered != null && <span>覆盖 <span className="tnum text-dim">{covered} 条</span></span>}
             {st.ai != null && <span>AI 相关 <span className="tnum text-dim">{st.ai}</span></span>}

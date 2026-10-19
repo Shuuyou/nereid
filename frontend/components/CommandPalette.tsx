@@ -23,7 +23,7 @@ export function PaletteButton() {
   return (
     <button
       onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
-      className="flex h-7 items-center gap-2 rounded-[8px] border border-line bg-paper px-2.5 font-mono text-[11px] text-faint transition-colors hover:border-line2 hover:text-dim"
+      className="flex h-7 items-center gap-2 rounded-[8px] border border-line bg-paper px-2.5 font-mono text-[12px] text-faint transition-colors hover:border-line2 hover:text-dim"
       title="全局搜索 (⌘K)">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <span>搜索</span>
@@ -106,14 +106,14 @@ export function CommandPalette() {
           <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey} placeholder="跳转页面 / 检索情报（CVE-ID、关键词…）"
             className="h-11 flex-1 bg-transparent text-[13px] text-fg outline-none placeholder:text-faint" />
-          <kbd className="rounded-[4px] border border-line bg-surface px-1.5 py-0.5 font-mono text-[9.5px] text-faint">ESC</kbd>
+          <kbd className="rounded-[4px] border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px] text-faint">ESC</kbd>
         </div>
         <div ref={listRef} className="max-h-[46vh] overflow-y-auto p-1.5">
           {cmds.length === 0 && (
             <div className="px-3 py-8 text-center text-[12px] text-faint">无匹配结果</div>
           )}
           {q.trim().length >= 2 && hits.length > 0 && (
-            <div className="px-2.5 pb-1 pt-1.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-faint">情报</div>
+            <div className="px-2.5 pb-1 pt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">情报</div>
           )}
           {cmds.map((c, i) => (
             <button key={c.id} data-idx={i} onClick={c.run}
@@ -121,13 +121,13 @@ export function CommandPalette() {
               className={`flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left transition-colors ${
                 i === sel ? "bg-surface2" : ""}`}>
               <c.icon size={13} strokeWidth={2} className="shrink-0 text-faint" />
-              <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg">{c.label}</span>
-              {c.hint && <span className="shrink-0 font-mono text-[10px] text-faint">{c.hint}</span>}
+              <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{c.label}</span>
+              {c.hint && <span className="shrink-0 font-mono text-[11px] text-faint">{c.hint}</span>}
               {i === sel && <CornerDownLeft size={11} className="shrink-0 text-faint" />}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3 border-t border-line px-4 py-2 font-mono text-[9.5px] text-faint">
+        <div className="flex items-center gap-3 border-t border-line px-4 py-2 font-mono text-[11px] text-faint">
           <span>↑↓ 移动</span><span>↵ 打开</span><span>esc 关闭</span>
           <span className="ml-auto">⌘K</span>
         </div>

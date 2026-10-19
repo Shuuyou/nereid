@@ -82,8 +82,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "Inter Variable", "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "cv01", "ss03";
 }

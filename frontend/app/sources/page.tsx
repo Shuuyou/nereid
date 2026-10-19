@@ -78,7 +78,7 @@ export default function SourcesPage() {
       <div className="sect !mt-6">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="sect-title">采集器清单</h2>
-          <span className="font-mono text-[10.5px] text-faint">
+          <span className="font-mono text-[11px] text-faint">
             {rows.length > 0 && <>健康 <span className="text-dim">{ok}/{rows.length}</span></>}
             POLL 15s AUTO-REFRESH
           </span>
@@ -89,8 +89,8 @@ export default function SourcesPage() {
           /* 空态引导：说状态 + 直达重试动作（数据源在 backend 启动时注册） */
           <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
             <Inbox size={18} strokeWidth={1.5} className="text-faint" />
-            <div className="text-[12.5px] text-dim">无数据源</div>
-            <div className="text-[11px] text-faint">后端未连接或未配置采集器（数据源随后端启动自动注册）</div>
+            <div className="text-[13px] text-dim">无数据源</div>
+            <div className="text-[12px] text-faint">后端未连接或未配置采集器（数据源随后端启动自动注册）</div>
             <button className="btn btn-sm mt-1.5" disabled={rechecking} onClick={recheckAll}>
               <RefreshCw size={11} strokeWidth={1.75} className={rechecking ? "animate-spin" : ""} />重新检测全部
             </button>
@@ -99,7 +99,7 @@ export default function SourcesPage() {
           <div className="overflow-x-auto">
             {ok === 0 && (
               <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-err/30 bg-err/10 px-3 py-2">
-                <span className="text-[11.5px] text-err">全部数据源处于失败/停用状态，采集已停滞</span>
+                <span className="text-[12px] text-err">全部数据源处于失败/停用状态，采集已停滞</span>
                 <button className="btn btn-sm shrink-0" disabled={rechecking} onClick={recheckAll}>
                   {rechecking && <RefreshCw size={11} strokeWidth={1.75} className="animate-spin" />}重新检测全部
                 </button>
@@ -123,9 +123,9 @@ export default function SourcesPage() {
                 {rows.map((s) => (
                   <tr key={s.id}>
                     <td>
-                      <div className="text-[12.5px] font-medium text-fg">{s.name}</div>
+                      <div className="text-[13px] font-medium text-fg">{s.name}</div>
                       {s.last_error && (
-                        <div className="mono mt-0.5 max-w-[340px] truncate text-[10px] text-err" title={s.last_error}>
+                        <div className="mono mt-0.5 max-w-[340px] truncate text-[11px] text-err" title={s.last_error}>
                           {s.last_error}
                         </div>
                       )}
@@ -163,7 +163,7 @@ export default function SourcesPage() {
       </div>
 
       {msg && (
-        <div className="rise fixed bottom-5 right-5 z-50 rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[12.5px] text-fg">
+        <div className="rise fixed bottom-5 right-5 z-50 rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[13px] text-fg">
           {msg}
         </div>
       )}

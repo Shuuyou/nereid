@@ -11,8 +11,8 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
         </div>
         <div className="panel-b flex flex-col items-center gap-3 py-6 text-center">
           <TriangleAlert size={26} strokeWidth={1.5} className="text-err" />
-          <div className="text-[13.5px] font-medium text-fg">页面渲染出错</div>
-          <div className="mono max-w-full truncate px-4 text-[11px] text-faint" title={error.message}>
+          <div className="text-[14px] font-medium text-fg">页面渲染出错</div>
+          <div className="mono max-w-full truncate px-4 text-[12px] text-faint" title={error.message}>
             {error.message}
           </div>
           <button className="btn btn-acc mt-2" onClick={reset}>

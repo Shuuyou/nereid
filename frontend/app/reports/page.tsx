@@ -67,7 +67,7 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-2">
                     <FileText size={13} strokeWidth={1.75} className="shrink-0 text-faint" />
                     <Link href={`/reports/${r.id}`}
-                      className="stretched text-[12.5px] text-fg transition-colors hover:text-accent">
+                      className="stretched text-[13px] text-fg transition-colors hover:text-accent">
                       {r.title}
                     </Link>
                   </div>
@@ -88,7 +88,7 @@ export default function ReportsPage() {
       )}
 
       {msg && (
-        <div className="panel rise fixed bottom-5 right-5 z-[60] border-l-2 border-l-accent px-4 py-2.5 text-[12.5px] text-fg">
+        <div className="panel rise fixed bottom-5 right-5 z-[60] border-l-2 border-l-accent px-4 py-2.5 text-[13px] text-fg">
           {msg}
         </div>
       )}

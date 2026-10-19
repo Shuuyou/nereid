@@ -160,9 +160,9 @@ export default function GraphPage() {
             展开子图
           </button>
           <div className="mt-4 border-t border-line pt-3">
-            <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">类型过滤</div>
+            <div className="mb-2 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">类型过滤</div>
             <div className="flex flex-wrap gap-1.5">
-              {allKinds.length === 0 && <span className="text-[11px] text-faint">—</span>}
+              {allKinds.length === 0 && <span className="text-[12px] text-faint">—</span>}
               {allKinds.map((k) => (
                 <button key={k} onClick={() => toggleKind(k)}
                   className={`badge transition-colors ${activeKinds.has(k) ? "" : "opacity-40"}`}>
@@ -171,7 +171,7 @@ export default function GraphPage() {
               ))}
             </div>
           </div>
-          <div className="mt-auto text-[11px] leading-relaxed text-faint">
+          <div className="mt-auto text-[12px] leading-relaxed text-faint">
             拖拽平移，滚轮缩放<br />点击节点查看属性<br />label 仅默认显示关键节点
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function GraphPage() {
             <Chart option={opt} style={{ height: "100%" }} notMerge
               onEvents={{ click: pick }} />
           ) : loading ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-[12.5px] text-faint">
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-[13px] text-faint">
               <Share2 size={18} strokeWidth={1.5} className="animate-pulse opacity-60" />
               加载子图…
             </div>
@@ -190,24 +190,24 @@ export default function GraphPage() {
             /* 空态引导：说状态 + 示例直达动作 + 无输入时的推荐入口 */
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
               <Share2 size={18} strokeWidth={1.5} className="text-faint opacity-60" />
-              <div className="text-[12.5px] text-dim">
+              <div className="text-[13px] text-dim">
                 {query ? `「${query}」暂无邻边数据` : "输入实体名以展开子图"}
               </div>
-              <div className="text-[11px] text-faint">等待 KG 同步，或换个实体试试：</div>
+              <div className="text-[12px] text-faint">等待 KG 同步，或换个实体试试：</div>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
                 <button className="btn btn-sm" onClick={recenterKev}>以 KEV 实体为中心</button>
                 <button className="btn btn-sm" onClick={() => recenter("CVE-2024-37032")}>以 CVE-2024-37032 为中心</button>
               </div>
               {!entity.trim() && (
                 <Link href="/items?kev=1"
-                  className="mt-1 inline-flex items-center gap-1 font-mono text-[11px] text-accent transition-colors hover:underline">
+                  className="mt-1 inline-flex items-center gap-1 font-mono text-[12px] text-accent transition-colors hover:underline">
                   推荐入口：KEV 条目<ExternalLink size={10} />
                 </Link>
               )}
-              {note && <div className="text-[11px] text-err">{note}</div>}
+              {note && <div className="text-[12px] text-err">{note}</div>}
             </div>
           )}
-          <div className="pointer-events-none absolute left-3 top-2.5 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+          <div className="pointer-events-none absolute left-3 top-2.5 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
             SUBGRAPH {query} DEPTH 2
           </div>
         </div>
@@ -216,11 +216,11 @@ export default function GraphPage() {
         <div className="panel flex w-[264px] shrink-0 flex-col overflow-hidden">
           <div className="panel-h">
             <span className="t">ENTITY</span>
-            {sel && <span className="mono text-[10px] text-faint">deg {sel.degree}</span>}
+            {sel && <span className="mono text-[11px] text-faint">deg {sel.degree}</span>}
           </div>
           <div className="flex-1 overflow-y-auto">
             {!sel ? (
-              <div className="panel-b text-[11.5px] leading-relaxed text-faint">
+              <div className="panel-b text-[12px] leading-relaxed text-faint">
                 点击画布中的节点<br />查看实体属性与一跳邻居
               </div>
             ) : (
@@ -234,31 +234,31 @@ export default function GraphPage() {
                   <div className="mt-2 break-words text-[13px] font-medium leading-snug text-fg">
                     {sel.node.label}
                   </div>
-                  <div className="mono mt-1 break-all text-[10.5px] text-faint">{sel.node.id}</div>
+                  <div className="mono mt-1 break-all text-[11px] text-faint">{sel.node.id}</div>
                   {sel.node.score != null && (
-                    <div className="num mt-1 text-[11px] text-dim">score {sel.node.score}</div>
+                    <div className="num mt-1 text-[12px] text-dim">score {sel.node.score}</div>
                   )}
                   <div className="mt-2.5 flex flex-col items-start gap-0.5">
                     {sel.node.kind === "Item" && (
                       <Link href={`/items/${sel.node.id}`}
-                        className="inline-flex items-center gap-1 font-mono text-[11px] text-accent transition-colors hover:underline">
+                        className="inline-flex items-center gap-1 font-mono text-[12px] text-accent transition-colors hover:underline">
                         查看情报详情<ExternalLink size={10} />
                       </Link>
                     )}
                     {sel.node.kind !== "Item" && (
                       <Link href={`/items?q=${encodeURIComponent(sel.node.label || sel.node.id)}&ai_only=0`}
-                        className="inline-flex items-center gap-1 font-mono text-[11px] text-dim transition-colors hover:text-accent">
+                        className="inline-flex items-center gap-1 font-mono text-[12px] text-dim transition-colors hover:text-accent">
                         检索相关情报<Search size={10} />
                       </Link>
                     )}
-                    <button className="mt-1 inline-flex items-center gap-1 font-mono text-[11px] text-dim transition-colors hover:text-accent"
+                    <button className="mt-1 inline-flex items-center gap-1 font-mono text-[12px] text-dim transition-colors hover:text-accent"
                       onClick={() => recenter(sel.node.id)}>
                       <RotateCcw size={10} />以此实体为中心展开
                     </button>
                   </div>
                 </div>
                 <div className="border-t border-line pt-3">
-                  <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+                  <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
                     一跳邻居 {sel.neighbors.length}
                   </div>
                   <div className="space-y-px">
@@ -266,11 +266,11 @@ export default function GraphPage() {
                       <button key={i} onClick={() => recenter(nb.id)}
                         className="group flex w-full items-center gap-2 rounded-[5px] px-1.5 py-1.5 text-left transition-colors hover:bg-surface">
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: kindColor(String(nb.kind)) }} />
-                        <span className="min-w-0 flex-1 truncate text-[11.5px] text-dim group-hover:text-fg">{nb.label}</span>
-                        <span className="mono shrink-0 text-[9.5px] text-faint">{nb.rel}</span>
+                        <span className="min-w-0 flex-1 truncate text-[12px] text-dim group-hover:text-fg">{nb.label}</span>
+                        <span className="mono shrink-0 text-[11px] text-faint">{nb.rel}</span>
                       </button>
                     ))}
-                    {sel.neighbors.length === 0 && <div className="px-1 text-[11px] text-faint">孤立节点</div>}
+                    {sel.neighbors.length === 0 && <div className="px-1 text-[12px] text-faint">孤立节点</div>}
                   </div>
                 </div>
               </div>

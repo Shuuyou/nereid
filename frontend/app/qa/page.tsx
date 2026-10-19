@@ -66,11 +66,11 @@ function TraceSpine({ steps, streaming, onJump }: {
             {s.error && <X size={8} className="text-err" />}
             {!s.running && !s.error && <Check size={8} className="text-ok" />}
           </span>
-          <span className="flex-1 truncate text-[11.5px] text-dim transition-colors group-hover:text-fg">
+          <span className="flex-1 truncate text-[12px] text-dim transition-colors group-hover:text-fg">
             {STEP_ZH[s.step] || s.step}
             {s.hits != null && <span className="text-faint"> · {s.hits} 命中</span>}
           </span>
-          <span className="font-mono text-[9.5px] tnum text-faint">{fmtMs(s.ms)}</span>
+          <span className="font-mono text-[11px] tnum text-faint">{fmtMs(s.ms)}</span>
         </button>
       ))}
       {streaming && steps.length > 0 && steps[steps.length - 1].running === false ? null : null}
@@ -86,11 +86,11 @@ function CitationChip({ n, cite, onCite }: { n: number; cite?: any; onCite: (n: 
       <button type="button" className="cite" onClick={() => onCite(n)}>{n}</button>
       <span className="pointer-events-none invisible absolute bottom-full left-0 z-50 pb-2 opacity-0 transition duration-150 delay-200 group-hover/cite:visible group-hover/cite:opacity-100">
         <span className="block w-64 rounded-md border border-line2 bg-overlay p-2.5 text-left shadow-2xl">
-          <span className="block truncate text-[11.5px] font-medium text-fg">{cite.title}</span>
+          <span className="block truncate text-[12px] font-medium text-fg">{cite.title}</span>
           {cite.snippet && (
-            <span className="mt-1 line-clamp-3 block text-[11px] leading-snug text-dim">{cite.snippet}</span>
+            <span className="mt-1 line-clamp-3 block text-[12px] leading-snug text-dim">{cite.snippet}</span>
           )}
-          <span className="mt-1.5 block font-mono text-[9.5px] text-faint">
+          <span className="mt-1.5 block font-mono text-[11px] text-faint">
             {cite.url ? "external" : `item:${String(cite.item_id).slice(0, 8)}`} · 点击定位证据
           </span>
         </span>
@@ -120,7 +120,7 @@ function EntityChip({ id }: { id: string }) {
   const { href, external } = entHref(id);
   return (
     <a href={href} target={external ? "_blank" : "_self"} rel={external ? "noreferrer" : undefined}
-      className="mx-px inline-flex items-center rounded-[4px] border border-line bg-surface px-1 font-mono text-[10.5px] leading-[16px] text-dim transition-colors hover:border-accent/50 hover:text-accent">
+      className="mx-px inline-flex items-center rounded-[4px] border border-line bg-surface px-1 font-mono text-[11px] leading-[16px] text-dim transition-colors hover:border-accent/50 hover:text-accent">
       {id}
     </a>
   );
@@ -135,10 +135,10 @@ function EntityGroup({ children }: { children?: React.ReactNode }) {
   return (
     <span className="inline">
       {chips.slice(0, 4)}
-      <span className="text-[11px] text-faint"> 等 </span>
+      <span className="text-[12px] text-faint"> 等 </span>
       {!open && (
         <button type="button" onClick={() => setOpen(true)}
-          className="mx-px inline-flex items-center rounded-[4px] border border-line bg-surface px-1 font-mono text-[10.5px] leading-[16px] text-accent transition-colors hover:border-accent/50">
+          className="mx-px inline-flex items-center rounded-[4px] border border-line bg-surface px-1 font-mono text-[11px] leading-[16px] text-accent transition-colors hover:border-accent/50">
           +{chips.length - 4} 展开
         </button>
       )}
@@ -359,14 +359,14 @@ export default function QaPage() {
       {/* ── 左：会话列表 ── */}
       <div className="flex w-[200px] shrink-0 flex-col border-r border-line bg-panel">
         <div className="flex h-11 items-center justify-between border-b border-line px-3">
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-faint">调查会话</span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-faint">调查会话</span>
           <button onClick={newSession} className="rounded-[5px] p-1 text-faint transition-colors hover:bg-surface2 hover:text-fg" title="新调查">
             <Plus size={14} strokeWidth={2} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-1.5">
           {sessions.length === 0 && (
-            <div className="px-2 py-6 text-center text-[11px] leading-relaxed text-faint">
+            <div className="px-2 py-6 text-center text-[12px] leading-relaxed text-faint">
               暂无历史调查<br />提问自动建档
             </div>
           )}
@@ -379,7 +379,7 @@ export default function QaPage() {
           ))}
         </div>
         <div className="border-t border-line p-1.5">
-          <div className="flex items-center gap-1 rounded-[5px] p-0.5 text-[11px]">
+          <div className="flex items-center gap-1 rounded-[5px] p-0.5 text-[12px]">
             {([[true, "深度"], [false, "快速"]] as const).map(([v, label]) => (
               <button key={label} onClick={() => setDeep(v)}
                 className={`flex-1 rounded-[4px] py-1 transition-colors ${
@@ -423,7 +423,7 @@ export default function QaPage() {
                 {m.role === "user" ? (
                   /* 用户问题：左侧 hairline 引用条，非气泡 */
                   <div className="border-l-2 border-accent/50 pl-4">
-                    <div className="text-[13.5px] font-medium leading-relaxed text-fg">{m.content}</div>
+                    <div className="text-[14px] font-medium leading-relaxed text-fg">{m.content}</div>
                   </div>
                 ) : (
                   /* 助手回答：无边框纯文本流 */
@@ -439,35 +439,35 @@ export default function QaPage() {
                         ? <span className="text-faint"> </span>
                         : <span className="text-faint">…</span>)}
                     {m.aborted && (
-                      <div className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.06em] text-warn">
+                      <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.06em] text-warn">
                         ▪ 已中止——可修改问题重发
                       </div>
                     )}
 
                     {/* 判定条：置信仪表 + 源数 + 推理链 receipt */}
                     {(m.confidence != null || m.trace?.steps) && !busy && (
-                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-line pt-2.5 text-[11.5px]">
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-line pt-2.5 text-[12px]">
                         {m.confidence != null && (() => { const b = confBand(m.confidence); return (
                           <span className="flex items-center gap-1.5" title={`答案置信度 ${m.confidence.toFixed(2)}`}>
-                            <span className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-faint">CONF</span>
+                            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">CONF</span>
                             <span className="relative h-[3px] w-16 rounded bg-surface2">
                               <span className={`absolute inset-y-0 left-0 rounded ${b.bar}`}
                                 style={{ width: `${Math.round(m.confidence * 100)}%` }} />
                             </span>
-                            <span className={`tnum font-mono text-[10.5px] ${b.cls}`}>{m.confidence.toFixed(2)} {b.label}</span>
+                            <span className={`tnum font-mono text-[11px] ${b.cls}`}>{m.confidence.toFixed(2)} {b.label}</span>
                           </span>
                         ); })()}
                         {m.citations && m.citations.length > 0 && (() => {
                           const cited = citedNsOf(m.content).size;
                           return (
-                            <button onClick={() => setTab("evi")} className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
+                            <button onClick={() => setTab("evi")} className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
                               {cited} SOURCES
                             </button>
                           );
                         })()}
                         {m.trace?.steps && (
                           <button onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
-                            className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
+                            className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
                             {openTrace[i] ? "▾" : "▸"} {m.trace.steps.length} STEPS{m.trace.total_ms ? ` ${fmtMs(m.trace.total_ms)}` : ""}
                           </button>
                         )}
@@ -489,9 +489,9 @@ export default function QaPage() {
                       return (
                         <div className="mt-2.5 flex flex-wrap gap-1.5">
                           {shown.map((c) => {
-                            const cls = "group inline-flex max-w-[280px] items-center gap-1.5 truncate rounded-[5px] border border-line bg-panel px-2 py-1 text-[11px] text-dim transition-colors hover:border-line2 hover:text-fg";
+                            const cls = "group inline-flex max-w-[280px] items-center gap-1.5 truncate rounded-[5px] border border-line bg-panel px-2 py-1 text-[12px] text-dim transition-colors hover:border-line2 hover:text-fg";
                             const inner = (<>
-                              <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
+                              <span className="font-mono text-[11px] text-accent">[{c.n}]</span>
                               <span className="truncate">{c.title}</span>
                             </>);
                             // 外部链接照旧 _blank；内部 item 开右侧 peek 抽屉而非跳页
@@ -509,7 +509,7 @@ export default function QaPage() {
                     {/* 追问建议（Perplexity related 式：预测下一步，非通用 prompt） */}
                     {m.followups && m.followups.length > 0 && !busy && (
                       <div className="mt-3 space-y-px border-t border-line pt-2">
-                        <div className="px-1.5 pb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">追问</div>
+                        <div className="px-1.5 pb-1 font-mono text-[11px] uppercase tracking-[0.1em] text-faint">追问</div>
                         {m.followups.slice(0, 3).map((fq) => (
                           <button key={fq} onClick={() => send(fq)}
                             className="group flex w-full items-center gap-2 rounded-[5px] px-1.5 py-1.5 text-left text-[12px] text-dim transition-colors hover:bg-surface hover:text-fg">
@@ -528,7 +528,7 @@ export default function QaPage() {
             {status && spine.length === 0 && (
               <div className="mb-6 flex items-center gap-2 text-[12px] text-dim">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" style={{ animation: "pulse-dot 1.4s ease-in-out infinite" }} />
-                <span className="font-mono text-[11px]">{status}</span>
+                <span className="font-mono text-[12px]">{status}</span>
               </div>
             )}
             <div ref={bottom} />
@@ -562,7 +562,7 @@ export default function QaPage() {
         <div className="flex h-11 items-center gap-4 border-b border-line px-3">
           {([["evi", `证据 ${lastA?.citations?.length || ""}`], ["trace", "推理链"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`h-full border-b-2 font-mono text-[10.5px] uppercase tracking-[0.08em] transition-colors ${
+              className={`h-full border-b-2 font-mono text-[11px] uppercase tracking-[0.08em] transition-colors ${
                 tab === k ? "border-accent text-fg" : "border-transparent text-faint hover:text-dim"}`}>
               {l}
             </button>
@@ -572,7 +572,7 @@ export default function QaPage() {
           {tab === "evi" && (
             <div className="p-2">
               {!lastA?.citations?.length && (
-                <div className="px-2 py-8 text-center text-[11.5px] leading-relaxed text-faint">
+                <div className="px-2 py-8 text-center text-[12px] leading-relaxed text-faint">
                   <MessageSquareText size={16} strokeWidth={1.5} className="mx-auto mb-2 opacity-60" />
                   提问后此处列出<br />答案引用的情报条目
                 </div>
@@ -587,10 +587,10 @@ export default function QaPage() {
                       : "border-transparent hover:border-line hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`;
                   const inner = (<>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
+                      <span className="font-mono text-[11px] text-accent">[{c.n}]</span>
                       <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-fg">{c.title}</span>
                     </div>
-                    <div className="mt-1 flex items-center gap-2 pl-6 font-mono text-[10px] text-faint">
+                    <div className="mt-1 flex items-center gap-2 pl-6 font-mono text-[11px] text-faint">
                       <span>{c.url ? "external" : `item:${String(c.item_id).slice(0, 8)}`}</span>
                       {dimmed && <span>未引用</span>}
                       {c.url
@@ -612,13 +612,13 @@ export default function QaPage() {
                     showUncited
                       ? <>
                           <button onClick={() => setShowUncited(false)}
-                            className="my-1.5 w-full text-left font-mono text-[10px] uppercase tracking-[0.08em] text-faint hover:text-dim">
+                            className="my-1.5 w-full text-left font-mono text-[11px] uppercase tracking-[0.08em] text-faint hover:text-dim">
                             ▾ 其他检索候选 {rest.length}
                           </button>
                           {rest.map((c: any) => <Card key={c.n} c={c} dimmed />)}
                         </>
                       : <button onClick={() => setShowUncited(true)}
-                          className="my-1.5 w-full text-left font-mono text-[10px] uppercase tracking-[0.08em] text-faint hover:text-dim">
+                          className="my-1.5 w-full text-left font-mono text-[11px] uppercase tracking-[0.08em] text-faint hover:text-dim">
                           ▸ 其他检索候选 {rest.length}（未被引用）
                         </button>
                   )}
@@ -629,24 +629,24 @@ export default function QaPage() {
           {tab === "trace" && (
             <div className="p-3">
               {!lastA?.trace?.steps ? (
-                <div className="px-1 py-8 text-center text-[11.5px] text-faint">本轮尚无推理轨迹</div>
+                <div className="px-1 py-8 text-center text-[12px] text-faint">本轮尚无推理轨迹</div>
               ) : (
                 <>
                   <div className="mb-3 flex items-baseline justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">SPAN WATERFALL</span>
-                    <span className="font-mono text-[10px] tnum text-dim">{totalMs}ms</span>
+                    <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">SPAN WATERFALL</span>
+                    <span className="font-mono text-[11px] tnum text-dim">{totalMs}ms</span>
                   </div>
                   {lastA.trace.steps.map((s: any, j: number) => (
                     <div key={j} className="mb-2.5">
-                      <div className="flex items-baseline justify-between text-[11px]">
+                      <div className="flex items-baseline justify-between text-[12px]">
                         <span className="text-dim">{STEP_ZH[s.step] || s.step}</span>
-                        <span className="font-mono text-[10px] tnum text-faint">{fmtMs(stepDurs[j]) || "—"}</span>
+                        <span className="font-mono text-[11px] tnum text-faint">{fmtMs(stepDurs[j]) || "—"}</span>
                       </div>
                       <div className="mt-1 h-[3px] rounded bg-surface2">
                         <div className="h-full rounded bg-accent/70"
                           style={{ width: `${Math.max(2, (stepDurs[j] / maxMs) * 100)}%` }} />
                       </div>
-                      {s.hits != null && <div className="mt-0.5 font-mono text-[9.5px] text-faint">{s.hits} hits</div>}
+                      {s.hits != null && <div className="mt-0.5 font-mono text-[11px] text-faint">{s.hits} hits</div>}
                     </div>
                   ))}
                 </>
@@ -665,7 +665,7 @@ export default function QaPage() {
               boxShadow: "-16px 0 40px -20px rgba(60, 50, 90, 0.35)",
             }}>
             <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-faint">证据预览</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-faint">证据预览</span>
               <button onClick={closePeek} title="关闭 (Esc)"
                 className="rounded-[5px] p-1 text-faint transition-colors hover:bg-surface2 hover:text-fg">
                 <X size={12} strokeWidth={2} />
@@ -673,7 +673,7 @@ export default function QaPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-3">
               {peekErr ? (
-                <div className="px-1 py-8 text-center text-[11.5px] leading-relaxed text-faint">条目加载失败</div>
+                <div className="px-1 py-8 text-center text-[12px] leading-relaxed text-faint">条目加载失败</div>
               ) : !peekItem ? (
                 <div className="space-y-2.5 pt-1">
                   <div className="skel h-4 w-4/5" />
@@ -698,7 +698,7 @@ export default function QaPage() {
                     </div>
                   )}
                   {(peekItem.summary_zh || peekItem.summary) && (
-                    <p className="mt-2.5 line-clamp-3 text-[11.5px] leading-relaxed text-dim">
+                    <p className="mt-2.5 line-clamp-3 text-[12px] leading-relaxed text-dim">
                       {peekItem.summary_zh || peekItem.summary}
                     </p>
                   )}

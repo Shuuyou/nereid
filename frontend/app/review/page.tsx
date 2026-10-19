@@ -144,10 +144,10 @@ function ReviewInner() {
             className={`h-full border-b-2 text-[12px] transition-colors ${
               tab === v ? "border-accent font-medium text-fg" : "border-transparent text-faint hover:text-dim"}`}>
             {l}
-            {tab === v && <span className="ml-1.5 font-mono text-[10.5px] text-faint">{count}</span>}
+            {tab === v && <span className="ml-1.5 font-mono text-[11px] text-faint">{count}</span>}
           </button>
         ))}
-        <span className="ml-auto self-center font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint">
+        <span className="ml-auto self-center font-mono text-[11px] uppercase tracking-[0.06em] text-faint">
           review_status = {tab}
         </span>
       </div>
@@ -185,10 +185,10 @@ function ReviewInner() {
                       e.preventDefault();
                       openPeek(it.id);
                     }}
-                    className="stretched block truncate text-[12.5px] text-fg transition-colors hover:text-accent">
+                    className="stretched block truncate text-[13px] text-fg transition-colors hover:text-accent">
                     {it.title || it.id}
                   </Link>
-                  <div className="mono mt-0.5 text-[10px] text-faint">{it.id}</div>
+                  <div className="mono mt-0.5 text-[11px] text-faint">{it.id}</div>
                 </td>
                 <td>
                   {(it.cve || []).length
@@ -202,7 +202,7 @@ function ReviewInner() {
                       <div className={`h-full rounded-full ${confTone(it.confidence)}`}
                         style={{ width: `${Math.round((it.confidence ?? 0) * 100)}%` }} />
                     </div>
-                    <span className={`tnum font-mono text-[11px] ${confText(it.confidence)}`}>
+                    <span className={`tnum font-mono text-[12px] ${confText(it.confidence)}`}>
                       {it.confidence != null ? `${Math.round(it.confidence * 100)}%` : "—"}
                     </span>
                   </div>
@@ -258,7 +258,7 @@ function ReviewInner() {
       />
 
       {msg && (
-        <div className="rise fixed bottom-5 right-5 z-[60] rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[12.5px] text-fg">
+        <div className="rise fixed bottom-5 right-5 z-[60] rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[13px] text-fg">
           {msg}
         </div>
       )}

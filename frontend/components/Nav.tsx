@@ -39,7 +39,7 @@ export function Nav() {
     <nav className="flex flex-col gap-5 px-2.5 pt-3" aria-label="主导航">
       {GROUPS.map((g) => (
         <div key={g.label}>
-          <div className="mb-1 px-2 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-[#a49f8f]">
+          <div className="mb-1 px-2 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-[#a49f8f]">
             {g.label}
           </div>
           <div className="flex flex-col gap-px">
