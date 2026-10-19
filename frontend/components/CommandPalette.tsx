@@ -8,7 +8,7 @@ type Cmd = { id: string; label: string; hint?: string; icon: any; run: () => voi
 
 const NAV: [string, string, any][] = [
   ["/", "今日值班台", LayoutGrid],
-  ["/review", "情报队列 · 待复核", List],
+  ["/review", "待复核队列", List],
   ["/qa", "深度调查", MessagesSquare],
   ["/items", "情报检索", BookOpen],
   ["/graph", "知识图谱", Compass],

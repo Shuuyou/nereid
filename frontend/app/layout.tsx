@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="border-t border-line px-4 py-3">
               <div className="spec-row">
                 <span className="dot" style={{ background: "#2e7d5b" }} />
-                SYS · ONLINE
+                SYS ONLINE
               </div>
             </div>
           </aside>
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-canvas px-5">
               <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-faint">
-                Nereid · Threat Intel Workbench
+                Nereid — Threat Intel Workbench
               </span>
               <div className="ml-auto flex items-center gap-3">
                 <PaletteButton />

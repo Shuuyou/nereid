@@ -18,7 +18,7 @@ export function SpecRow({ children }: { children: React.ReactNode }) {
   return <div className="spec-row mb-3">{children}</div>;
 }
 export function SpecDot() {
-  return <span className="dot" />;
+  return <span className="spec-sep" aria-hidden />;
 }
 
 export function Empty({ text, hint }: { text: string; hint?: string }) {

@@ -324,7 +324,7 @@ export default function ItemDetail() {
           {scoreRows.length > 0 && (
             <div id="sec-score" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">评分构成</h2>
-              <div className="sect-sub">CVSS / EPSS / KEV / SSVC · 行内展开评分依据</div>
+              <div className="sect-sub">CVSS / EPSS / KEV / SSVC，行内展开评分依据</div>
               <table className="dt mt-3">
                 <thead>
                   <tr><th className="w-[110px]">指标</th><th className="r w-[110px]">值</th><th>依据</th><th className="r w-[64px]"></th></tr>
@@ -404,7 +404,7 @@ export default function ItemDetail() {
           {chain.length > 0 && (
             <div id="sec-chain" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">攻击链推演</h2>
-              <div className="sect-sub">ATT&CK 步序 · {chain.length} 阶段</div>
+              <div className="sect-sub">ATT&CK 步序，{chain.length} 阶段</div>
               <ol className="mt-3">
                 {chain.map((s: any, i: number) => (
                   <li key={i} className="flex gap-3 border-b border-line py-2 last:border-0">
@@ -431,7 +431,7 @@ export default function ItemDetail() {
                     <span className="badge mono shrink-0">{d.id}</span>
                     <div className="min-w-0">
                       <span className="text-[12.5px] font-medium text-fg">{d.name}</span>
-                      <span className="ml-2 text-[11.5px] text-faint">{d.desc} · 对应 {d.for_technique}</span>
+                      <span className="ml-2 text-[11.5px] text-faint">{d.desc} → {d.for_technique}</span>
                     </div>
                   </div>
                 ))}
@@ -478,7 +478,7 @@ export default function ItemDetail() {
             <div id="sec-assets" className="sect scroll-mt-[60px]">
               <h2 className="sect-title">资产暴露</h2>
               <div className="sect-sub">
-                互联网测绘聚合{it.assets.some((a: any) => a.is_simulated) ? " · 含模拟数据" : ""}
+                互联网测绘聚合{it.assets.some((a: any) => a.is_simulated) ? "（含模拟数据）" : ""}
               </div>
               <div className="mt-2">
                 {it.assets.map((a: any, i: number) => (

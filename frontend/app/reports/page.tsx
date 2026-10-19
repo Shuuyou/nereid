@@ -43,7 +43,7 @@ export default function ReportsPage() {
         <span>{rows.length} GENERATED</span>
       </SpecRow>
 
-      <PageHeader title="情报报告" desc="LLM 分析师按周期聚合生成 · Markdown"
+      <PageHeader title="情报报告" desc="LLM 分析师按周期聚合生成（Markdown）"
         right={
           <button className="btn btn-acc" disabled={generating} onClick={generate}>
             <FilePlus2 size={12} strokeWidth={1.75} />{generating ? "生成中…" : "生成日报"}

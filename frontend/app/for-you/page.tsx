@@ -161,14 +161,14 @@ export default function ForYouPage() {
             </div>
             <div>
               <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
-                资产 · product/vendor/pkg/cpe/cve
+                资产：product / vendor / pkg / cpe / cve
               </div>
               <TagEditor types={ASSET_TYPES} tags={assets} onChange={setAssets}
                 placeholder="vllm、ollama、nvidia…" />
             </div>
             <div>
               <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
-                关注 · layer/owasp/keyword/tech
+                关注：layer / owasp / keyword / tech
               </div>
               <TagEditor types={INTEREST_TYPES} tags={interests} onChange={setInterests}
                 placeholder="L3、LLM01、prompt injection…" />
@@ -186,7 +186,7 @@ export default function ForYouPage() {
                 <span className="t flex items-center gap-1.5">
                   <Newspaper size={11} strokeWidth={1.75} />MORNING DIGEST
                 </span>
-                <span className="mono text-[10px] text-faint">7d · {digest.count} hits</span>
+                <span className="mono text-[10px] text-faint">7d，{digest.count} hits</span>
               </div>
               <div className="panel-b">
                 <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-dim">{digest.digest}</p>
@@ -199,7 +199,7 @@ export default function ForYouPage() {
         <div className="min-w-0">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="sect-title">为你推荐</h2>
-            <span className="font-mono text-[10.5px] text-faint">规则召回 ∪ 向量召回 · RRF · 画像加权</span>
+            <span className="font-mono text-[10.5px] text-faint">规则召回 ∪ 向量召回 → RRF → 画像加权</span>
           </div>
           {feed.items.length === 0 ? (
             profileOk ? (
@@ -215,7 +215,7 @@ export default function ForYouPage() {
                   <Sparkles size={11} strokeWidth={1.75} />使用示例画像
                 </button>
                 <div className="text-[10.5px] text-faint">
-                  示例：product Ollama/vLLM · layer L1 / owasp LLM01 / keyword RCE · high 门槛（预填不提交）
+                  示例：product Ollama/vLLM，layer L1，owasp LLM01，keyword RCE，high 门槛（预填不提交）
                 </div>
               </div>
             )

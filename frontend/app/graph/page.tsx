@@ -172,7 +172,7 @@ export default function GraphPage() {
             </div>
           </div>
           <div className="mt-auto text-[11px] leading-relaxed text-faint">
-            拖拽平移 · 滚轮缩放<br />点击节点查看属性<br />label 仅默认显示关键节点
+            拖拽平移，滚轮缩放<br />点击节点查看属性<br />label 仅默认显示关键节点
           </div>
         </div>
 
@@ -208,7 +208,7 @@ export default function GraphPage() {
             </div>
           )}
           <div className="pointer-events-none absolute left-3 top-2.5 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
-            SUBGRAPH · {query} · DEPTH 2
+            SUBGRAPH {query} DEPTH 2
           </div>
         </div>
 
@@ -259,7 +259,7 @@ export default function GraphPage() {
                 </div>
                 <div className="border-t border-line pt-3">
                   <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
-                    一跳邻居 · {sel.neighbors.length}
+                    一跳邻居 {sel.neighbors.length}
                   </div>
                   <div className="space-y-px">
                     {sel.neighbors.map((nb, i) => (

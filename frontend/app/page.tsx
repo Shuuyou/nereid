@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { api, subscribeFeed, getDigest } from "@/lib/api";
 import { St, Skeleton, SpecRow, SpecDot, Sev } from "@/components/ui";
-import { CheckCheck, RotateCcw, ArrowRight, Flame, Crosshair, Newspaper } from "lucide-react";
+import { CheckCheck, RotateCcw, ArrowRight, Flame, Crosshair, Newspaper, TrendingUp, Layers, Database } from "lucide-react";
 import { C, echartsBase } from "@/lib/theme";
 
 const Chart = dynamic(() => import("echarts-for-react"), { ssr: false });
@@ -138,25 +138,31 @@ export default function DutyDesk() {
     <div>
       <SpecRow>
         <span>DUTY_01</span><SpecDot />
-        <span>今日值班台 · DUTY DESK</span><SpecDot />
+        <span>今日值班台</span><SpecDot />
         <span>{now.toISOString().slice(0, 16).replace("T", " ")}Z</span>
         <span className="ml-auto flex items-center gap-1.5 normal-case tracking-normal">
           <St tone={liveOn ? "live" : "dim"}>{liveOn ? "LIVE" : "IDLE"}</St>
         </span>
       </SpecRow>
 
-      {/* bento 指标卡：色块即分类，全部可点击下钻 */}
+      {/* 指标卡：白卡为底，pastel 只留给语义图标芯片——色彩即分类不是装饰 */}
       <div className="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {([
-          { label: "待复核", sub: "队列待人工确认", v: reviewTotal, tile: "tile-rose", href: "/review?status=needs_review" },
-          { label: "24h 新增", sub: "情报流入", v: stats.new_24h ?? "—", tile: "tile-mint", href: "/items" },
-          { label: "KEV 在野", sub: "已确认被利用", v: stats.kev_count ?? "—", tile: "tile-peach", href: "/items?kev=1" },
-          { label: "AI 相关", sub: "命中画像占比", v: (stats.ai_items || 0).toLocaleString(), tile: "tile-lav", href: "/items" },
-          { label: "数据源", sub: "健康 / 总数", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, tile: "tile-sky", href: "/sources" },
+          { label: "待复核", sub: "队列待人工确认", v: reviewTotal, chip: "bg-rose text-rose-ink", icon: Crosshair, href: "/review?status=needs_review" },
+          { label: "24h 新增", sub: "情报流入", v: stats.new_24h ?? "—", chip: "bg-mint text-mint-ink", icon: TrendingUp, href: "/items" },
+          { label: "KEV 在野", sub: "已确认被利用", v: stats.kev_count ?? "—", chip: "bg-peach text-peach-ink", icon: Flame, href: "/items?kev=1" },
+          { label: "AI 相关", sub: "命中画像占比", v: (stats.ai_items || 0).toLocaleString(), chip: "bg-lav text-lav-ink", icon: Layers, href: "/items" },
+          { label: "数据源", sub: "健康 / 总数", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, chip: "bg-sky text-sky-ink", icon: Database, href: "/sources" },
         ] as const).map((m) => (
           <Link key={m.label} href={m.href}
-            className={`tile ${m.tile} group flex flex-col justify-between transition-transform duration-100 hover:-translate-y-px`}>
-            <span className="tile-kicker">{m.label}</span>
+            className={`tile group flex flex-col justify-between transition-transform duration-100 hover:-translate-y-px ${
+              m.label === "待复核" && reviewTotal > 0 ? "tile-rose" : "tile-white"}`}>
+            <span className="flex items-center gap-2">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-[8px] ${m.chip}`}>
+                <m.icon size={13} strokeWidth={2} />
+              </span>
+              <span className="tile-kicker">{m.label}</span>
+            </span>
             <span className="tile-metric mt-4">{m.v}</span>
             <span className="tile-sub mt-1.5">{m.sub}</span>
           </Link>
@@ -164,8 +170,8 @@ export default function DutyDesk() {
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-12">
-        {/* ── 左 2/3：需要你处理（可操作队列）── */}
-        <div className="lg:col-span-8">
+        {/* ── 左：需要你处理（可操作队列）── */}
+        <div className="lg:col-span-7">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="sect-title">需要你处理</h2>
             <Link href="/review" className="font-mono text-[11px] text-faint transition-colors hover:text-accent">
@@ -174,12 +180,11 @@ export default function DutyDesk() {
           </div>
           <div className="tile tile-white !p-0 overflow-hidden">
             {/* 待复核组 — pastel 标签条 */}
-            <div className="flex items-center gap-2 bg-rose px-3 py-2">
-              <Crosshair size={12} strokeWidth={1.75} className="text-rose-ink" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-rose-ink">
-                待复核 · AI 初判待确认
-              </span>
-              <span className="ml-auto mono text-[11px] text-rose-ink/70">{reviewTotal}</span>
+            <div className="flex items-center gap-2.5 border-b border-line bg-surface px-3 py-2">
+              <span className="h-2 w-2 rounded-[3px] bg-rose" style={{ background: "var(--rose-ink)" }} />
+              <span className="text-[11.5px] font-medium text-fg">待复核</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">AI 初判待确认</span>
+              <span className="ml-auto mono text-[11px] text-faint">{reviewTotal}</span>
             </div>
             {review.length === 0 && <div className="px-3 py-4 text-[12px] text-faint">复核队列已清空 ✓</div>}
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
@@ -190,51 +195,36 @@ export default function DutyDesk() {
               ))}
             </div>
             {/* 高优组 */}
-            <div className="flex items-center gap-2 border-y border-line bg-sky px-3 py-2">
-              <Flame size={12} strokeWidth={1.75} className="text-sky-ink" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-sky-ink">
-                高优先级 · AI 情报
-              </span>
-              <span className="ml-auto mono text-[11px] text-sky-ink/70">{queue.length}</span>
+            <div className="flex items-center gap-2.5 border-y border-line bg-surface px-3 py-2">
+              <span className="h-2 w-2 rounded-[3px]" style={{ background: "var(--sky-ink)" }} />
+              <span className="text-[11.5px] font-medium text-fg">高优先级</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">AI 情报</span>
+              <span className="ml-auto mono text-[11px] text-faint">{queue.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {queue.slice(0, 5).map((it) => <QueueRow key={it.id} it={it} kind="pri" />)}
             </div>
             {/* KEV 组 */}
-            <div className="flex items-center gap-2 bg-peach px-3 py-2">
-              <Flame size={12} strokeWidth={1.75} className="text-peach-ink" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-peach-ink">
-                新 KEV · 在野利用
-              </span>
-              <span className="ml-auto mono text-[11px] text-peach-ink/70">{kev.length}</span>
+            <div className="flex items-center gap-2.5 bg-surface px-3 py-2">
+              <span className="h-2 w-2 rounded-[3px]" style={{ background: "var(--peach-ink)" }} />
+              <span className="text-[11.5px] font-medium text-fg">新 KEV</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">在野利用</span>
+              <span className="ml-auto mono text-[11px] text-faint">{kev.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {kev.slice(0, 4).map((it) => <QueueRow key={it.id} it={it} kind="kev" />)}
             </div>
           </div>
 
-          {/* 趋势 */}
-          <div className="sect">
-            <div className="mb-2 flex items-baseline justify-between">
-              <h2 className="sect-title">14 天情报流入</h2>
-              {fresh && (
-                <span className="font-mono text-[10.5px] text-faint">
-                  披露→入库 P50 {fresh.p50_min != null ? (fresh.p50_min < 60 ? `${fresh.p50_min.toFixed(0)}m` : `${(fresh.p50_min / 60).toFixed(1)}h`) : "—"}
-                  {"  ·  "}P95 {fresh.p95_min != null ? (fresh.p95_min < 60 ? `${fresh.p95_min.toFixed(0)}m` : `${(fresh.p95_min / 60).toFixed(1)}h`) : "—"}
-                </span>
-              )}
-            </div>
-            <Chart option={trendOpt} style={{ height: 180 }} notMerge />
-          </div>
         </div>
 
-        {/* ── 右 1/3：晨报（深色锚点卡）+ 实时流 ── */}
-        <div className="lg:col-span-4">
+        {/* ── 右：晨报（深色锚点卡）+ 趋势 + 实时流 ── */}
+        <div className="lg:col-span-5">
           <div className="tile tile-dark">
-            <div className="tile-kicker" style={{ color: "#a49f8f" }}>晨报 · Morning Brief</div>
+            <div className="tile-kicker" style={{ color: "#a49f8f" }}>晨报 MORNING BRIEF</div>
             <div className="mt-2 flex items-center gap-2">
               <Newspaper size={15} strokeWidth={1.75} className="text-[#7adfd8]" />
-              <span className="text-[14px] font-semibold text-[#eceef0]">过去 7 天 · 画像摘要</span>
+              <span className="text-[14px] font-semibold text-[#eceef0]">过去 7 天画像摘要</span>
             </div>
             {digest?.digest ? (
               <div className="mt-3 space-y-2 text-[12.5px] leading-relaxed text-[#b9bcc4]">
@@ -249,9 +239,23 @@ export default function DutyDesk() {
             )}
             {digest?.item_count != null && (
               <div className="mt-3 border-t border-[rgba(255,255,255,0.08)] pt-2 font-mono text-[10.5px] text-[#8a8d96]">
-                命中 {digest.item_count} 条 · 画像 {localStorage.getItem("foryou_name") || "—"}
+                命中 {digest.item_count} 条，画像 {localStorage.getItem("foryou_name") || "—"}
               </div>
             )}
+          </div>
+
+          {/* 趋势 */}
+          <div className="mt-5">
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="sect-title">14 天情报流入</h2>
+              {fresh && (
+                <span className="font-mono text-[10.5px] text-faint">
+                  P50 {fresh.p50_min != null ? (fresh.p50_min < 60 ? `${fresh.p50_min.toFixed(0)}m` : `${(fresh.p50_min / 60).toFixed(1)}h`) : "—"}
+                  {"  "}P95 {fresh.p95_min != null ? (fresh.p95_min < 60 ? `${fresh.p95_min.toFixed(0)}m` : `${(fresh.p95_min / 60).toFixed(1)}h`) : "—"}
+                </span>
+              )}
+            </div>
+            <Chart option={trendOpt} style={{ height: 160 }} notMerge />
           </div>
 
           {/* 实时监测流 */}
@@ -288,7 +292,7 @@ export default function DutyDesk() {
           <h2 className="sect-title">
             影子 AI 资产暴露
             <span className="ml-2 font-normal normal-case text-faint">
-              互联网测绘聚合{expo.products.some((p: any) => p.simulated) ? " · 含模拟数据" : ""}
+              互联网测绘聚合{expo.products.some((p: any) => p.simulated) ? "（含模拟数据）" : ""}
             </span>
           </h2>
           <table className="dt mt-3">

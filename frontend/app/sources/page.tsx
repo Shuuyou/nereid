@@ -63,7 +63,7 @@ export default function SourcesPage() {
         </span>
       </SpecRow>
 
-      <PageHeader title="数据源监控" desc="采集器健康度 · tier 调度 · 失败重试"
+      <PageHeader title="数据源监控" desc="采集器健康度监控，tier 调度与失败重试"
         right={<button className="btn btn-acc" onClick={() => api.runAll().then(load)}>
           <Radio size={12} strokeWidth={1.75} />采集全部
         </button>} />
@@ -79,7 +79,7 @@ export default function SourcesPage() {
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="sect-title">采集器清单</h2>
           <span className="font-mono text-[10.5px] text-faint">
-            {rows.length > 0 && <>健康 <span className="text-dim">{ok}/{rows.length}</span> · </>}
+            {rows.length > 0 && <>健康 <span className="text-dim">{ok}/{rows.length}</span></>}
             POLL 15s AUTO-REFRESH
           </span>
         </div>

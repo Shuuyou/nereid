@@ -174,7 +174,7 @@ export default function PipelinePage() {
             <select className="input w-64" value={sid} onChange={(e) => setSid(Number(e.target.value))}>
               {sources.length === 0 && <option value="">（无数据源）</option>}
               {sources.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}（{s.source_type} · T{s.tier}）</option>
+                <option key={s.id} value={s.id}>{s.name}（{s.source_type} T{s.tier}）</option>
               ))}
             </select>
             <button className="btn btn-acc" disabled={running || sid === ""} onClick={triggerRun}>
@@ -262,7 +262,7 @@ export default function PipelinePage() {
       <div className="sect">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="sect-title">运行历史</h2>
-          <span className="font-mono text-[10.5px] text-faint">REDIS pipeline:runs · LAST 20</span>
+          <span className="font-mono text-[10.5px] text-faint">REDIS pipeline:runs，LAST 20</span>
         </div>
         {runs.length === 0 ? (
           /* 空态引导：说状态 + 内嵌直达动作 + 备选路径提示 */

@@ -398,7 +398,7 @@ export default function QaPage() {
           <div className="mx-auto max-w-[700px] px-6 py-6">
             {msgs.length === 0 && (
               <div className="flex h-full min-h-[60vh] flex-col justify-center">
-                <div className="spec-row"><span>FIG_QA</span><span className="dot" /><span>跨文档检索 · KG 多跳 · 可解释推理</span></div>
+                <div className="spec-row"><span>FIG_QA</span><span className="spec-sep" /><span>跨文档检索</span><span className="spec-sep" /><span>KG 多跳 · 可解释</span></div>
                 <p className="mt-3 text-[15px] leading-relaxed text-dim">
                   向捞针提问——横跨 <span className="mono text-fg">45k</span> 条情报与
                   <span className="mono text-fg"> 29k</span> 图谱节点推理作答
@@ -451,7 +451,7 @@ export default function QaPage() {
                               <span className={`absolute inset-y-0 left-0 rounded ${b.bar}`}
                                 style={{ width: `${Math.round(m.confidence * 100)}%` }} />
                             </span>
-                            <span className={`tnum font-mono text-[10.5px] ${b.cls}`}>{m.confidence.toFixed(2)}·{b.label}</span>
+                            <span className={`tnum font-mono text-[10.5px] ${b.cls}`}>{m.confidence.toFixed(2)} {b.label}</span>
                           </span>
                         ); })()}
                         {m.citations && m.citations.length > 0 && (() => {
@@ -465,7 +465,7 @@ export default function QaPage() {
                         {m.trace?.steps && (
                           <button onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
                             className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
-                            {openTrace[i] ? "▾" : "▸"} {m.trace.steps.length} STEPS{m.trace.total_ms ? ` · ${fmtMs(m.trace.total_ms)}` : ""}
+                            {openTrace[i] ? "▾" : "▸"} {m.trace.steps.length} STEPS{m.trace.total_ms ? ` ${fmtMs(m.trace.total_ms)}` : ""}
                           </button>
                         )}
                       </div>

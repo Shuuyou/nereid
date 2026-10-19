@@ -134,7 +134,7 @@ function ReviewInner() {
         <span>{count} {pendingLabel}</span>
       </SpecRow>
 
-      <PageHeader title="HITL 复核队列" desc="低置信 / 富化异常条目需人工确认 · reject 后清空富化结果回炉 · 点击行速览"
+      <PageHeader title="HITL 复核队列" desc="低置信/富化异常条目需人工确认；reject 后清空富化结果回炉；点击行速览"
         right={<button className="btn" onClick={load}><RefreshCw size={12} strokeWidth={1.75} />刷新</button>} />
 
       {/* 状态 tabs — 下划线式，非药丸 */}
