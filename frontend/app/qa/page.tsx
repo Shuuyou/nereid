@@ -594,7 +594,9 @@ export default function QaPage() {
                           </span>
                         ); })()}
                         {m.citations && m.citations.length > 0 && (() => {
-                          const cited = citedNsOf(m.content).size;
+                          // 口径=实际可渲染的引用数（正文 [n] ∩ citations 数组），防"标了5来源只有4卡"
+                          const citedNs = citedNsOf(m.content);
+                          const cited = m.citations.filter((c) => citedNs.has(c.n)).length;
                           return (
                             <button onClick={() => setTab("evi")}
                               className="rounded-full px-2 py-1 text-[12px] text-faint transition-colors hover:bg-surface hover:text-fg">
@@ -768,7 +770,8 @@ export default function QaPage() {
         </div>
         {/* 研判条：置信/引用率/耗时——去掉内部路由名与 · 分隔（内部标签不外露） */}
         {lastA && (() => {
-          const citedN = citedNsOf(lastA.content).size;
+          const _ns = citedNsOf(lastA.content);
+          const citedN = (lastA.citations || []).filter((c: any) => _ns.has(c.n)).length;
           const totalN = lastA.citations?.length || 0;
           return (
             <div className="flex items-center gap-3 border-t border-line px-3 py-1.5 font-mono text-[10.5px] text-faint">
