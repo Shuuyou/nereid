@@ -444,8 +444,8 @@ select.input {
   50% { opacity: 0; }
 }
 .prose-a {
-  font-size: 13.5px;
-  line-height: 1.65;
+  font-size: 15px;
+  line-height: 1.7;
   color: var(--text);
 }
 .prose-a h1, .prose-a h2, .prose-a h3, .prose-a h4 {

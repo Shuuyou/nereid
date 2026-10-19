@@ -3,7 +3,7 @@ import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { SendHorizontal, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X, ArrowUpRight, Copy, CornerDownLeft } from "lucide-react";
+import { ArrowUp, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X, ArrowUpRight, Copy } from "lucide-react";
 import { streamChat, api } from "@/lib/api";
 import { remarkChips } from "@/lib/remark-chips";
 import { SevPill } from "@/components/ui";
@@ -111,8 +111,8 @@ function CopyBtn({ text }: { text: string }) {
   return (
     <button type="button" title="复制回答"
       onClick={() => { navigator.clipboard?.writeText(text).catch(() => {}); setOk(true); setTimeout(() => setOk(false), 1500); }}
-      className="flex h-7 w-7 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface hover:text-fg">
-      {ok ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
+      className="flex h-8 w-8 items-center justify-center rounded-full text-dim transition-colors hover:bg-surface2 hover:text-fg">
+      {ok ? <Check size={15} className="text-ok" /> : <Copy size={15} />}
     </button>
   );
 }
@@ -383,33 +383,47 @@ export default function QaPage() {
     <div className="-mx-6 -my-5 flex h-screen">
 
       {/* ── 左：会话列表 ── */}
-      <div className="flex w-[210px] shrink-0 flex-col border-r border-line bg-panel">
+      <div className="flex w-[240px] shrink-0 flex-col border-r border-line bg-panel">
         <div className="flex h-12 items-center justify-between px-3.5">
           <span className="text-[12px] font-medium text-faint">最近调查</span>
           <button onClick={newSession} className="rounded-[6px] p-1.5 text-faint transition-colors hover:bg-surface2 hover:text-fg" title="新调查">
             <Plus size={14} strokeWidth={2} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="flex-1 overflow-y-auto px-2 pb-3">
           {sessions.length === 0 && (
             <div className="px-2 py-6 text-center text-[12px] leading-relaxed text-faint">
               暂无历史调查<br />提问自动建档
             </div>
           )}
-          {sessions.map((s) => (
-            <button key={s.id} onClick={() => openSession(s)}
-              className={`mb-px block w-full truncate rounded-[6px] px-2.5 py-2 text-left text-[13px] transition-colors ${
-                sessionId === s.id ? "bg-surface2 font-medium text-fg" : "text-dim hover:bg-surface hover:text-fg"}`}>
-              {s.title}
-            </button>
-          ))}
+          {(() => {
+            /* ChatGPT 式按日分组：今天/昨天/前7天/更早 */
+            const day = 86400000, now = Date.now();
+            const g: [string, Sess[]][] = [["今天", []], ["昨天", []], ["前 7 天", []], ["更早", []]];
+            for (const s of sessions) {
+              const d = now - s.ts;
+              g[d < day ? 0 : d < 2 * day ? 1 : d < 7 * day ? 2 : 3][1].push(s);
+            }
+            return g.filter(([, l]) => l.length).map(([label, list]) => (
+              <div key={label} className="mb-1">
+                <div className="px-2.5 pb-1 pt-3 text-[11px] font-medium text-faint">{label}</div>
+                {list.map((s) => (
+                  <button key={s.id} onClick={() => openSession(s)}
+                    className={`mb-px flex h-9 w-full items-center truncate rounded-[10px] px-2.5 text-left text-[13.5px] transition-colors ${
+                      sessionId === s.id ? "bg-surface2 font-medium text-fg" : "text-dim hover:bg-surface hover:text-fg"}`}>
+                    <span className="truncate">{s.title}</span>
+                  </button>
+                ))}
+              </div>
+            ));
+          })()}
         </div>
       </div>
 
       {/* ── 中：无边框对话列 ── */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[700px] px-6 py-6">
+          <div className="mx-auto max-w-[660px] px-6 py-6">
             {msgs.length === 0 && (
               <div className="flex h-full min-h-[60vh] flex-col justify-center">
                 <div className="spec-row"><span>FIG_QA</span><span className="spec-sep" /><span>跨文档检索</span><span className="spec-sep" /><span>KG 多跳 · 可解释</span></div>
@@ -433,11 +447,11 @@ export default function QaPage() {
             )}
 
             {msgs.map((m, i) => (
-              <div key={i} className="rise mb-6">
+              <div key={i} className="rise mb-7">
                 {m.role === "user" ? (
-                  /* 用户消息：右对齐灰色圆角气泡（Perplexity/ChatGPT 共识模式） */
+                  /* 用户消息：右对齐 offset 灰气泡（Perplexity 实测 rounded-20/px4/py2.5/15px） */
                   <div className="flex justify-end">
-                    <div className="max-w-[85%] rounded-[18px] bg-surface2 px-4 py-2.5 text-[14px] leading-relaxed text-fg">
+                    <div className="max-w-[80%] whitespace-pre-wrap rounded-[20px] bg-surface2 px-4 py-2.5 text-[15px] leading-6 text-fg">
                       {m.content}
                     </div>
                   </div>
@@ -539,14 +553,15 @@ export default function QaPage() {
                       );
                     })()}
 
-                    {/* 追问建议（Perplexity related 式：↩ 行 + 预测下一步） */}
+                    {/* 追问（Perplexity Related 真品形态：分组标签+整宽分隔行+右置箭头） */}
                     {m.followups && m.followups.length > 0 && !busy && (
-                      <div className="mt-4 border-t border-line pt-1">
+                      <div className="mt-8">
+                        <div className="px-1 pb-1 text-[13px] font-medium text-dim">追问</div>
                         {m.followups.slice(0, 3).map((fq) => (
                           <button key={fq} onClick={() => send(fq)}
-                            className="group flex w-full items-center gap-2.5 border-b border-line/60 px-1 py-2.5 text-left text-[13px] text-dim transition-colors last:border-0 hover:text-fg">
-                            <CornerDownLeft size={12} className="shrink-0 text-faint transition-colors group-hover:text-accent" />
-                            <span className="truncate">{fq}</span>
+                            className="group flex w-full items-center gap-3 border-b border-line px-1 py-3.5 text-left text-[14px] text-dim transition-colors last:border-0 hover:bg-surface/60 hover:text-fg">
+                            <span className="min-w-0 flex-1 truncate">{fq}</span>
+                            <ChevronRight size={14} className="shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-fg" />
                           </button>
                         ))}
                       </div>
@@ -569,21 +584,21 @@ export default function QaPage() {
 
         {/* composer：Perplexity 式胶囊容器——输入区内嵌模式切换+圆形发送/停止钮 */}
         <div className="shrink-0 px-6 pb-5 pt-2">
-          <div className="mx-auto max-w-[700px] rounded-[16px] border border-line bg-panel shadow-[0_2px_12px_-4px_rgba(60,50,90,0.12)] transition-colors focus-within:border-accent/40">
+          <div className="mx-auto max-w-[660px] rounded-[24px] border border-line2 bg-panel shadow-[0_2px_4px_-2px_rgba(32,24,18,0.06),0_8px_24px_-12px_rgba(32,24,18,0.12)] transition-colors focus-within:border-[rgba(33,31,38,0.4)]">
             <textarea
-              ref={(el) => { if (el) { el.style.height = "0px"; el.style.height = `${Math.min(el.scrollHeight, 160)}px`; } }}
-              className="w-full resize-none bg-transparent px-4 pt-3.5 text-[14px] leading-relaxed text-fg outline-none placeholder:text-faint"
-              rows={1}
+              ref={(el) => { if (el) { el.style.height = "0px"; el.style.height = `${Math.min(el.scrollHeight, 200)}px`; } }}
+              className="w-full resize-none bg-transparent px-5 pt-4 text-[15px] leading-7 text-fg outline-none placeholder:text-faint"
+              rows={2}
               placeholder={busy ? "运行中——可继续输入，发送将排队为下一个问题" : "提问 AI 安全情报…"}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-            <div className="flex items-center gap-1 px-2.5 pb-2.5">
-              {/* 模式切换：深度=Agent 工具编排 / 快速=直接检索 */}
-              <div className="flex items-center rounded-[8px] bg-surface2/70 p-0.5 text-[12px]">
+            <div className="flex items-center gap-1 px-3 pb-3">
+              {/* 模式切换：深度=Agent 工具编排 / 快速=直接检索（Perplexity 模式 chip 位） */}
+              <div className="flex items-center rounded-full bg-surface2/70 p-0.5 text-[12px]">
                 {([[true, "深度"], [false, "快速"]] as const).map(([v, label]) => (
                   <button key={label} onClick={() => setDeep(v)}
-                    className={`rounded-[6px] px-2.5 py-1 transition-colors ${
+                    className={`rounded-full px-2.5 py-1 transition-colors ${
                       deep === v ? "bg-panel font-medium text-fg shadow-sm" : "text-faint hover:text-dim"}`}
                     title={v ? "Agent 工具编排 + 多跳推理" : "直接检索生成 ≤10s"}>
                     {label}
@@ -594,13 +609,13 @@ export default function QaPage() {
               <div className="flex-1" />
               {busy ? (
                 <button onClick={stop} title="中止当前生成"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-err/10 text-err transition-colors hover:bg-err/20">
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[#211f26] text-white transition-all hover:opacity-85">
                   <Square size={11} fill="currentColor" />
                 </button>
               ) : (
                 <button onClick={() => send()} disabled={!input.trim()}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white transition-all hover:opacity-90 disabled:opacity-30">
-                  <SendHorizontal size={13} strokeWidth={2} className="-ml-px" />
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[#211f26] text-white transition-all hover:opacity-85 disabled:bg-surface2 disabled:text-faint">
+                  <ArrowUp size={15} strokeWidth={2.2} />
                 </button>
               )}
             </div>
@@ -609,7 +624,7 @@ export default function QaPage() {
       </div>
 
       {/* ── 右：Evidence / Trace 面板（Perplexity 式紧凑来源列表，一屏内呈现） ── */}
-      <div className="relative flex w-[300px] shrink-0 flex-col overflow-hidden border-l border-line bg-panel">
+      <div className="relative flex w-[320px] shrink-0 flex-col overflow-hidden border-l border-line bg-panel">
         <div className="flex h-12 items-center gap-1 px-3">
           {([["evi", `证据 ${lastA?.citations?.length || ""}`], ["trace", "推理链"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
