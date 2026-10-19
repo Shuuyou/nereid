@@ -379,8 +379,8 @@ export default function QaPage() {
   const maxMs = stepDurs.reduce((m, x) => Math.max(m, x), 1);
 
   return (
-    /* 三栏工作台：会话 │ 对话列 │ Evidence/Trace */
-    <div className="-mx-6 -my-5 flex h-screen">
+    /* 三栏工作台：会话 │ 对话列 │ Evidence/Trace（h-full 填满 main 视口，各栏内部独立滚动） */
+    <div className="-mx-6 -my-5 flex h-full">
 
       {/* ── 左：会话列表 ── */}
       <div className="flex w-[240px] shrink-0 flex-col border-r border-line bg-panel">
