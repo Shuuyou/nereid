@@ -507,7 +507,13 @@ async def _prepare(question: str, session_id: str | None = None,
         cites = [
             {"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"],
              "score": round(c["score"], 3),
-             "snippet": (c["text"].split("\n", 1)[1] if "\n" in c["text"] else c["text"])[:200]}
+             "snippet": (c["text"].split("\n", 1)[1] if "\n" in c["text"] else c["text"])[:200],
+             # 研判字段透传：右栏证据行 severity色点/KEV/CVE 标位用（免二次请求）
+             "severity": c.get("meta", {}).get("severity"),
+             "cve": c.get("meta", {}).get("cve"),
+             "epss": c.get("meta", {}).get("epss"),
+             "is_kev": c.get("meta", {}).get("is_kev"),
+             "item_type": c.get("meta", {}).get("item_type")}
             for c in contexts if c["item_id"] != "kg"]
         if kg_facts:
             trace["kg_facts"] = kg_facts[:15]

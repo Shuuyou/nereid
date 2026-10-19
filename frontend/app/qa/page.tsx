@@ -11,7 +11,7 @@ import { LayerTag } from "@/components/cards";
 
 interface Msg {
   role: "user" | "assistant"; content: string; citations?: any[]; trace?: any;
-  confidence?: number; followups?: string[]; aborted?: boolean;
+  confidence?: number; followups?: string[]; aborted?: boolean; abstain?: boolean;
 }
 interface Sess { id: string; title: string; ts: number; }
 
@@ -39,9 +39,10 @@ function citedNsOf(content?: string): Set<number> {
 }
 
 function confBand(c?: number): { label: string; cls: string; bar: string } {
+  /* 与 PeekDrawer.confTone 同口径：0-0.25 弃答 / 0.25-0.4 低 / 0.4-0.7 中 / ≥0.7 高 */
   if (c == null) return { label: "—", cls: "text-faint", bar: "bg-surface2" };
-  if (c >= 0.6) return { label: "高", cls: "text-ok", bar: "bg-ok" };
-  if (c >= 0.35) return { label: "中", cls: "text-warn", bar: "bg-warn" };
+  if (c >= 0.7) return { label: "高", cls: "text-ok", bar: "bg-ok" };
+  if (c >= 0.4) return { label: "中", cls: "text-warn", bar: "bg-warn" };
   return { label: "低", cls: "text-err", bar: "bg-err" };
 }
 
@@ -345,7 +346,8 @@ export default function QaPage() {
         } else if (ev.type === "done") {
           conf = ev.data.confidence;
           fups = ev.data.followups || [];
-          setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], citations: cites, trace, confidence: conf, followups: fups }; return a; });
+          const abst = !!ev.data.abstain;
+          setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], citations: cites, trace, confidence: conf, followups: fups, abstain: abst }; return a; });
         } else if (ev.type === "error") {
           acc += "\n\n[服务错误] " + ev.data.error;
           setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], content: acc }; return a; });
@@ -433,11 +435,26 @@ export default function QaPage() {
             {msgs.map((m, i) => (
               <div key={i} className="rise mb-6">
                 {m.role === "user" ? (
-                  /* 用户问题：Perplexity 式大标题（无装饰块，字重撑层级） */
-                  <div className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-fg">{m.content}</div>
+                  /* 用户消息：右对齐灰色圆角气泡（Perplexity/ChatGPT 共识模式） */
+                  <div className="flex justify-end">
+                    <div className="max-w-[85%] rounded-[18px] bg-surface2 px-4 py-2.5 text-[14px] leading-relaxed text-fg">
+                      {m.content}
+                    </div>
+                  </div>
                 ) : (
                   /* 助手回答：无边框纯文本流 */
                   <div>
+                    {/* 弃答标记：系统知道自己不知道——安全产品的 trust 机制（非通用对话话术） */}
+                    {m.abstain && (
+                      <div className="mb-2 flex items-center gap-2 text-[12px]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-warn" />
+                        <span className="font-medium text-warn">置信度不足 · 证据缺口</span>
+                        <button onClick={() => { setTab("evi"); setShowUncited(true); }}
+                          className="text-faint underline-offset-2 transition-colors hover:text-dim hover:underline">
+                          查看未引用候选
+                        </button>
+                      </div>
+                    )}
                     {/* 推理脊椎：流式中就地累积（Grok/Devin 式） */}
                     {busy && i === msgs.length - 1 && spine.length > 0 && (
                       <TraceSpine steps={spine} streaming elapsedNow={elapsed} onJump={() => setTab("trace")} />
@@ -602,6 +619,21 @@ export default function QaPage() {
             </button>
           ))}
         </div>
+        {/* 研判条：Dropzone 调查头的对话流等价物——路由/置信/证据引用率/耗时一行收全 */}
+        {lastA && (() => {
+          const route = lastA.trace?.steps?.find((s: any) => s.route)?.route || lastA.trace?.route;
+          const citedN = citedNsOf(lastA.content).size;
+          const totalN = lastA.citations?.length || 0;
+          return (
+            <div className="flex items-center gap-2 border-t border-line px-3 py-1.5 font-mono text-[10.5px] text-faint">
+              {route && <span className="text-dim">{route === "general" ? "通用" : route === "vuln" ? "漏洞" : route === "trend" ? "趋势" : route === "entity" ? "实体" : route}</span>}
+              {route && <span>·</span>}
+              {lastA.confidence != null && <span className="tnum">conf {lastA.confidence.toFixed(2)}</span>}
+              {totalN > 0 && <><span>·</span><span className="tnum">{citedN}/{totalN} 引用</span></>}
+              {lastA.trace?.total_ms != null && <><span>·</span><span className="tnum">{fmtMs(lastA.trace.total_ms)}</span></>}
+            </div>
+          );
+        })()}
         <div className="flex-1 overflow-y-auto border-t border-line">
           {tab === "evi" && (
             <div className="p-2">
@@ -616,16 +648,26 @@ export default function QaPage() {
                 const cited = (lastA?.citations || []).filter((c: any) => citedNs.has(c.n));
                 const rest = (lastA?.citations || []).filter((c: any) => !citedNs.has(c.n));
                 const host = (u?: string) => { try { return u ? new URL(u).hostname.replace(/^www\./, "") : ""; } catch { return ""; } };
-                /* 单行紧凑来源行：n chip + 标题 + 域名/库内标（~30px/条，一屏 10+） */
+                /* 单行紧凑来源行：n chip + severity色点 + 标题 + 研判meta（KEV>CVE>EPSS>域名） */
+                const SEV_DOT: Record<string, string> = {
+                  critical: "#d92638", high: "#e8622c", medium: "#b07c00", low: "#5c8a3f",
+                };
                 const Card = ({ c, dimmed }: { c: any; dimmed?: boolean }) => {
                   const cls = `group mb-px flex w-full items-center gap-2 rounded-[6px] px-2 py-[7px] text-left transition-colors ${
                     citeFocus === c.n ? "bg-[rgba(21,122,119,0.12)]"
                       : "hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`;
+                  const sevDot = c.severity && SEV_DOT[c.severity];
+                  const meta = dimmed ? "候选"
+                    : c.is_kev ? "KEV"
+                    : c.cve ? String(c.cve).split(",")[0]
+                    : c.epss != null ? `${Math.round(c.epss * 100)}%`
+                    : c.url ? host(c.url) : "库内";
                   const inner = (<>
                     <span className="cite shrink-0">{c.n}</span>
+                    {sevDot && <span className="h-[6px] w-[6px] shrink-0 rounded-full" style={{ background: sevDot }} title={c.severity} />}
                     <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-fg">{c.title}</span>
-                    <span className="shrink-0 font-mono text-[10px] text-faint">
-                      {dimmed ? "候选" : c.url ? host(c.url) : "库内"}
+                    <span className={`shrink-0 font-mono text-[10px] ${c.is_kev && !dimmed ? "font-medium text-err" : "text-faint"}`}>
+                      {meta}
                     </span>
                     {c.url
                       ? <ExternalLink size={9} className="shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-70" />
