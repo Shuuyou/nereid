@@ -544,18 +544,24 @@ export default function QaPage() {
                         </button>
                       </div>
                     )}
-                    {/* 推理脊椎：进行中就地累积 → 完成就地收拢成 receipt 行（同 DOM 位不跳变） */}
-                    {i === msgs.length - 1 && spine.length > 0 && (
-                      busy ? (
-                        <TraceSpine steps={spine} streaming elapsedNow={elapsed} onJump={() => setTab("trace")} />
-                      ) : (
-                        <button type="button" onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
-                          className="group mb-3 ml-[7px] flex items-center gap-2 text-[12px] text-faint transition-colors hover:text-dim">
-                          <Check size={11} className="text-ok" />
-                          <span>推理链 {spine.length} 步{elapsed ? ` · 用时 ${fmtMs(elapsed)}` : ""}</span>
-                          <ChevronRight size={11} className={`transition-transform ${openTrace[i] ? "rotate-90" : ""}`} />
-                        </button>
-                      )
+                    {/* 推理脊椎：进行中就地累积 → 完成就地收拢成 receipt（计数统一用权威 trace.steps） */}
+                    {i === msgs.length - 1 && busy && spine.length > 0 && (
+                      <TraceSpine steps={spine} streaming elapsedNow={elapsed} onJump={() => setTab("trace")} />
+                    )}
+                    {!busy && (m.trace?.steps?.length || (i === msgs.length - 1 && spine.length)) ? (
+                      <button type="button" onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
+                        className="group mb-3 ml-[7px] flex items-center gap-2 text-[12px] text-faint transition-colors hover:text-dim">
+                        <Check size={11} className="text-ok" />
+                        <span>推理链 {(m.trace?.steps || spine).length} 步{m.trace?.total_ms ? ` · 用时 ${fmtMs(m.trace.total_ms)}` : ""}</span>
+                        <ChevronRight size={11} className={`transition-transform ${openTrace[i] ? "rotate-90" : ""}`} />
+                      </button>
+                    ) : null}
+                    {openTrace[i] && m.trace?.steps && (
+                      <TraceSpine steps={m.trace.steps.map((s: any, j: number, arr: any[]) => ({
+                        step: s.step,
+                        ms: j + 1 < arr.length ? Math.max(0, (arr[j + 1].ms ?? s.ms) - s.ms) : (s.dur_ms ?? s.ms),
+                        hits: s.hits, error: s.status === "error",
+                      }))} streaming={false} onJump={() => setTab("trace")} />
                     )}
                     {busy && i === msgs.length - 1 && elapsed > 30000 && (
                       <div className="mb-3 ml-[7px] text-[12px] text-faint">
@@ -597,19 +603,12 @@ export default function QaPage() {
                           );
                         })()}
                         {m.trace?.steps && (
-                          <button onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
+                          <button onClick={() => setTab("trace")}
                             className="rounded-full px-2 py-1 text-[12px] text-faint transition-colors hover:bg-surface hover:text-fg">
-                            {openTrace[i] ? "收起" : ""}{m.trace.steps.length} 步{m.trace.total_ms ? ` · ${fmtMs(m.trace.total_ms)}` : ""}
+                            推理链
                           </button>
                         )}
                       </div>
-                    )}
-                    {openTrace[i] && m.trace?.steps && (
-                      <TraceSpine steps={m.trace.steps.map((s: any, j: number, arr: any[]) => ({
-                        step: s.step,
-                        ms: j + 1 < arr.length ? Math.max(0, (arr[j + 1].ms ?? s.ms) - s.ms) : (s.dur_ms ?? s.ms),
-                        hits: s.hits, error: s.status === "error",
-                      }))} streaming={false} onJump={() => setTab("trace")} />
                     )}
 
                     {/* 引用行：只展示正文真正引用的 [n]（Perplexity 纪律：检索候选≠来源） */}
