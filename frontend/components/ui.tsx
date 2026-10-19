@@ -5,7 +5,7 @@ export function PageHeader({ title, desc, right }: { title: string; desc?: strin
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div>
-        <h1 className="text-[16px] font-semibold tracking-[-0.01em] text-fg">{title}</h1>
+        <h1 className="text-[17px] font-semibold tracking-[-0.01em] text-fg">{title}</h1>
         {desc && <p className="mt-0.5 text-[12px] text-faint">{desc}</p>}
       </div>
       {right}

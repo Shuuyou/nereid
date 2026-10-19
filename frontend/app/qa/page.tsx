@@ -402,6 +402,9 @@ export default function QaPage() {
                 <p className="mt-3 text-[15px] leading-relaxed text-dim">
                   向捞针提问——横跨 <span className="mono text-fg">45k</span> 条情报与
                   <span className="mono text-fg"> 29k</span> 图谱节点推理作答
+                  <span className="display-en italic mt-2 block text-[14px] text-faint">
+                    ask in plain language, get a cited answer
+                  </span>
                 </p>
                 <div className="mt-6 space-y-px">
                   {SUGGESTIONS.map((s) => (

@@ -8,6 +8,36 @@
    原则：pastel=分类学而非装饰 · severity 独立全饱和 · 色块分区而非描边
    ============================================================ */
 
+/* ── 真字库自托管（此前只是声明字体名，浏览器从未装载）── */
+@font-face {
+  font-family: "Inter Variable";
+  src: url("/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrainsMono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/InstrumentSerif-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   --bg: #FAF9F7;
   --panel: #ffffff;
@@ -521,6 +551,14 @@ a.stretched::after {
 
 /* spec-row 段间分隔：细竖刻度线（图纸 tick），不用圆点 */
 .spec-sep { display: inline-block; width: 1px; height: 9px; background: var(--line-2); flex: none; }
+
+/* ── display 排版：衬线英文/数字的编辑感装置（Perplexity 式）── */
+.display-en {
+  font-family: "Instrument Serif", Georgia, "Noto Serif SC", serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.display-en.italic { font-style: italic; }
 
 @keyframes fadeIn { from { opacity: 0; } }
 @keyframes riseIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } }

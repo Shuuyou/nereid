@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <circle cx="8" cy="12.8" r="1.9" fill="none" stroke="#157a77" strokeWidth="1.3" />
               </svg>
               <span className="text-[13.5px] font-semibold tracking-wide text-ink">捞针</span>
-              <span className="font-mono text-[11px] lowercase tracking-[0.08em] text-faint">nereid</span>
+              <span className="display-en italic text-[13px] lowercase text-faint">nereid</span>
             </Link>
             <div className="flex-1 overflow-y-auto">
               <Nav />
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-canvas px-5">
               <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-faint">
-                Nereid — Threat Intel Workbench
+                Threat Intel Workbench
               </span>
               <div className="ml-auto flex items-center gap-3">
                 <PaletteButton />

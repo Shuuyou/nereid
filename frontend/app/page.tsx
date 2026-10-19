@@ -225,6 +225,7 @@ export default function DutyDesk() {
             <div className="mt-2 flex items-center gap-2">
               <Newspaper size={15} strokeWidth={1.75} className="text-[#7adfd8]" />
               <span className="text-[14px] font-semibold text-[#eceef0]">过去 7 天画像摘要</span>
+              <span className="display-en italic ml-auto text-[15px] text-[#a49f8f]">your daily brief</span>
             </div>
             {digest?.digest ? (
               <div className="mt-3 space-y-2 text-[12.5px] leading-relaxed text-[#b9bcc4]">
