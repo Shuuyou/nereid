@@ -191,29 +191,28 @@ export default function DutyDesk() {
 
         {/* ── 右：晨报（深色锚点卡）+ 趋势 + 实时流 ── */}
         <div className="lg:col-span-5">
-          <div className="tile tile-dark">
-            <div className="tile-kicker" style={{ color: "#a49f8f" }}>晨报 MORNING BRIEF</div>
-            <div className="mt-2 flex items-center gap-2">
-              <Newspaper size={15} strokeWidth={1.75} className="text-[#7adfd8]" />
-              <span className="text-[14px] font-semibold text-[#eceef0]">过去 7 天画像摘要</span>
-              <span className="display-en italic ml-auto text-[15px] text-[#a49f8f]">your daily brief</span>
+          {/* 晨报：与右栏其他分区同形态（sect-title+描边框），不再是唯一的深色卡 */}
+          <div>
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="sect-title">晨报</h2>
+              <span className="text-[11px] text-faint">过去 7 天画像摘要</span>
             </div>
-            {digest?.digest ? (
-              <div className="mt-3 space-y-2 text-[13px] leading-relaxed text-[#b9bcc4]">
-                {String(digest.digest).split("\n").filter(Boolean).slice(0, 6).map((l: string, i: number) => (
-                  <p key={i}>{l}</p>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-[13px] leading-relaxed text-[#8a8d96]">
-                {digest ? "近 7 天无画像命中摘要。" : "配置「关注需求」画像后，此处将生成每日晨报——昨晚发生了什么、哪些与你相关。"}
-              </p>
-            )}
-            {digest?.item_count != null && (
-              <div className="mt-3 border-t border-[rgba(255,255,255,0.08)] pt-2 font-mono text-[11px] text-[#8a8d96]">
-                命中 {digest.item_count} 条，画像 {localStorage.getItem("foryou_name") || "—"}
-              </div>
-            )}
+            <div className="rounded-nest border border-line bg-paper px-4 py-3.5">
+              {digest?.digest ? (
+                <div className="space-y-1.5 text-[13px] leading-relaxed text-dim">
+                  {String(digest.digest).split("\n").filter(Boolean).slice(0, 6).map((l: string, i: number) => (
+                    <p key={i}>{l}</p>
+                  ))}
+                  {digest.item_count != null && (
+                    <p className="pt-1.5 text-[11px] text-faint">命中 {digest.item_count} 条 · 画像 {localStorage.getItem("foryou_name") || "—"}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[13px] leading-relaxed text-faint">
+                  {digest ? "近 7 天无画像命中摘要。" : "配置「关注需求」画像后，此处将生成每日晨报——昨晚发生了什么、哪些与你相关。"}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* 趋势 */}
