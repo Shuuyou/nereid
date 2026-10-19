@@ -37,11 +37,12 @@ export interface QaEvent {
   data: any;
 }
 
-export async function* streamChat(question: string, sessionId: string | null, deep = true): AsyncGenerator<QaEvent> {
+export async function* streamChat(question: string, sessionId: string | null, deep = true, signal?: AbortSignal): AsyncGenerator<QaEvent> {
   const r = await fetch(`${API}/api/qa/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question, session_id: sessionId, deep }),
+    signal,
   });
   const sid = r.headers.get("X-Session-Id");
   if (!r.ok || !r.body) throw new Error(`chat ${r.status}`);

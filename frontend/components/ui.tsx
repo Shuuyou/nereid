@@ -68,11 +68,37 @@ export function St({ tone = "dim", children }: { tone?: "ok" | "err" | "warn" | 
   );
 }
 
-/** severity 点+文字 */
+/** severity：PatternFly 形状字形（剪影分档、色盲可达）+ 同色文字；高强调位用 pill */
+import { OctagonX, TriangleAlert, CircleAlert, Info, Minus } from "lucide-react";
+
+const SEV_GLYPH: Record<string, any> = {
+  crit: OctagonX, high: TriangleAlert, med: CircleAlert, low: Info,
+};
+
 export function Sev({ level }: { level?: string }) {
   const l = (level || "").toLowerCase();
   const cls = l.includes("crit") ? "sev-crit" : l.includes("high") ? "sev-high"
     : l.includes("med") ? "sev-med" : l.includes("low") ? "sev-low" : "";
   const label = l.includes("crit") ? "严重" : l.includes("high") ? "高危" : l.includes("med") ? "中危" : l.includes("low") ? "低危" : (level || "—");
-  return <span className={`sev ${cls}`}><span className="dot" style={cls ? undefined : { background: "#71717a" }} />{label}</span>;
+  const Icon = SEV_GLYPH[l.includes("crit") ? "crit" : l.includes("high") ? "high" : l.includes("med") ? "med" : l.includes("low") ? "low" : ""] || Minus;
+  return (
+    <span className={`sev ${cls}`}>
+      <Icon size={12} strokeWidth={2} aria-hidden className={cls ? "" : "text-faint"} />
+      {label}
+    </span>
+  );
+}
+
+/** tinted pill 变体：详情页头/高强调位 */
+export function SevPill({ level }: { level?: string }) {
+  const l = (level || "").toLowerCase();
+  const k = l.includes("crit") ? "crit" : l.includes("high") ? "high" : l.includes("med") ? "med" : l.includes("low") ? "low" : "";
+  const label = l.includes("crit") ? "严重" : l.includes("high") ? "高危" : l.includes("med") ? "中危" : l.includes("low") ? "低危" : (level || "—");
+  const Icon = SEV_GLYPH[k] || Minus;
+  return (
+    <span className={`sev-pill ${k ? `sev-pill-${k}` : "bg-surface text-dim border border-line"}`}>
+      <Icon size={11} strokeWidth={2} aria-hidden />
+      {label}
+    </span>
+  );
 }

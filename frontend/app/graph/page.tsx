@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { C, echartsBase } from "@/lib/theme";
 import { SpecRow, SpecDot, Sev, St } from "@/components/ui";
-import { Search, Share2 } from "lucide-react";
+import { Search, Share2, ExternalLink, RotateCcw } from "lucide-react";
 
 const Chart = dynamic(() => import("echarts-for-react"), { ssr: false });
 
@@ -205,10 +206,24 @@ export default function GraphPage() {
                   {sel.node.score != null && (
                     <div className="num mt-1 text-[11px] text-dim">score {sel.node.score}</div>
                   )}
-                  <button className="btn btn-sm btn-ghost mt-2 !px-0"
-                    onClick={() => recenter(sel.node.id)}>
-                    以此实体为中心展开 →
-                  </button>
+                  <div className="mt-2.5 flex flex-col items-start gap-0.5">
+                    {sel.node.kind === "Item" && (
+                      <Link href={`/items/${sel.node.id}`}
+                        className="inline-flex items-center gap-1 font-mono text-[11px] text-accent transition-colors hover:underline">
+                        查看情报详情<ExternalLink size={10} />
+                      </Link>
+                    )}
+                    {sel.node.kind !== "Item" && (
+                      <Link href={`/items?q=${encodeURIComponent(sel.node.label || sel.node.id)}&ai_only=0`}
+                        className="inline-flex items-center gap-1 font-mono text-[11px] text-dim transition-colors hover:text-accent">
+                        检索相关情报<Search size={10} />
+                      </Link>
+                    )}
+                    <button className="mt-1 inline-flex items-center gap-1 font-mono text-[11px] text-dim transition-colors hover:text-accent"
+                      onClick={() => recenter(sel.node.id)}>
+                      <RotateCcw size={10} />以此实体为中心展开
+                    </button>
+                  </div>
                 </div>
                 <div className="border-t border-line pt-3">
                   <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">

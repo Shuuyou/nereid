@@ -1,6 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { API, api } from "@/lib/api";
 import { SpecRow, SpecDot, PageHeader, Empty, Skeleton, Sev } from "@/components/ui";
 import { Check, Undo2, RefreshCw } from "lucide-react";
@@ -11,6 +12,7 @@ const TABS = [
   ["auto", "自动通过"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
+const TAB_VALUES = new Set<string>(TABS.map(([v]) => v));
 
 interface ReviewItem {
   id: string;
@@ -37,14 +39,23 @@ function confText(c?: number) {
   return "text-err";
 }
 
-export default function ReviewPage() {
+function ReviewInner() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("needs_review");
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const tabParam = sp.get("status") || "";
+  const tab: Tab = TAB_VALUES.has(tabParam) ? (tabParam as Tab) : "needs_review";
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+
+  const setTab = (v: Tab) => {
+    const p = new URLSearchParams(sp.toString());
+    if (v === "needs_review") p.delete("status"); else p.set("status", v);
+    router.replace(p.toString() ? `${pathname}?${p}` : pathname, { scroll: false });
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -148,9 +159,12 @@ export default function ReviewPage() {
           </thead>
           <tbody>
             {items.map((it) => (
-              <tr key={it.id} className="cursor-pointer" onClick={() => router.push(`/items/${it.id}`)}>
+              <tr key={it.id} className="rowlink">
                 <td className="max-w-[380px]">
-                  <div className="truncate text-[12.5px] text-fg">{it.title || it.id}</div>
+                  <Link href={`/items/${it.id}`}
+                    className="stretched block truncate text-[12.5px] text-fg transition-colors hover:text-accent">
+                    {it.title || it.id}
+                  </Link>
                   <div className="mono mt-0.5 text-[10px] text-faint">{it.id}</div>
                 </td>
                 <td>
@@ -184,7 +198,7 @@ export default function ReviewPage() {
                 <td className="num text-faint">
                   {it.first_seen_at ? it.first_seen_at.slice(5, 16).replace("T", " ") : "—"}
                 </td>
-                <td className="r" onClick={(e) => e.stopPropagation()}>
+                <td className="r z-act">
                   <div className="flex justify-end gap-1.5">
                     <button className="btn btn-sm !border-ok/40 !text-ok hover:!bg-ok/10"
                       disabled={busy !== null} onClick={() => act(it, "confirm")}>
@@ -212,5 +226,13 @@ export default function ReviewPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense>
+      <ReviewInner />
+    </Suspense>
   );
 }

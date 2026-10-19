@@ -2,11 +2,14 @@
 import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { SendHorizontal, Square, Plus, ChevronRight, ExternalLink, MessageSquareText } from "lucide-react";
+import { SendHorizontal, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X } from "lucide-react";
 import { streamChat, api } from "@/lib/api";
 import { remarkChips } from "@/lib/remark-chips";
 
-interface Msg { role: "user" | "assistant"; content: string; citations?: any[]; trace?: any; confidence?: number; }
+interface Msg {
+  role: "user" | "assistant"; content: string; citations?: any[]; trace?: any;
+  confidence?: number; followups?: string[]; aborted?: boolean;
+}
 interface Sess { id: string; title: string; ts: number; }
 
 const SUGGESTIONS = [
@@ -32,11 +35,44 @@ function citedNsOf(content?: string): Set<number> {
   return new Set(Array.from((content || "").matchAll(/\[(\d{1,3})\]/g)).map((x) => +x[1]));
 }
 
-function confBand(c?: number): { label: string; cls: string } {
-  if (c == null) return { label: "—", cls: "text-faint" };
-  if (c >= 0.6) return { label: "置信 · 高", cls: "text-ok" };
-  if (c >= 0.35) return { label: "置信 · 中", cls: "text-warn" };
-  return { label: "置信 · 低", cls: "text-err" };
+function confBand(c?: number): { label: string; cls: string; bar: string } {
+  if (c == null) return { label: "—", cls: "text-faint", bar: "bg-surface2" };
+  if (c >= 0.6) return { label: "高", cls: "text-ok", bar: "bg-ok" };
+  if (c >= 0.35) return { label: "中", cls: "text-warn", bar: "bg-warn" };
+  return { label: "低", cls: "text-err", bar: "bg-err" };
+}
+
+interface SpineStep { step: string; ms: number; hits?: number; running?: boolean; error?: boolean }
+function fmtMs(ms?: number) {
+  if (ms == null) return "";
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+}
+/** 推理脊椎：纵向步骤条骑线节点（Grok/Devin 式），流式累积、完成可收 receipt */
+function TraceSpine({ steps, streaming, onJump }: {
+  steps: SpineStep[]; streaming: boolean; onJump?: () => void;
+}) {
+  if (!steps.length && !streaming) return null;
+  return (
+    <div className="relative mb-3 ml-[7px] border-l border-line2 pl-4">
+      {steps.map((s, i) => (
+        <button key={i} type="button" onClick={onJump}
+          className="group relative flex w-full items-center gap-2 py-[5px] text-left">
+          <span className={`absolute -left-[21px] flex h-3.5 w-3.5 items-center justify-center rounded-full border bg-panel ${
+            s.error ? "border-err" : s.running ? "border-accent" : "border-line2"}`}>
+            {s.running && <span className="h-1.5 w-1.5 rounded-full bg-accent" style={{ animation: "pulse-dot 1.4s ease-in-out infinite" }} />}
+            {s.error && <X size={8} className="text-err" />}
+            {!s.running && !s.error && <Check size={8} className="text-ok" />}
+          </span>
+          <span className="flex-1 truncate text-[11.5px] text-dim transition-colors group-hover:text-fg">
+            {STEP_ZH[s.step] || s.step}
+            {s.hits != null && <span className="text-faint"> · {s.hits} 命中</span>}
+          </span>
+          <span className="font-mono text-[9.5px] tnum text-faint">{fmtMs(s.ms)}</span>
+        </button>
+      ))}
+      {streaming && steps.length > 0 && steps[steps.length - 1].running === false ? null : null}
+    </div>
+  );
 }
 
 /** [n] 引用 chip + hover 预览卡（Consensus/Glean 式：hover 即见证据摘录） */
@@ -150,13 +186,14 @@ export default function QaPage() {
   const [sessions, setSessions] = useState<Sess[]>([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [spine, setSpine] = useState<SpineStep[]>([]);
   const [deep, setDeep] = useState(true);
   const [tab, setTab] = useState<"evi" | "trace">("evi");
   const [citeFocus, setCiteFocus] = useState<number | null>(null);
   const [showUncited, setShowUncited] = useState(false);
   const [openTrace, setOpenTrace] = useState<Record<number, boolean>>({});
   const bottom = useRef<HTMLDivElement>(null);
-  const esRef = useRef<boolean>(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => { setSessions(loadSessions()); }, []);
 
@@ -185,15 +222,30 @@ export default function QaPage() {
     setSessionId(null); setMsgs([]); setStatus(""); setOpenTrace({});
   }
 
+  function stop() {
+    abortRef.current?.abort();
+  }
+
+  /** [n] chip → 右栏证据卡：切 tab + 滚动定位 + 高亮 */
+  function focusCite(n: number) {
+    setTab("evi");
+    setCiteFocus(n);
+    requestAnimationFrame(() => {
+      document.getElementById(`evi-${n}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }
+
   async function send(q?: string) {
     const question = (q ?? input).trim();
     if (!question || busy) return;
-    setInput(""); setBusy(true);
+    setInput(""); setBusy(true); setSpine([]); setStatus("");
     setMsgs((m) => [...m, { role: "user", content: question }, { role: "assistant", content: "" }]);
+    const abort = new AbortController();
+    abortRef.current = abort;
     let firstQ = question;
     try {
-      let acc = "", cites: any[] = [], trace: any = null, conf: number | undefined;
-      for await (const ev of streamChat(question, sessionId, deep)) {
+      let acc = "", cites: any[] = [], trace: any = null, conf: number | undefined, fups: string[] = [];
+      for await (const ev of streamChat(question, sessionId, deep, abort.signal)) {
         if (ev.type === "status") {
           if (ev.data.session_id && !sessionId) {
             setSessionId(ev.data.session_id);
@@ -203,6 +255,20 @@ export default function QaPage() {
             ? `${STEP_ZH[ev.data.tool] || ev.data.tool} · ${ev.data.hits ?? "?"} 命中`
             : (ev.data.msg || "");
           setStatus(t);
+          // 脊椎累积：同步骤更新，异步骤追加（ms 为累计值，显示时差分）
+          if (ev.data.step) {
+            setSpine((s) => {
+              const a = [...s];
+              const prev = a[a.length - 1];
+              if (prev && prev.step === ev.data.step) {
+                a[a.length - 1] = { ...prev, ms: ev.data.ms ?? prev.ms, hits: ev.data.hits ?? prev.hits };
+              } else {
+                if (prev) prev.running = false;
+                a.push({ step: ev.data.step, ms: ev.data.ms ?? 0, hits: ev.data.hits, running: true });
+              }
+              return a;
+            });
+          }
         } else if (ev.type === "token") {
           acc += ev.data.t;
           setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], content: acc }; return a; });
@@ -216,25 +282,36 @@ export default function QaPage() {
           trace = ev.data.trace;
         } else if (ev.type === "done") {
           conf = ev.data.confidence;
-          setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], citations: cites, trace, confidence: conf }; return a; });
+          fups = ev.data.followups || [];
+          setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], citations: cites, trace, confidence: conf, followups: fups }; return a; });
         } else if (ev.type === "error") {
           acc += "\n\n[服务错误] " + ev.data.error;
           setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], content: acc }; return a; });
         }
       }
     } catch (e: any) {
-      setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], content: "连接失败：" + String(e) }; return a; });
+      if (abort.signal.aborted) {
+        // 用户主动中止：保留已流出的部分答案
+        setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], aborted: true }; return a; });
+      } else {
+        setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], content: "连接失败：" + String(e) }; return a; });
+      }
     }
+    setSpine((s) => s.map((x) => ({ ...x, running: false })));
     setBusy(false); setStatus("");
+    abortRef.current = null;
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs.length]);
 
   const lastA = [...msgs].reverse().find((m) => m.role === "assistant" && (m.citations?.length || m.trace));
-  const totalMs = lastA?.trace?.steps?.reduce((s: number, x: any) => s + (x.ms || 0), 0);
-  const maxMs = lastA?.trace?.steps?.reduce((m: number, x: any) => Math.max(m, x.ms || 0), 1) ?? 1;
-  const band = confBand(lastA?.confidence);
+  // trace.steps[].ms 是累计耗时 → 差分得单步耗时
+  const traceSteps: any[] = lastA?.trace?.steps || [];
+  const stepDurs: number[] = traceSteps.map((s: any, j: number, arr: any[]) =>
+    j + 1 < arr.length ? Math.max(0, (arr[j + 1].ms ?? s.ms) - (s.ms ?? 0)) : Math.max(0, s.ms ?? 0));
+  const totalMs = traceSteps.length ? traceSteps[traceSteps.length - 1].ms : 0;
+  const maxMs = stepDurs.reduce((m, x) => Math.max(m, x), 1);
 
   return (
     /* 三栏工作台：会话 │ 对话列 │ Evidence/Trace */
@@ -309,19 +386,34 @@ export default function QaPage() {
                 ) : (
                   /* 助手回答：无边框纯文本流 */
                   <div>
+                    {/* 推理脊椎：流式中就地累积（Grok/Devin 式） */}
+                    {busy && i === msgs.length - 1 && spine.length > 0 && (
+                      <TraceSpine steps={spine} streaming onJump={() => setTab("trace")} />
+                    )}
                     {m.content
                       ? <AnswerBody content={m.content} streaming={busy && i === msgs.length - 1}
-                          cites={m.citations}
-                          onCite={(n) => { setTab("evi"); setCiteFocus(n); }} />
+                          cites={m.citations} onCite={focusCite} />
                       : (busy && i === msgs.length - 1
                         ? <span className="text-faint"> </span>
                         : <span className="text-faint">…</span>)}
+                    {m.aborted && (
+                      <div className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.06em] text-warn">
+                        ▪ 已中止——可修改问题重发
+                      </div>
+                    )}
 
-                    {/* 判定条：置信 band + 推理链折叠行 */}
+                    {/* 判定条：置信仪表 + 源数 + 推理链 receipt */}
                     {(m.confidence != null || m.trace?.steps) && !busy && (
                       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-line pt-2.5 text-[11.5px]">
                         {m.confidence != null && (() => { const b = confBand(m.confidence); return (
-                          <span className={`font-mono text-[10.5px] uppercase tracking-[0.06em] ${b.cls}`}>{b.label}</span>
+                          <span className="flex items-center gap-1.5" title={`答案置信度 ${m.confidence.toFixed(2)}`}>
+                            <span className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-faint">CONF</span>
+                            <span className="relative h-[3px] w-16 rounded bg-surface2">
+                              <span className={`absolute inset-y-0 left-0 rounded ${b.bar}`}
+                                style={{ width: `${Math.round(m.confidence * 100)}%` }} />
+                            </span>
+                            <span className={`tnum font-mono text-[10.5px] ${b.cls}`}>{m.confidence.toFixed(2)}·{b.label}</span>
+                          </span>
                         ); })()}
                         {m.citations && m.citations.length > 0 && (() => {
                           const cited = citedNsOf(m.content).size;
@@ -334,22 +426,17 @@ export default function QaPage() {
                         {m.trace?.steps && (
                           <button onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
                             className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
-                            {openTrace[i] ? "▾" : "▸"} TRACE {m.trace.steps.length} STEPS
+                            {openTrace[i] ? "▾" : "▸"} {m.trace.steps.length} STEPS{m.trace.total_ms ? ` · ${fmtMs(m.trace.total_ms)}` : ""}
                           </button>
                         )}
                       </div>
                     )}
                     {openTrace[i] && m.trace?.steps && (
-                      <div className="mt-2 space-y-px rounded-md border border-line py-1">
-                        {m.trace.steps.map((s: any, j: number) => (
-                          <div key={j} className="flex items-center gap-2.5 px-3 py-1 text-[11.5px]">
-                            <span className="w-4 text-right font-mono text-[10px] text-faint">{j + 1}</span>
-                            <span className="text-dim">{STEP_ZH[s.step] || s.step}</span>
-                            {s.hits != null && <span className="font-mono text-[10px] text-faint">{s.hits} hits</span>}
-                            {s.ms != null && <span className="ml-auto font-mono text-[10px] tnum text-faint">{s.ms}ms</span>}
-                          </div>
-                        ))}
-                      </div>
+                      <TraceSpine steps={m.trace.steps.map((s: any, j: number, arr: any[]) => ({
+                        step: s.step,
+                        ms: j + 1 < arr.length ? Math.max(0, (arr[j + 1].ms ?? s.ms) - s.ms) : (s.dur_ms ?? s.ms),
+                        hits: s.hits, error: s.status === "error",
+                      }))} streaming={false} onJump={() => setTab("trace")} />
                     )}
 
                     {/* 引用行：只展示正文真正引用的 [n]（Perplexity 纪律：检索候选≠来源） */}
@@ -370,13 +457,27 @@ export default function QaPage() {
                         </div>
                       );
                     })()}
+
+                    {/* 追问建议（Perplexity related 式：预测下一步，非通用 prompt） */}
+                    {m.followups && m.followups.length > 0 && !busy && (
+                      <div className="mt-3 space-y-px border-t border-line pt-2">
+                        <div className="px-1.5 pb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">追问</div>
+                        {m.followups.slice(0, 3).map((fq) => (
+                          <button key={fq} onClick={() => send(fq)}
+                            className="group flex w-full items-center gap-2 rounded-[5px] px-1.5 py-1.5 text-left text-[12px] text-dim transition-colors hover:bg-surface hover:text-fg">
+                            <ChevronRight size={11} className="shrink-0 text-faint transition-colors group-hover:text-accent" />
+                            <span className="truncate">{fq}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             ))}
 
-            {/* 动态单行状态：就地演变 */}
-            {status && (
+            {/* 动态单行状态：就地演变（脊椎已有步骤时仅作补充文案） */}
+            {status && spine.length === 0 && (
               <div className="mb-6 flex items-center gap-2 text-[12px] text-dim">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" style={{ animation: "pulse-dot 1.4s ease-in-out infinite" }} />
                 <span className="font-mono text-[11px]">{status}</span>
@@ -386,18 +487,24 @@ export default function QaPage() {
           </div>
         </div>
 
-        {/* composer */}
+        {/* composer：忙时输入仍可编辑（纠偏排队），发送钮变真·停止 */}
         <div className="shrink-0 border-t border-line px-6 py-3">
           <div className="mx-auto flex max-w-[700px] items-center gap-2">
             <input
               className="input h-9 flex-1 !text-[13px]"
-              placeholder="提问 AI 安全情报… @实体 / Enter 发送"
-              value={input} disabled={busy}
+              placeholder={busy ? "运行中——可继续输入，发送将排队为下一个问题" : "提问 AI 安全情报… @实体 / Enter 发送"}
+              value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()} />
-            <button className="btn btn-acc h-9" onClick={() => send()} disabled={busy || !input.trim()}>
-              {busy ? <Square size={12} /> : <SendHorizontal size={13} strokeWidth={2} />}
-            </button>
+            {busy ? (
+              <button className="btn h-9 !border-err/40 !text-err" onClick={stop} title="中止当前生成">
+                <Square size={11} fill="currentColor" />
+              </button>
+            ) : (
+              <button className="btn btn-acc h-9" onClick={() => send()} disabled={!input.trim()}>
+                <SendHorizontal size={13} strokeWidth={2} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -427,7 +534,7 @@ export default function QaPage() {
                 const cited = (lastA?.citations || []).filter((c: any) => citedNs.has(c.n));
                 const rest = (lastA?.citations || []).filter((c: any) => !citedNs.has(c.n));
                 const Card = ({ c, dimmed }: { c: any; dimmed?: boolean }) => (
-                  <a key={c.n} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
+                  <a key={c.n} id={`evi-${c.n}`} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
                     className={`group mb-1 block rounded-[6px] border px-2.5 py-2 transition-colors ${
                       citeFocus === c.n ? "border-accent/50 bg-[rgba(21,122,119,0.12)]"
                         : "border-transparent hover:border-line hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`}>
@@ -476,11 +583,11 @@ export default function QaPage() {
                     <div key={j} className="mb-2.5">
                       <div className="flex items-baseline justify-between text-[11px]">
                         <span className="text-dim">{STEP_ZH[s.step] || s.step}</span>
-                        <span className="font-mono text-[10px] tnum text-faint">{s.ms ?? "—"}ms</span>
+                        <span className="font-mono text-[10px] tnum text-faint">{fmtMs(stepDurs[j]) || "—"}</span>
                       </div>
                       <div className="mt-1 h-[3px] rounded bg-surface2">
                         <div className="h-full rounded bg-accent/70"
-                          style={{ width: `${Math.max(2, ((s.ms || 0) / maxMs) * 100)}%` }} />
+                          style={{ width: `${Math.max(2, (stepDurs[j] / maxMs) * 100)}%` }} />
                       </div>
                       {s.hits != null && <div className="mt-0.5 font-mono text-[9.5px] text-faint">{s.hits} hits</div>}
                     </div>

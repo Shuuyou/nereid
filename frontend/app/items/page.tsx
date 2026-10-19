@@ -1,6 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { Empty, SpecRow, SpecDot, Sev } from "@/components/ui";
@@ -22,14 +23,46 @@ const SORTS: [string, string][] = [
 ];
 const PAGE_SIZE = 20;
 
-export default function ItemsPage() {
+type Filters = {
+  q: string; layer: string; severity: string; item_type: string;
+  kev: boolean; poc: boolean; ai_only: boolean; page: number; sort: string;
+};
+
+function filtersFromParams(sp: URLSearchParams): Filters {
+  return {
+    q: sp.get("q") || "",
+    layer: sp.get("layer") || "",
+    severity: sp.get("severity") || "",
+    item_type: sp.get("item_type") || "",
+    kev: sp.get("kev") === "1",
+    poc: sp.get("poc") === "1",
+    ai_only: sp.get("ai_only") !== "0",
+    page: Math.max(1, parseInt(sp.get("page") || "1", 10) || 1),
+    sort: sp.get("sort") || "priority",
+  };
+}
+
+function paramsFromFilters(f: Filters): URLSearchParams {
+  const p = new URLSearchParams();
+  if (f.q) p.set("q", f.q);
+  if (f.layer) p.set("layer", f.layer);
+  if (f.severity) p.set("severity", f.severity);
+  if (f.item_type) p.set("item_type", f.item_type);
+  if (f.kev) p.set("kev", "1");
+  if (f.poc) p.set("poc", "1");
+  if (!f.ai_only) p.set("ai_only", "0");
+  if (f.page > 1) p.set("page", String(f.page));
+  if (f.sort !== "priority") p.set("sort", f.sort);
+  return p;
+}
+
+function ItemsInner() {
   const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
   const [data, setData] = useState<any>({ items: [], total: 0 });
-  const [q, setQ] = useState("");
-  const [f, setF] = useState({
-    q: "", layer: "", severity: "", item_type: "",
-    kev: false, poc: false, ai_only: true, page: 1, sort: "priority",
-  });
+  const [q, setQ] = useState(() => sp.get("q") || "");
+  const [f, setF] = useState<Filters>(() => filtersFromParams(sp));
   const [loading, setLoading] = useState(true);
 
   // 查询词防抖 → 写入过滤器
@@ -37,6 +70,14 @@ export default function ItemsPage() {
     const t = setTimeout(() => setF((s) => ({ ...s, q: q.trim(), page: 1 })), 320);
     return () => clearTimeout(t);
   }, [q]);
+
+  // 过滤器 → URL（可分享/后退不丢）
+  useEffect(() => {
+    const qs = paramsFromFilters(f).toString();
+    const cur = sp.toString();
+    if (qs !== cur) router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -52,6 +93,10 @@ export default function ItemsPage() {
   const total = data.total || 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const range = total === 0 ? "0" : `${(f.page - 1) * PAGE_SIZE + 1}–${Math.min(f.page * PAGE_SIZE, total)}`;
+  const clearFilters = () => {
+    setQ("");
+    setF({ q: "", layer: "", severity: "", item_type: "", kev: false, poc: false, ai_only: true, page: 1, sort: "priority" });
+  };
 
   return (
     <div>
@@ -106,7 +151,7 @@ export default function ItemsPage() {
         </div>
       </div>
 
-      {/* 高密度数据表 */}
+      {/* 高密度数据表（行=stretched-link 真锚，支持 Cmd+click 新标签） */}
       <div className="mt-3 overflow-x-auto">
         <table className="dt table-fixed">
           <thead>
@@ -128,26 +173,30 @@ export default function ItemsPage() {
             ) : data.items.length === 0 ? (
               <tr><td colSpan={7} className="!border-0 !p-0">
                 <div className="py-4">
-                  <Empty text="没有匹配的情报" hint="试试放宽筛选条件或关闭「AI 相关」" />
+                  <Empty text="没有匹配的情报"
+                    hint="试试放宽筛选条件或关闭「AI 相关」" />
+                </div>
+                <div className="-mt-2 flex justify-center pb-2">
+                  <button className="btn btn-sm" onClick={clearFilters}>清除全部筛选</button>
                 </div>
               </td></tr>
             ) : data.items.map((it: any) => (
-              <tr key={it.id} className="cursor-pointer"
-                onClick={() => router.push(`/items/${it.id}`)}>
+              <tr key={it.id} className="rowlink">
                 <td><Sev level={it.severity} /></td>
                 <td>
                   <div className="flex items-center gap-2">
-                    <span className="min-w-0 truncate text-fg/90"
+                    <Link href={`/items/${it.id}`}
+                      className="stretched min-w-0 truncate text-fg/90 transition-colors hover:text-accent"
                       title={it.title_zh ? `${it.title_zh}\n${it.title}` : it.title}>
                       {it.title_zh || it.title}
-                    </span>
+                    </Link>
                     {it.is_kev && (
-                      <span className="badge shrink-0">
+                      <span className="badge z-act shrink-0">
                         <span className="dot" style={{ background: "#d92638" }} />KEV
                       </span>
                     )}
                     {it.has_poc && (
-                      <span className="badge shrink-0">
+                      <span className="badge z-act shrink-0">
                         <span className="dot" style={{ background: "#b07c00" }} />PoC
                       </span>
                     )}
@@ -162,7 +211,13 @@ export default function ItemsPage() {
                 <td className="r num text-dim">
                   {it.epss_score != null ? `${(it.epss_score * 100).toFixed(1)}%` : "—"}
                 </td>
-                <td className="truncate text-dim">{(it.source_names || []).slice(0, 2).join(" · ") || "—"}</td>
+                <td className="truncate text-dim">
+                  {(it.source_names || []).slice(0, 2).join(" · ")}
+                  {(it.source_names || []).length > 2 && (
+                    <span className="text-faint"> +{it.source_names.length - 2}</span>
+                  )}
+                  {!it.source_names?.length && "—"}
+                </td>
                 <td className="num text-faint">{it.published_at ? it.published_at.slice(0, 10) : "—"}</td>
               </tr>
             ))}
@@ -186,5 +241,13 @@ export default function ItemsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ItemsPage() {
+  return (
+    <Suspense>
+      <ItemsInner />
+    </Suspense>
   );
 }

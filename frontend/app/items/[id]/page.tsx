@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, RefreshCw, FileDown, ChevronDown } from "lucide-react";
 import { API, api } from "@/lib/api";
 import { LayerTag, cvssToSev } from "@/components/cards";
-import { Skeleton, SpecRow, SpecDot, Sev, St } from "@/components/ui";
+import { Skeleton, SpecRow, SpecDot, Sev, SevPill, St } from "@/components/ui";
 import { SEV_COLOR } from "@/lib/theme";
 
 /* ── 左栏属性行：label 小灰 + 值右对齐，hairline 分隔 ── */
@@ -46,6 +46,7 @@ const CRED_DOT: Record<string, string> = {
 
 export default function ItemDetail() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [it, setIt] = useState<any>(null);
   const [related, setRelated] = useState<any[]>([]);
   const [err, setErr] = useState("");
@@ -56,6 +57,15 @@ export default function ItemDetail() {
     api.item(id).then(setIt).catch((e) => setErr(String(e)));
     api.related(id).then((r) => setRelated(r.items || [])).catch(() => {});
   }, [id]);
+
+  /** 智能返回：站内来源走 router.back() 保留上下文（筛选/滚动），站外/直开落到 /items */
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1 && document.referrer.startsWith(window.location.origin)) {
+      router.back();
+    } else {
+      router.push("/items");
+    }
+  };
 
   if (err) return <div className="panel panel-b text-err">{err}</div>;
   if (!it) return (
@@ -130,11 +140,13 @@ export default function ItemDetail() {
     <div>
       <SpecRow>
         <span>FIG_03</span><SpecDot />
-        <span>INTEL DETAIL</span><SpecDot />
+        <span><Link href="/items" className="hover:text-accent">情报检索</Link> / <span className="text-dim">详情</span></span><SpecDot />
         <span className="truncate">{it.id}</span>
-        <Link href="/items" className="ml-auto inline-flex items-center gap-1 transition-colors hover:text-accent">
-          <ArrowLeft size={11} />LIBRARY
-        </Link>
+        <button onClick={goBack}
+          className="ml-auto inline-flex items-center gap-1 transition-colors hover:text-accent"
+          title="返回来源页">
+          <ArrowLeft size={11} />返回
+        </button>
       </SpecRow>
 
       {/* ── 头区：标题 + 标记 chips + 时间戳 + 操作 ── */}
@@ -161,7 +173,7 @@ export default function ItemDetail() {
         {it.title_zh && <p className="mt-1 text-[12px] text-faint">{it.title}</p>}
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <Sev level={it.severity} />
+          <SevPill level={it.severity} />
           <span className="badge">{it.item_type || "—"}</span>
           <LayerTag l={it.ai_layer} />
           {(it.cve_ids || []).map((c: string) => <span key={c} className="badge mono">{c}</span>)}

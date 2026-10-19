@@ -32,6 +32,17 @@
   /* pastel 色块的阴影色相（同族 ink 色 alpha） */
   --sh-card: 60, 50, 90;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  /* 动效刻度（Kowalski/Vercel 实证值；≤300ms 硬上限） */
+  --dur-instant: 70ms;
+  --dur-fast: 120ms;
+  --dur-normal: 160ms;
+  --dur-medium: 240ms;
+  --dur-slow: 320ms;
+  --dur-exit: 150ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 html {
@@ -178,12 +189,14 @@ table.dt {
   font-size: 10.5px;
   letter-spacing: -0.01em;
 }
+/* severity：PatternFly 形状字形（剪影区分档）+ 同色文字，非"点字同色"双染 */
 .sev {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 11.5px;
   font-weight: 590;
+  white-space: nowrap;
 }
 .sev .dot {
   width: 6px;
@@ -191,14 +204,26 @@ table.dt {
   border-radius: 50%;
   flex: none;
 }
-.sev-crit .dot { background: var(--sev-crit); }
-.sev-high .dot { background: var(--sev-high); }
-.sev-med .dot { background: var(--sev-med); }
-.sev-low .dot { background: var(--sev-low); }
+.sev svg { flex: none; }
 .sev-crit { color: var(--sev-crit); }
 .sev-high { color: var(--sev-high); }
 .sev-med { color: var(--sev-med); }
 .sev-low { color: var(--sev-low); }
+/* 高强调位 tinted pill（Datadog 公式：同族色 9% 底 + 30% 描边 + 纯色字） */
+.sev-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 590;
+  padding: 1.5px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.sev-pill-crit { background: rgba(217, 38, 56, 0.09); color: var(--sev-crit); border: 1px solid rgba(217, 38, 56, 0.3); }
+.sev-pill-high { background: rgba(199, 116, 0, 0.1); color: var(--sev-high); border: 1px solid rgba(199, 116, 0, 0.3); }
+.sev-pill-med { background: rgba(166, 138, 27, 0.1); color: var(--sev-med); border: 1px solid rgba(166, 138, 27, 0.32); }
+.sev-pill-low { background: rgba(46, 111, 184, 0.09); color: var(--sev-low); border: 1px solid rgba(46, 111, 184, 0.3); }
 
 /* ── 控件 ── */
 .btn {
@@ -454,5 +479,30 @@ select.input {
 .row-sev-high { box-shadow: inset 3px 0 var(--sev-high); }
 .row-sev-med { box-shadow: inset 3px 0 var(--sev-med); }
 .row-sev-low { box-shadow: inset 3px 0 var(--sev-low); }
+
+/* ── stretched-link：行/卡内一条真 <a>，::after 拉伸覆盖整行 ──
+   用法：tr/li 加 .rowlink，标题格内放 <a class="stretched">；
+   行内其他可点元素（按钮等）须 relative z-10 抬层级 */
+.rowlink { position: relative; }
+a.stretched::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.rowlink .z-act { position: relative; z-index: 10; }
+
+/* ── 动画统一走 token；reduced-motion 全站降级 ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+/* spec-row 段间 dot 收紧：只在前 3 段生效的替代做法——容器超 3 段时第 4+ 段前不画点 */
+.spec-row > .dot { opacity: 0.7; }
 
 ::-webkit-scrollbar-corner { background: transparent; }
