@@ -3,7 +3,7 @@ import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowUp, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X, ArrowUpRight, Copy } from "lucide-react";
+import { ArrowUp, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X, ArrowUpRight, Copy, Paperclip, FileText } from "lucide-react";
 import { streamChat, api } from "@/lib/api";
 import { remarkChips } from "@/lib/remark-chips";
 import { SevPill } from "@/components/ui";
@@ -23,9 +23,14 @@ const SUGGESTIONS = [
 ];
 
 const STEP_ZH: Record<string, string> = {
-  extract: "实体提取", route: "意图路由", tool_call: "工具调用", agent_evidence: "Agent 取证",
-  fallback_retrieve: "兜底检索", retrieve: "混合检索", kg_expand: "图谱扩展", context: "组装",
+  extract: "实体识别", route: "意图路由", tool_call: "工具调用", agent_evidence: "Agent 取证",
+  fallback_retrieve: "兜底补检", retrieve: "混合检索", kg_expand: "图谱扩展", context: "证据组装",
   generate: "生成", cve_direct: "CVE 直连", kev: "KEV 直查", agent_stop: "Agent 收敛",
+  fast_path: "快速检索", kev_facts: "KEV 事实", recent_facts: "窗口枚举",
+  time_filter: "时效过滤", time_filter_retry: "时效放宽", time_filter_dropped: "时效放宽",
+  severity_filter: "级别过滤", agent_error: "Agent 降级", prepare_error: "降级",
+  // 工具名（ev.data.tool 会带着原名进来，必须翻译——不给用户看函数名）
+  retrieve_intel: "检索情报库", get_item_detail: "读取情报卡", list_kev: "查 KEV 清单",
 };
 
 const LS_KEY = "nereid-qa-sessions";
@@ -70,9 +75,9 @@ function TraceSpine({ steps, streaming, elapsedNow, onJump }: {
               {s.error && <X size={8} className="text-err" />}
               {!s.running && !s.error && <Check size={8} className="text-ok" />}
             </span>
-            <span className="flex-1 truncate text-[12px] text-dim transition-colors group-hover:text-fg">
+            <span className={`flex-1 truncate text-[12px] transition-colors group-hover:text-fg ${s.running ? "shimmer-text" : "text-dim"}`}>
               {STEP_ZH[s.step] || s.step}
-              {s.hits != null && <span className="text-faint"> {s.hits} 命中</span>}
+              {s.hits != null && <span className={s.running ? "" : "text-faint"}> {s.hits} 命中</span>}
             </span>
             <span className={`font-mono text-[11px] tnum ${s.running ? "text-accent" : "text-faint"}`}>
               {liveMs != null ? fmtMs(liveMs) : fmtMs(s.ms)}
@@ -222,6 +227,10 @@ export default function QaPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [atts, setAtts] = useState<{ id: string; name: string; size: number; thumb?: string; text?: string; ioc?: { cve: number; ip: number; hash: number } }[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  const dragN = useRef(0);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setSessions(loadSessions()); }, []);
 
@@ -234,9 +243,15 @@ export default function QaPage() {
     });
   }
 
+  /** 顶栏标题同步（layout HeaderTitle 监听） */
+  function reportTitle(t: string | null) {
+    window.dispatchEvent(new CustomEvent("nereid:title", { detail: t }));
+  }
+
   async function openSession(s: Sess) {
     if (busy) return;
     setSessionId(s.id); setMsgs([]); setStatus(""); closePeek();
+    reportTitle(s.title);
     try {
       const h = await api.qaHistory(s.id);
       setMsgs((h.messages || []).map((m: any) => ({
@@ -248,6 +263,7 @@ export default function QaPage() {
   function newSession() {
     if (busy) return;
     setSessionId(null); setMsgs([]); setStatus(""); setOpenTrace({}); closePeek();
+    reportTitle(null);
   }
 
   function stop() {
@@ -294,16 +310,60 @@ export default function QaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peekId]);
 
+  /** 附件入口统一收口：粘贴/拖拽/选文件都走这里；文本类读内容+IOC计数，图像存缩略图并标"不解析" */
+  async function addFiles(files: Iterable<File> | ArrayLike<File>) {
+    const stamp = new Date().toLocaleString("sv-SE").replace(/:/g, ".").slice(0, 19);
+    for (const f of Array.from(files)) {
+      const id = `a${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+      const generic = !f.name || /^(image|clipboard|blob)/i.test(f.name);
+      const name = generic
+        ? `${f.type.startsWith("image/") ? "截图" : "粘贴文件"} ${stamp}.${(f.type.split("/")[1] || "png")}`
+        : f.name;
+      const att: any = { id, name, size: f.size };
+      if (f.type.startsWith("image/")) {
+        att.thumb = await new Promise<string>((res) => {
+          const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(f);
+        });
+      } else if (f.size < 10 * 1024 * 1024) {
+        const t = await f.text().catch(() => undefined);
+        if (t != null) {
+          att.text = t;
+          att.ioc = {
+            cve: new Set(t.match(/\bCVE-\d{4}-\d{4,7}\b/gi) || []).size,
+            ip: new Set(t.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) || []).size,
+            hash: new Set(t.match(/\b[a-f0-9]{64}\b/gi) || []).size,
+          };
+        }
+      }
+      setAtts((a) => [...a, att]);
+    }
+  }
+
   async function send(q?: string) {
-    const question = (q ?? input).trim();
+    let question = (q ?? input).trim();
+    if (!question && !atts.length) return;
     if (!question || busy) return;
-    setInput(""); setBusy(true); setSpine([]); setStatus(""); setElapsed(0); closePeek();
+    // 附件并入问题：文本类 head80%+tail20% 截断内联（日志最新在尾），图像留诚实标记位
+    if (atts.length) {
+      const MAX = 30_000;
+      const parts = atts.map((a) => {
+        if (!a.text) return `\n\n[附件 ${a.name}（图像/二进制，未送模型解析）]`;
+        const t = a.text.length > MAX
+          ? `${a.text.slice(0, Math.floor(MAX * 0.8))}\n…[省略 ${a.text.length - MAX} 字符]…\n${a.text.slice(-Math.floor(MAX * 0.2))}`
+          : a.text;
+        return `\n\n[附件 ${a.name}]\n\`\`\`\n${t}\n\`\`\``;
+      });
+      question += parts.join("");
+    }
+    setInput(""); setAtts([]); setBusy(true); setSpine([]); setStatus(""); setElapsed(0); closePeek();
     const t0 = Date.now();
     timerRef.current = setInterval(() => setElapsed(Date.now() - t0), 400);
-    setMsgs((m) => [...m, { role: "user", content: question }, { role: "assistant", content: "" }]);
+    // 气泡只显示用户原文+附件标记，附件内容进 API 问题不进气泡
+    const shown = (q ?? input).trim() + (atts.length ? `（附 ${atts.length} 个附件）` : "");
+    setMsgs((m) => [...m, { role: "user", content: shown }, { role: "assistant", content: "" }]);
     const abort = new AbortController();
     abortRef.current = abort;
-    let firstQ = question;
+    const firstQ = shown;
     try {
       let acc = "", cites: any[] = [], trace: any = null, conf: number | undefined, fups: string[] = [];
       for await (const ev of streamChat(question, sessionId, deep, abort.signal)) {
@@ -311,6 +371,7 @@ export default function QaPage() {
           if (ev.data.session_id && !sessionId) {
             setSessionId(ev.data.session_id);
             saveSession(ev.data.session_id, firstQ);
+            reportTitle(firstQ.slice(0, 30));
           }
           const t = ev.data.tool
             ? `${STEP_ZH[ev.data.tool] || ev.data.tool} · ${ev.data.hits ?? "?"} 命中`
@@ -421,9 +482,22 @@ export default function QaPage() {
         </div>
       </div>
 
-      {/* ── 中：无边框对话列 ── */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto">
+      {/* ── 中：无边框对话列（整栏是 drop 热区，遮罩提示） ── */}
+      <div className="relative flex min-w-0 flex-1 flex-col"
+        onDragEnter={(e) => { if (Array.from(e.dataTransfer?.types || []).includes("Files")) { e.preventDefault(); dragN.current++; setDragOver(true); } }}
+        onDragOver={(e) => { if (Array.from(e.dataTransfer?.types || []).includes("Files")) e.preventDefault(); }}
+        onDragLeave={() => { if (--dragN.current <= 0) { dragN.current = 0; setDragOver(false); } }}
+        onDrop={(e) => { e.preventDefault(); dragN.current = 0; setDragOver(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}>
+        {dragOver && (
+          <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-panel/80 backdrop-blur-[2px]">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-accent/50 bg-canvas/70 px-10 py-8">
+              <Paperclip size={20} className="text-accent" />
+              <div className="text-[14px] font-medium text-fg">拖放文件到此处</div>
+              <div className="font-mono text-[11px] text-faint">.log .txt .csv · IOC 清单 · 截图（图像仅存证不解析）</div>
+            </div>
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="mx-auto max-w-[660px] px-6 py-6">
             {msgs.length === 0 && (
               <div className="flex h-full min-h-[60vh] flex-col justify-center">
@@ -470,9 +544,18 @@ export default function QaPage() {
                         </button>
                       </div>
                     )}
-                    {/* 推理脊椎：流式中就地累积（Grok/Devin 式） */}
-                    {busy && i === msgs.length - 1 && spine.length > 0 && (
-                      <TraceSpine steps={spine} streaming elapsedNow={elapsed} onJump={() => setTab("trace")} />
+                    {/* 推理脊椎：进行中就地累积 → 完成就地收拢成 receipt 行（同 DOM 位不跳变） */}
+                    {i === msgs.length - 1 && spine.length > 0 && (
+                      busy ? (
+                        <TraceSpine steps={spine} streaming elapsedNow={elapsed} onJump={() => setTab("trace")} />
+                      ) : (
+                        <button type="button" onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
+                          className="group mb-3 ml-[7px] flex items-center gap-2 text-[12px] text-faint transition-colors hover:text-dim">
+                          <Check size={11} className="text-ok" />
+                          <span>推理链 {spine.length} 步{elapsed ? ` · 用时 ${fmtMs(elapsed)}` : ""}</span>
+                          <ChevronRight size={11} className={`transition-transform ${openTrace[i] ? "rotate-90" : ""}`} />
+                        </button>
+                      )
                     )}
                     {busy && i === msgs.length - 1 && elapsed > 30000 && (
                       <div className="mb-3 ml-[7px] text-[12px] text-faint">
@@ -572,21 +655,63 @@ export default function QaPage() {
               </div>
             ))}
 
-            {/* 动态单行状态：就地演变（脊椎已有步骤时仅作补充文案） */}
-            {status && spine.length === 0 && (
-              <div className="mb-6 flex items-center gap-2 text-[12px] text-dim">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent" style={{ animation: "pulse-dot 1.4s ease-in-out infinite" }} />
-                <span className="font-mono text-[12px]">{status}</span>
+            {/* 进行中状态行（气泡下方对话区内）：shimmer 扫光步骤文案 + 已用计时 */}
+            {busy && (
+              <div className="mb-6 flex items-baseline gap-3">
+                <span className="shimmer-text text-[14px]">{status || "正在生成回答…"}</span>
+                <span className="font-mono text-[11px] tnum text-faint">已用 {fmtMs(elapsed)}</span>
               </div>
             )}
             <div ref={bottom} />
           </div>
         </div>
 
-        {/* composer：Perplexity 式胶囊容器——输入区内嵌模式切换+圆形发送/停止钮 */}
+        {/* composer：Perplexity 式胶囊容器——内嵌附件chip行+模式切换+圆形发送/停止钮；支持粘贴/拖拽 */}
         <div className="shrink-0 px-6 pb-5 pt-2">
-          <div className="mx-auto max-w-[660px] rounded-[24px] border border-line2 bg-panel shadow-[0_2px_4px_-2px_rgba(32,24,18,0.06),0_8px_24px_-12px_rgba(32,24,18,0.12)] transition-colors focus-within:border-[rgba(33,31,38,0.4)]">
+          <div className={`mx-auto max-w-[660px] rounded-[24px] border bg-panel shadow-[0_2px_4px_-2px_rgba(32,24,18,0.06),0_8px_24px_-12px_rgba(32,24,18,0.12)] transition-colors focus-within:border-[rgba(33,31,38,0.4)] ${
+            dragOver ? "border-accent" : "border-line2"}`}>
+            {/* 附件 chip 行 */}
+            {atts.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto px-3.5 pt-3">
+                {atts.map((a) => a.thumb ? (
+                  /* 图片 tile：48px 缩略图 + "不解析"诚实徽标（纯文本模型，图仅存证） */
+                  <span key={a.id} className="group relative h-12 w-12 shrink-0">
+                    <img src={a.thumb} alt={a.name} title={`${a.name} · 图片仅存证不参与分析`} className="h-12 w-12 rounded-[10px] border border-line2 object-cover" />
+                    <span className="absolute bottom-0.5 left-0.5 rounded-[3px] bg-panel/95 px-1 font-mono text-[9px] text-warn">不解析</span>
+                    <button type="button" onClick={() => setAtts((x) => x.filter((y) => y.id !== a.id))}
+                      className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-fg text-panel opacity-0 transition-opacity group-hover:opacity-100"
+                      title="移除"><X size={9} /></button>
+                  </span>
+                ) : (
+                  /* 文档 chip：图标+文件名+IOC计数/大小 */
+                  <span key={a.id} className="group relative flex h-[34px] shrink-0 items-center gap-1.5 rounded-[9px] border border-line bg-surface px-2"
+                    title={`${a.name} · ${(a.size / 1024).toFixed(1)}KB`}>
+                    <FileText size={13} className="text-faint" />
+                    <span className="max-w-[150px] truncate text-[12px] text-fg">{a.name}</span>
+                    <span className="font-mono text-[10.5px] text-faint">
+                      {a.ioc?.cve ? `CVE×${a.ioc.cve}` : a.ioc?.ip ? `IP×${a.ioc.ip}` : a.ioc?.hash ? `HASH×${a.ioc.hash}` : `${(a.size / 1024).toFixed(0)}K`}
+                    </span>
+                    <button type="button" onClick={() => setAtts((x) => x.filter((y) => y.id !== a.id))}
+                      className="text-faint transition-colors hover:text-err" title="移除"><X size={11} /></button>
+                  </span>
+                ))}
+              </div>
+            )}
             <textarea
+              onPaste={(e) => {
+                // ★ items 必须在 handler 返回前同步收完（之后即失效）
+                const files: File[] = [];
+                for (const it of Array.from(e.clipboardData?.items || [])) {
+                  if (it.kind === "file") { const f = it.getAsFile(); if (f) files.push(f); }
+                }
+                if (files.length) { e.preventDefault(); addFiles(files); return; }
+                // 大段文本粘贴（>4k字符）自动转附件 chip，不灌进输入框
+                const t = e.clipboardData?.getData("text/plain");
+                if (t && t.length > 4000) {
+                  e.preventDefault();
+                  addFiles([new File([t], `粘贴的文本 ${new Date().toLocaleString("sv-SE").replace(/:/g, ".")}.txt`, { type: "text/plain" })]);
+                }
+              }}
               ref={(el) => { if (el) { el.style.height = "0px"; el.style.height = `${Math.min(el.scrollHeight, 200)}px`; } }}
               className="w-full resize-none bg-transparent px-5 pt-4 text-[15px] leading-7 text-fg outline-none placeholder:text-faint"
               rows={2}
@@ -595,6 +720,14 @@ export default function QaPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
             <div className="flex items-center gap-1 px-3 pb-3">
+              {/* 附件上传（ChatGPT 左位 + 钮） */}
+              <input ref={fileRef} type="file" multiple className="hidden"
+                accept="image/png,image/jpeg,image/webp,image/gif,.txt,.log,.csv,.json,.md,.xml,.yaml,.ioc,.tsv,text/*"
+                onChange={(e) => { addFiles(e.target.files || []); e.target.value = ""; }} />
+              <button type="button" onClick={() => fileRef.current?.click()} title="上传附件（截图/日志/IOC 清单）"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-dim transition-colors hover:bg-surface2 hover:text-fg">
+                <Paperclip size={15} strokeWidth={1.75} />
+              </button>
               {/* 模式切换：深度=Agent 工具编排 / 快速=直接检索（Perplexity 模式 chip 位） */}
               <div className="flex items-center rounded-full bg-surface2/70 p-0.5 text-[12px]">
                 {([[true, "深度"], [false, "快速"]] as const).map(([v, label]) => (
@@ -606,7 +739,6 @@ export default function QaPage() {
                   </button>
                 ))}
               </div>
-              {busy && <span className="ml-1 font-mono text-[11px] tnum text-faint">已用 {fmtMs(elapsed)}</span>}
               <div className="flex-1" />
               {busy ? (
                 <button onClick={stop} title="中止当前生成"
@@ -635,18 +767,15 @@ export default function QaPage() {
             </button>
           ))}
         </div>
-        {/* 研判条：Dropzone 调查头的对话流等价物——路由/置信/证据引用率/耗时一行收全 */}
+        {/* 研判条：置信/引用率/耗时——去掉内部路由名与 · 分隔（内部标签不外露） */}
         {lastA && (() => {
-          const route = lastA.trace?.steps?.find((s: any) => s.route)?.route || lastA.trace?.route;
           const citedN = citedNsOf(lastA.content).size;
           const totalN = lastA.citations?.length || 0;
           return (
-            <div className="flex items-center gap-2 border-t border-line px-3 py-1.5 font-mono text-[10.5px] text-faint">
-              {route && <span className="text-dim">{route === "general" ? "通用" : route === "vuln" ? "漏洞" : route === "trend" ? "趋势" : route === "entity" ? "实体" : route}</span>}
-              {route && <span>·</span>}
-              {lastA.confidence != null && <span className="tnum">conf {lastA.confidence.toFixed(2)}</span>}
-              {totalN > 0 && <><span>·</span><span className="tnum">{citedN}/{totalN} 引用</span></>}
-              {lastA.trace?.total_ms != null && <><span>·</span><span className="tnum">{fmtMs(lastA.trace.total_ms)}</span></>}
+            <div className="flex items-center gap-3 border-t border-line px-3 py-1.5 font-mono text-[10.5px] text-faint">
+              {lastA.confidence != null && <span className="tnum">置信 {lastA.confidence.toFixed(2)}</span>}
+              {totalN > 0 && <span className="tnum">引用 {citedN}/{totalN}</span>}
+              {lastA.trace?.total_ms != null && <span className="tnum ml-auto">{fmtMs(lastA.trace.total_ms)}</span>}
             </div>
           );
         })()}

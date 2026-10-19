@@ -2,6 +2,7 @@ import "./globals.css";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { CommandPalette, PaletteButton } from "@/components/CommandPalette";
+import { HeaderTitle } from "@/components/HeaderTitle";
 
 export const metadata = {
   title: "捞针 · nereid — AI 安全情报系统",
@@ -42,9 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* ── 主列：顶条 + 内容 ── */}
           <div className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-canvas px-5">
-              <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
-                Threat Intel Workbench
-              </span>
+              <HeaderTitle />
               <div className="ml-auto flex items-center gap-3">
                 <PaletteButton />
                 <span className="mono text-[12px] text-faint">
