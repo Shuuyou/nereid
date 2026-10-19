@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { api, subscribeFeed, getDigest } from "@/lib/api";
-import { St, Skeleton, SpecRow, SpecDot, Sev } from "@/components/ui";
+import { St, Skeleton, Sev } from "@/components/ui";
 import { CheckCheck, RotateCcw, ArrowRight, Newspaper } from "lucide-react";
 import { C, echartsBase } from "@/lib/theme";
 
@@ -19,47 +19,39 @@ function relTime(iso?: string | null) {
   return `${Math.round(h / 24)}d前`;
 }
 
-/** 队列行：严重度 + 标题 + 元数据 + 行内动作（可办，不只是可看） */
+/** 队列行：severity字形 + 标题(主) + 单行meta(次) + 一个数字 + 行内动作
+    纪律：一行只允许一个视觉焦点；meta ≤3 段；重复的[KEV]前缀从标题剥离 */
 function QueueRow({ it, kind, onConfirm, onReject }: {
   it: any; kind: "review" | "pri" | "kev";
   onConfirm?: (id: string) => void; onReject?: (id: string) => void;
 }) {
+  const title = String(it.title_zh || it.title || "").replace(/^\s*[【\[]?KEV[】\]]\s*/i, "");
+  const score = kind === "review" && it.confidence != null ? `置信 ${(it.confidence * 100).toFixed(0)}%`
+    : it.epss_score != null ? `EPSS ${(it.epss_score * 100).toFixed(1)}%` : null;
   return (
     <div className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface">
       <Sev level={it.severity} />
       <Link href={`/items/${it.id}`} className="min-w-0 flex-1">
-        <div className="truncate text-[14px] font-medium text-fg group-hover:text-accent">
-          {it.title_zh || it.title}
+        <div className="truncate text-[14.5px] font-medium leading-snug text-fg group-hover:text-accent">
+          {title}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 font-mono text-[11px] text-faint">
-          {(it.cve || it.cve_ids || []).slice(0, 2).map((c: string) => <span key={c}>{c}</span>)}
-          {it.is_kev && <span className="font-semibold text-crit">KEV</span>}
-          {(it.source_names || []).slice(0, 1).map((s: string) => <span key={s}>{s}</span>)}
-          {it.source_count > 1 && <span className="text-dim">×{it.source_count}源</span>}
+        <div className="mt-1 flex items-center gap-2.5 text-[12px] text-faint">
+          {(it.cve || it.cve_ids || []).slice(0, 1).map((c: string) =>
+            <span key={c} className="font-mono">{c}</span>)}
+          {it.is_kev && <span className="font-medium text-err">KEV</span>}
+          {score && <span className="tnum">{score}</span>}
+          <span className="tnum">{relTime(it.published_at || it.first_seen_at)}</span>
         </div>
       </Link>
-      {kind === "review" && it.confidence != null && (
-        <span className="tnum w-10 text-right font-mono text-[12px] text-dim" title="AI 置信度">
-          {(it.confidence * 100).toFixed(0)}%
-        </span>
-      )}
-      {it.epss_score != null && kind !== "review" && (
-        <span className="tnum w-12 text-right font-mono text-[12px] text-dim" title="EPSS">
-          {(it.epss_score * 100).toFixed(1)}%
-        </span>
-      )}
-      <span className="tnum w-11 text-right font-mono text-[11px] text-faint">
-        {relTime(it.published_at || it.first_seen_at)}
-      </span>
       {kind === "review" ? (
         <span className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button title="确认" onClick={() => onConfirm?.(it.id)}
-            className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-ok transition-colors hover:bg-mint">
-            <CheckCheck size={12} strokeWidth={2} />
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-ok transition-colors hover:bg-mint">
+            <CheckCheck size={13} strokeWidth={2} />
           </button>
           <button title="回炉重富化" onClick={() => onReject?.(it.id)}
-            className="flex h-6 w-6 items-center justify-center rounded-md border border-line text-warn transition-colors hover:bg-butter">
-            <RotateCcw size={12} strokeWidth={2} />
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-warn transition-colors hover:bg-butter">
+            <RotateCcw size={13} strokeWidth={2} />
           </button>
         </span>
       ) : (
@@ -117,7 +109,6 @@ export default function DutyDesk() {
     </div>
   );
 
-  const now = new Date();
   const trendOpt = {
     backgroundColor: "transparent",
     grid: { left: 30, right: 8, top: 10, bottom: 20 },
@@ -136,13 +127,10 @@ export default function DutyDesk() {
 
   return (
     <div>
-      <SpecRow>
-        <span>今日值班台</span><SpecDot />
-        <span>{now.toISOString().slice(0, 16).replace("T", " ")}Z</span>
-      </SpecRow>
+      {/* 页内无标题：顶栏已显示"今日值班台"+日期（不重复） */}
 
       {/* 指标行：数字+灰标签的文字链（Linear/Stripe 式——无icon无卡片无彩色，可点击下钻） */}
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-9 gap-y-2 border-b border-line pb-4">
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-9 gap-y-2 border-b border-line pb-4">
         {([
           { label: "待复核", v: reviewTotal, href: "/review?status=needs_review" },
           { label: "24h 新增", v: stats.new_24h ?? "—", href: "/items" },
