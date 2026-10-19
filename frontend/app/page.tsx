@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { api, subscribeFeed, getDigest } from "@/lib/api";
-import { StatStrip, St, Skeleton, SpecRow, SpecDot, Sev } from "@/components/ui";
+import { St, Skeleton, SpecRow, SpecDot, Sev } from "@/components/ui";
 import { CheckCheck, RotateCcw, ArrowRight, Flame, Crosshair, Newspaper } from "lucide-react";
 import { C, echartsBase } from "@/lib/theme";
 
@@ -145,14 +145,23 @@ export default function DutyDesk() {
         </span>
       </SpecRow>
 
-      {/* hairline stat strip — 只留 actionable 指标 */}
-      <StatStrip stats={[
-        { label: "待复核", value: reviewTotal, tone: reviewTotal > 0 ? "high" : "fg" },
-        { label: "24h 新增", value: stats.new_24h ?? "—", tone: "accent" },
-        { label: "KEV 在野", value: stats.kev_count ?? "—", tone: "critical" },
-        { label: "AI 相关", value: (stats.ai_items || 0).toLocaleString() },
-        { label: "数据源", value: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, tone: "ok" },
-      ]} />
+      {/* bento 指标卡：色块即分类，全部可点击下钻 */}
+      <div className="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {([
+          { label: "待复核", sub: "队列待人工确认", v: reviewTotal, tile: "tile-rose", href: "/review?status=needs_review" },
+          { label: "24h 新增", sub: "情报流入", v: stats.new_24h ?? "—", tile: "tile-mint", href: "/items" },
+          { label: "KEV 在野", sub: "已确认被利用", v: stats.kev_count ?? "—", tile: "tile-peach", href: "/items?kev=1" },
+          { label: "AI 相关", sub: "命中画像占比", v: (stats.ai_items || 0).toLocaleString(), tile: "tile-lav", href: "/items" },
+          { label: "数据源", sub: "健康 / 总数", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, tile: "tile-sky", href: "/sources" },
+        ] as const).map((m) => (
+          <Link key={m.label} href={m.href}
+            className={`tile ${m.tile} group flex flex-col justify-between transition-transform duration-100 hover:-translate-y-px`}>
+            <span className="tile-kicker">{m.label}</span>
+            <span className="tile-metric mt-4">{m.v}</span>
+            <span className="tile-sub mt-1.5">{m.sub}</span>
+          </Link>
+        ))}
+      </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-12">
         {/* ── 左 2/3：需要你处理（可操作队列）── */}
@@ -164,13 +173,13 @@ export default function DutyDesk() {
             </Link>
           </div>
           <div className="tile tile-white !p-0 overflow-hidden">
-            {/* 待复核组 */}
-            <div className="flex items-center gap-2 border-b border-line bg-surface px-3 py-2">
-              <Crosshair size={12} strokeWidth={1.75} className="text-high" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-dim">
+            {/* 待复核组 — pastel 标签条 */}
+            <div className="flex items-center gap-2 bg-rose px-3 py-2">
+              <Crosshair size={12} strokeWidth={1.75} className="text-rose-ink" />
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-rose-ink">
                 待复核 · AI 初判待确认
               </span>
-              <span className="ml-auto mono text-[11px] text-faint">{reviewTotal}</span>
+              <span className="ml-auto mono text-[11px] text-rose-ink/70">{reviewTotal}</span>
             </div>
             {review.length === 0 && <div className="px-3 py-4 text-[12px] text-faint">复核队列已清空 ✓</div>}
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
@@ -181,23 +190,23 @@ export default function DutyDesk() {
               ))}
             </div>
             {/* 高优组 */}
-            <div className="flex items-center gap-2 border-y border-line bg-surface px-3 py-2">
-              <Flame size={12} strokeWidth={1.75} className="text-crit" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-dim">
+            <div className="flex items-center gap-2 border-y border-line bg-sky px-3 py-2">
+              <Flame size={12} strokeWidth={1.75} className="text-sky-ink" />
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-sky-ink">
                 高优先级 · AI 情报
               </span>
-              <span className="ml-auto mono text-[11px] text-faint">{queue.length}</span>
+              <span className="ml-auto mono text-[11px] text-sky-ink/70">{queue.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {queue.slice(0, 5).map((it) => <QueueRow key={it.id} it={it} kind="pri" />)}
             </div>
             {/* KEV 组 */}
-            <div className="flex items-center gap-2 border-y border-line bg-surface px-3 py-2">
-              <Flame size={12} strokeWidth={1.75} className="text-crit" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-dim">
+            <div className="flex items-center gap-2 bg-peach px-3 py-2">
+              <Flame size={12} strokeWidth={1.75} className="text-peach-ink" />
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-peach-ink">
                 新 KEV · 在野利用
               </span>
-              <span className="ml-auto mono text-[11px] text-faint">{kev.length}</span>
+              <span className="ml-auto mono text-[11px] text-peach-ink/70">{kev.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {kev.slice(0, 4).map((it) => <QueueRow key={it.id} it={it} kind="kev" />)}

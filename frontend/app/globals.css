@@ -351,6 +351,23 @@ select.input {
   opacity: 0.55;
   font-feature-settings: "cpsp";
 }
+/* bento 指标卡的大数字 */
+.tile-metric {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums slashed-zero;
+  line-height: 1;
+}
+.tile-sub { font-size: 11.5px; opacity: 0.72; }
+/* pastel 色块卡上的 label 用 ink 的 alpha 而非灰 token（对比度对） */
+.tile-mint .tile-kicker, .tile-lav .tile-kicker, .tile-peach .tile-kicker,
+.tile-sky .tile-kicker, .tile-butter .tile-kicker, .tile-rose .tile-kicker {
+  color: rgba(33, 31, 38, 0.62); opacity: 1;
+}
+.tile-mint .tile-sub, .tile-lav .tile-sub, .tile-peach .tile-sub,
+.tile-sky .tile-sub, .tile-butter .tile-sub, .tile-rose .tile-sub { opacity: 0.66; }
 
 /* ── 状态点 ── */
 .st {
