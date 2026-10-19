@@ -3,7 +3,7 @@ import { Children, isValidElement, useEffect, useMemo, useRef, useState } from "
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { SendHorizontal, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X, ArrowUpRight } from "lucide-react";
+import { SendHorizontal, Square, Plus, ChevronRight, ExternalLink, MessageSquareText, Check, X, ArrowUpRight, Copy, CornerDownLeft } from "lucide-react";
 import { streamChat, api } from "@/lib/api";
 import { remarkChips } from "@/lib/remark-chips";
 import { SevPill } from "@/components/ui";
@@ -101,6 +101,18 @@ function CitationChip({ n, cite, onCite }: { n: number; cite?: any; onCite: (n: 
         </span>
       </span>
     </span>
+  );
+}
+
+/** 复制回答（Perplexity 答案动作行首钮） */
+function CopyBtn({ text }: { text: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button type="button" title="复制回答"
+      onClick={() => { navigator.clipboard?.writeText(text).catch(() => {}); setOk(true); setTimeout(() => setOk(false), 1500); }}
+      className="flex h-7 w-7 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface hover:text-fg">
+      {ok ? <Check size={13} className="text-ok" /> : <Copy size={13} />}
+    </button>
   );
 }
 
@@ -369,14 +381,14 @@ export default function QaPage() {
     <div className="-mx-6 -my-5 flex h-screen">
 
       {/* ── 左：会话列表 ── */}
-      <div className="flex w-[200px] shrink-0 flex-col border-r border-line bg-panel">
-        <div className="flex h-11 items-center justify-between border-b border-line px-3">
-          <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-faint">调查会话</span>
-          <button onClick={newSession} className="rounded-[5px] p-1 text-faint transition-colors hover:bg-surface2 hover:text-fg" title="新调查">
+      <div className="flex w-[210px] shrink-0 flex-col border-r border-line bg-panel">
+        <div className="flex h-12 items-center justify-between px-3.5">
+          <span className="text-[12px] font-medium text-faint">最近调查</span>
+          <button onClick={newSession} className="rounded-[6px] p-1.5 text-faint transition-colors hover:bg-surface2 hover:text-fg" title="新调查">
             <Plus size={14} strokeWidth={2} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-1.5">
+        <div className="flex-1 overflow-y-auto px-2">
           {sessions.length === 0 && (
             <div className="px-2 py-6 text-center text-[12px] leading-relaxed text-faint">
               暂无历史调查<br />提问自动建档
@@ -384,23 +396,11 @@ export default function QaPage() {
           )}
           {sessions.map((s) => (
             <button key={s.id} onClick={() => openSession(s)}
-              className={`mb-px block w-full truncate rounded-[5px] px-2 py-1.5 text-left text-[12px] transition-colors ${
-                sessionId === s.id ? "bg-surface2 text-fg" : "text-dim hover:bg-surface hover:text-fg"}`}>
+              className={`mb-px block w-full truncate rounded-[6px] px-2.5 py-2 text-left text-[13px] transition-colors ${
+                sessionId === s.id ? "bg-surface2 font-medium text-fg" : "text-dim hover:bg-surface hover:text-fg"}`}>
               {s.title}
             </button>
           ))}
-        </div>
-        <div className="border-t border-line p-1.5">
-          <div className="flex items-center gap-1 rounded-[5px] p-0.5 text-[12px]">
-            {([[true, "深度"], [false, "快速"]] as const).map(([v, label]) => (
-              <button key={label} onClick={() => setDeep(v)}
-                className={`flex-1 rounded-[4px] py-1 transition-colors ${
-                  deep === v ? "bg-surface2 font-medium text-fg" : "text-faint hover:text-dim"}`}
-                title={v ? "Agent 工具编排 + 多跳推理" : "直接检索生成 ≤10s"}>
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -433,10 +433,8 @@ export default function QaPage() {
             {msgs.map((m, i) => (
               <div key={i} className="rise mb-6">
                 {m.role === "user" ? (
-                  /* 用户问题：左侧 hairline 引用条，非气泡 */
-                  <div className="border-l-2 border-accent/50 pl-4">
-                    <div className="text-[14px] font-medium leading-relaxed text-fg">{m.content}</div>
-                  </div>
+                  /* 用户问题：Perplexity 式大标题（无装饰块，字重撑层级） */
+                  <div className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-fg">{m.content}</div>
                 ) : (
                   /* 助手回答：无边框纯文本流 */
                   <div>
@@ -444,10 +442,9 @@ export default function QaPage() {
                     {busy && i === msgs.length - 1 && spine.length > 0 && (
                       <TraceSpine steps={spine} streaming elapsedNow={elapsed} onJump={() => setTab("trace")} />
                     )}
-                    {busy && i === msgs.length - 1 && (
-                      <div className="mb-3 ml-[7px] flex items-center gap-2 font-mono text-[11px] text-faint">
-                        <span className="tnum">已用 {fmtMs(elapsed)}</span>
-                        {elapsed > 30000 && <span className="text-dim">· 深度推理耗时较长属正常，可随时 ■ 中止</span>}
+                    {busy && i === msgs.length - 1 && elapsed > 30000 && (
+                      <div className="mb-3 ml-[7px] text-[12px] text-faint">
+                        深度推理耗时较长属正常，可随时 ■ 中止
                       </div>
                     )}
                     {m.content
@@ -462,31 +459,32 @@ export default function QaPage() {
                       </div>
                     )}
 
-                    {/* 判定条：置信仪表 + 源数 + 推理链 receipt */}
-                    {(m.confidence != null || m.trace?.steps) && !busy && (
-                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-line pt-2.5 text-[12px]">
+                    {/* 动作行：Perplexity 式图标行（复制/来源/推理链/置信度），低噪音 */}
+                    {(m.confidence != null || m.trace?.steps || m.citations?.length) && !busy && (
+                      <div className="mt-4 flex flex-wrap items-center gap-x-1 gap-y-1.5">
+                        <CopyBtn text={m.content} />
                         {m.confidence != null && (() => { const b = confBand(m.confidence); return (
-                          <span className="flex items-center gap-1.5" title={`答案置信度 ${m.confidence.toFixed(2)}`}>
-                            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">CONF</span>
-                            <span className="relative h-[3px] w-16 rounded bg-surface2">
-                              <span className={`absolute inset-y-0 left-0 rounded ${b.bar}`}
+                          <span className="ml-1 flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1" title={`答案置信度 ${m.confidence.toFixed(2)}`}>
+                            <span className="relative h-[3px] w-10 rounded-full bg-surface2">
+                              <span className={`absolute inset-y-0 left-0 rounded-full ${b.bar}`}
                                 style={{ width: `${Math.round(m.confidence * 100)}%` }} />
                             </span>
-                            <span className={`tnum font-mono text-[11px] ${b.cls}`}>{m.confidence.toFixed(2)} {b.label}</span>
+                            <span className={`tnum font-mono text-[11px] ${b.cls}`}>{m.confidence.toFixed(2)}</span>
                           </span>
                         ); })()}
                         {m.citations && m.citations.length > 0 && (() => {
                           const cited = citedNsOf(m.content).size;
                           return (
-                            <button onClick={() => setTab("evi")} className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
-                              {cited} SOURCES
+                            <button onClick={() => setTab("evi")}
+                              className="rounded-full px-2 py-1 text-[12px] text-faint transition-colors hover:bg-surface hover:text-fg">
+                              {cited} 来源
                             </button>
                           );
                         })()}
                         {m.trace?.steps && (
                           <button onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
-                            className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
-                            {openTrace[i] ? "▾" : "▸"} {m.trace.steps.length} STEPS{m.trace.total_ms ? ` ${fmtMs(m.trace.total_ms)}` : ""}
+                            className="rounded-full px-2 py-1 text-[12px] text-faint transition-colors hover:bg-surface hover:text-fg">
+                            {openTrace[i] ? "收起" : ""}{m.trace.steps.length} 步{m.trace.total_ms ? ` · ${fmtMs(m.trace.total_ms)}` : ""}
                           </button>
                         )}
                       </div>
@@ -524,14 +522,13 @@ export default function QaPage() {
                       );
                     })()}
 
-                    {/* 追问建议（Perplexity related 式：预测下一步，非通用 prompt） */}
+                    {/* 追问建议（Perplexity related 式：↩ 行 + 预测下一步） */}
                     {m.followups && m.followups.length > 0 && !busy && (
-                      <div className="mt-3 space-y-px border-t border-line pt-2">
-                        <div className="px-1.5 pb-1 font-mono text-[11px] uppercase tracking-[0.1em] text-faint">追问</div>
+                      <div className="mt-4 border-t border-line pt-1">
                         {m.followups.slice(0, 3).map((fq) => (
                           <button key={fq} onClick={() => send(fq)}
-                            className="group flex w-full items-center gap-2 rounded-[5px] px-1.5 py-1.5 text-left text-[12px] text-dim transition-colors hover:bg-surface hover:text-fg">
-                            <ChevronRight size={11} className="shrink-0 text-faint transition-colors group-hover:text-accent" />
+                            className="group flex w-full items-center gap-2.5 border-b border-line/60 px-1 py-2.5 text-left text-[13px] text-dim transition-colors last:border-0 hover:text-fg">
+                            <CornerDownLeft size={12} className="shrink-0 text-faint transition-colors group-hover:text-accent" />
                             <span className="truncate">{fq}</span>
                           </button>
                         ))}
@@ -553,40 +550,59 @@ export default function QaPage() {
           </div>
         </div>
 
-        {/* composer：忙时输入仍可编辑（纠偏排队），发送钮变真·停止 */}
-        <div className="shrink-0 border-t border-line px-6 py-3">
-          <div className="mx-auto flex max-w-[700px] items-center gap-2">
-            <input
-              className="input h-9 flex-1 !text-[13px]"
-              placeholder={busy ? "运行中——可继续输入，发送将排队为下一个问题" : "提问 AI 安全情报… @实体 / Enter 发送"}
+        {/* composer：Perplexity 式胶囊容器——输入区内嵌模式切换+圆形发送/停止钮 */}
+        <div className="shrink-0 px-6 pb-5 pt-2">
+          <div className="mx-auto max-w-[700px] rounded-[16px] border border-line bg-panel shadow-[0_2px_12px_-4px_rgba(60,50,90,0.12)] transition-colors focus-within:border-accent/40">
+            <textarea
+              ref={(el) => { if (el) { el.style.height = "0px"; el.style.height = `${Math.min(el.scrollHeight, 160)}px`; } }}
+              className="w-full resize-none bg-transparent px-4 pt-3.5 text-[14px] leading-relaxed text-fg outline-none placeholder:text-faint"
+              rows={1}
+              placeholder={busy ? "运行中——可继续输入，发送将排队为下一个问题" : "提问 AI 安全情报…"}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()} />
-            {busy ? (
-              <button className="btn h-9 !border-err/40 !text-err" onClick={stop} title="中止当前生成">
-                <Square size={11} fill="currentColor" />
-              </button>
-            ) : (
-              <button className="btn btn-acc h-9" onClick={() => send()} disabled={!input.trim()}>
-                <SendHorizontal size={13} strokeWidth={2} />
-              </button>
-            )}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+            <div className="flex items-center gap-1 px-2.5 pb-2.5">
+              {/* 模式切换：深度=Agent 工具编排 / 快速=直接检索 */}
+              <div className="flex items-center rounded-[8px] bg-surface2/70 p-0.5 text-[12px]">
+                {([[true, "深度"], [false, "快速"]] as const).map(([v, label]) => (
+                  <button key={label} onClick={() => setDeep(v)}
+                    className={`rounded-[6px] px-2.5 py-1 transition-colors ${
+                      deep === v ? "bg-panel font-medium text-fg shadow-sm" : "text-faint hover:text-dim"}`}
+                    title={v ? "Agent 工具编排 + 多跳推理" : "直接检索生成 ≤10s"}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {busy && <span className="ml-1 font-mono text-[11px] tnum text-faint">已用 {fmtMs(elapsed)}</span>}
+              <div className="flex-1" />
+              {busy ? (
+                <button onClick={stop} title="中止当前生成"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-err/10 text-err transition-colors hover:bg-err/20">
+                  <Square size={11} fill="currentColor" />
+                </button>
+              ) : (
+                <button onClick={() => send()} disabled={!input.trim()}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white transition-all hover:opacity-90 disabled:opacity-30">
+                  <SendHorizontal size={13} strokeWidth={2} className="-ml-px" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── 右：Evidence / Trace 面板（relative + 裁剪供 peek 抽屉滑入） ── */}
-      <div className="relative flex w-[290px] shrink-0 flex-col overflow-hidden border-l border-line bg-panel">
-        <div className="flex h-11 items-center gap-4 border-b border-line px-3">
+      {/* ── 右：Evidence / Trace 面板（Perplexity 式紧凑来源列表，一屏内呈现） ── */}
+      <div className="relative flex w-[300px] shrink-0 flex-col overflow-hidden border-l border-line bg-panel">
+        <div className="flex h-12 items-center gap-1 px-3">
           {([["evi", `证据 ${lastA?.citations?.length || ""}`], ["trace", "推理链"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`h-full border-b-2 font-mono text-[11px] uppercase tracking-[0.08em] transition-colors ${
-                tab === k ? "border-accent text-fg" : "border-transparent text-faint hover:text-dim"}`}>
+              className={`rounded-full px-3 py-1 text-[12px] transition-colors ${
+                tab === k ? "bg-surface2 font-medium text-fg" : "text-faint hover:text-dim"}`}>
               {l}
             </button>
           ))}
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto border-t border-line">
           {tab === "evi" && (
             <div className="p-2">
               {!lastA?.citations?.length && (
@@ -599,28 +615,27 @@ export default function QaPage() {
                 const citedNs = citedNsOf(lastA?.content);
                 const cited = (lastA?.citations || []).filter((c: any) => citedNs.has(c.n));
                 const rest = (lastA?.citations || []).filter((c: any) => !citedNs.has(c.n));
+                const host = (u?: string) => { try { return u ? new URL(u).hostname.replace(/^www\./, "") : ""; } catch { return ""; } };
+                /* 单行紧凑来源行：n chip + 标题 + 域名/库内标（~30px/条，一屏 10+） */
                 const Card = ({ c, dimmed }: { c: any; dimmed?: boolean }) => {
-                  const cls = `group mb-1 block w-full rounded-[6px] border px-2.5 py-2 text-left transition-colors ${
-                    citeFocus === c.n ? "border-accent/50 bg-[rgba(21,122,119,0.12)]"
-                      : "border-transparent hover:border-line hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`;
+                  const cls = `group mb-px flex w-full items-center gap-2 rounded-[6px] px-2 py-[7px] text-left transition-colors ${
+                    citeFocus === c.n ? "bg-[rgba(21,122,119,0.12)]"
+                      : "hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`;
                   const inner = (<>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-mono text-[11px] text-accent">[{c.n}]</span>
-                      <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-fg">{c.title}</span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 pl-6 font-mono text-[11px] text-faint">
-                      <span>{c.url ? "external" : `item:${String(c.item_id).slice(0, 8)}`}</span>
-                      {dimmed && <span>未引用</span>}
-                      {c.url
-                        ? <ExternalLink size={9} className="opacity-0 transition-opacity group-hover:opacity-60" />
-                        : <ChevronRight size={9} className="opacity-0 transition-opacity group-hover:opacity-60" />}
-                    </div>
+                    <span className="cite shrink-0">{c.n}</span>
+                    <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-fg">{c.title}</span>
+                    <span className="shrink-0 font-mono text-[10px] text-faint">
+                      {dimmed ? "候选" : c.url ? host(c.url) : "库内"}
+                    </span>
+                    {c.url
+                      ? <ExternalLink size={9} className="shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-70" />
+                      : <ChevronRight size={10} className="shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-70" />}
                   </>);
                   // 外部链接照旧 _blank；内部 item 开右侧 peek 抽屉而非跳页
                   return c.url ? (
-                    <a id={`evi-${c.n}`} href={c.url} target="_blank" rel="noreferrer" className={cls}>{inner}</a>
+                    <a id={`evi-${c.n}`} href={c.url} target="_blank" rel="noreferrer" title={c.title} className={cls}>{inner}</a>
                   ) : (
-                    <button id={`evi-${c.n}`} type="button" className={cls}
+                    <button id={`evi-${c.n}`} type="button" title={c.title} className={cls}
                       onClick={() => c.item_id && openPeek(String(c.item_id))}>{inner}</button>
                   );
                 };
@@ -630,13 +645,13 @@ export default function QaPage() {
                     showUncited
                       ? <>
                           <button onClick={() => setShowUncited(false)}
-                            className="my-1.5 w-full text-left font-mono text-[11px] uppercase tracking-[0.08em] text-faint hover:text-dim">
+                            className="mb-1 mt-2 w-full px-2 text-left text-[11px] text-faint transition-colors hover:text-dim">
                             ▾ 其他检索候选 {rest.length}
                           </button>
                           {rest.map((c: any) => <Card key={c.n} c={c} dimmed />)}
                         </>
                       : <button onClick={() => setShowUncited(true)}
-                          className="my-1.5 w-full text-left font-mono text-[11px] uppercase tracking-[0.08em] text-faint hover:text-dim">
+                          className="mt-2 w-full rounded-[6px] px-2 py-1.5 text-left text-[11px] text-faint transition-colors hover:bg-surface hover:text-dim">
                           ▸ 其他检索候选 {rest.length}（未被引用）
                         </button>
                   )}
