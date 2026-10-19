@@ -27,6 +27,11 @@ function loadSessions(): Sess[] {
   try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; }
 }
 
+/** 正文里实际引用的 [n] 集合 */
+function citedNsOf(content?: string): Set<number> {
+  return new Set(Array.from((content || "").matchAll(/\[(\d{1,3})\]/g)).map((x) => +x[1]));
+}
+
 function confBand(c?: number): { label: string; cls: string } {
   if (c == null) return { label: "—", cls: "text-faint" };
   if (c >= 0.6) return { label: "置信 · 高", cls: "text-ok" };
@@ -148,6 +153,7 @@ export default function QaPage() {
   const [deep, setDeep] = useState(true);
   const [tab, setTab] = useState<"evi" | "trace">("evi");
   const [citeFocus, setCiteFocus] = useState<number | null>(null);
+  const [showUncited, setShowUncited] = useState(false);
   const [openTrace, setOpenTrace] = useState<Record<number, boolean>>({});
   const bottom = useRef<HTMLDivElement>(null);
   const esRef = useRef<boolean>(false);
@@ -317,11 +323,14 @@ export default function QaPage() {
                         {m.confidence != null && (() => { const b = confBand(m.confidence); return (
                           <span className={`font-mono text-[10.5px] uppercase tracking-[0.06em] ${b.cls}`}>{b.label}</span>
                         ); })()}
-                        {m.citations && m.citations.length > 0 && (
-                          <button onClick={() => setTab("evi")} className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
-                            {m.citations.length} SOURCES
-                          </button>
-                        )}
+                        {m.citations && m.citations.length > 0 && (() => {
+                          const cited = citedNsOf(m.content).size;
+                          return (
+                            <button onClick={() => setTab("evi")} className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
+                              {cited} SOURCES
+                            </button>
+                          );
+                        })()}
                         {m.trace?.steps && (
                           <button onClick={() => setOpenTrace((o) => ({ ...o, [i]: !o[i] }))}
                             className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint transition-colors hover:text-accent">
@@ -343,19 +352,24 @@ export default function QaPage() {
                       </div>
                     )}
 
-                    {/* 引用行：mono 编号 chip */}
-                    {m.citations && m.citations.length > 0 && (
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {m.citations.map((c) => (
-                          <a key={c.n} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
-                            title={c.title}
-                            className="group inline-flex max-w-[280px] items-center gap-1.5 truncate rounded-[5px] border border-line bg-panel px-2 py-1 text-[11px] text-dim transition-colors hover:border-line2 hover:text-fg">
-                            <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
-                            <span className="truncate">{c.title}</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
+                    {/* 引用行：只展示正文真正引用的 [n]（Perplexity 纪律：检索候选≠来源） */}
+                    {m.citations && m.citations.length > 0 && (() => {
+                      const citedNs = citedNsOf(m.content);
+                      const shown = m.citations.filter((c) => citedNs.has(c.n));
+                      if (!shown.length) return null;
+                      return (
+                        <div className="mt-2.5 flex flex-wrap gap-1.5">
+                          {shown.map((c) => (
+                            <a key={c.n} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
+                              title={c.title}
+                              className="group inline-flex max-w-[280px] items-center gap-1.5 truncate rounded-[5px] border border-line bg-panel px-2 py-1 text-[11px] text-dim transition-colors hover:border-line2 hover:text-fg">
+                              <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
+                              <span className="truncate">{c.title}</span>
+                            </a>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -408,20 +422,44 @@ export default function QaPage() {
                   提问后此处列出<br />答案引用的情报条目
                 </div>
               )}
-              {lastA?.citations?.map((c: any) => (
-                <a key={c.n} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
-                  className={`group mb-1 block rounded-[6px] border px-2.5 py-2 transition-colors ${
-                    citeFocus === c.n ? "border-accent/50 bg-[rgba(90,180,196,0.14)]" : "border-transparent hover:border-line hover:bg-surface"}`}>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
-                    <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-fg">{c.title}</span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 pl-6 font-mono text-[10px] text-faint">
-                    <span>{c.url ? "external" : `item:${String(c.item_id).slice(0, 8)}`}</span>
-                    <ExternalLink size={9} className="opacity-0 transition-opacity group-hover:opacity-60" />
-                  </div>
-                </a>
-              ))}
+              {(() => {
+                const citedNs = citedNsOf(lastA?.content);
+                const cited = (lastA?.citations || []).filter((c: any) => citedNs.has(c.n));
+                const rest = (lastA?.citations || []).filter((c: any) => !citedNs.has(c.n));
+                const Card = ({ c, dimmed }: { c: any; dimmed?: boolean }) => (
+                  <a key={c.n} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
+                    className={`group mb-1 block rounded-[6px] border px-2.5 py-2 transition-colors ${
+                      citeFocus === c.n ? "border-accent/50 bg-[rgba(90,180,196,0.14)]"
+                        : "border-transparent hover:border-line hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`}>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-[10px] text-accent">[{c.n}]</span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] leading-snug text-fg">{c.title}</span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 pl-6 font-mono text-[10px] text-faint">
+                      <span>{c.url ? "external" : `item:${String(c.item_id).slice(0, 8)}`}</span>
+                      {dimmed && <span>未引用</span>}
+                      <ExternalLink size={9} className="opacity-0 transition-opacity group-hover:opacity-60" />
+                    </div>
+                  </a>
+                );
+                return (<>
+                  {cited.map((c: any) => <Card key={c.n} c={c} />)}
+                  {rest.length > 0 && (
+                    showUncited
+                      ? <>
+                          <button onClick={() => setShowUncited(false)}
+                            className="my-1.5 w-full text-left font-mono text-[10px] uppercase tracking-[0.08em] text-faint hover:text-dim">
+                            ▾ 其他检索候选 {rest.length}
+                          </button>
+                          {rest.map((c: any) => <Card key={c.n} c={c} dimmed />)}
+                        </>
+                      : <button onClick={() => setShowUncited(true)}
+                          className="my-1.5 w-full text-left font-mono text-[10px] uppercase tracking-[0.08em] text-faint hover:text-dim">
+                          ▸ 其他检索候选 {rest.length}（未被引用）
+                        </button>
+                  )}
+                </>);
+              })()}
             </div>
           )}
           {tab === "trace" && (
