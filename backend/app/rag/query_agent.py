@@ -8,10 +8,10 @@ import inspect
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.ids import extract_ids
 from app.core.llm import chat, chat_structured, chat_stream
@@ -22,13 +22,17 @@ from app.rag import kg, retriever
 
 log = get_logger("rag.query_agent")
 
-ROUTE_SYS = """你是 AI 安全情报问答路由器。将用户问题分类：
+def _route_sys() -> str:
+    today = datetime.now().strftime("%Y-%m-%d")
+    return f"""你是 AI 安全情报问答路由器。今天是 {today}。将用户问题分类：
 - vuln_lookup: 查询具体漏洞详情/CVE 信息
 - comparison: 对比多个漏洞/技术
 - multi_hop: 需要跨多文档推理（如"影响 X 的所有漏洞"、"同弱点还有哪些"）
-- trend: 趋势/统计类（最近/多少/哪些）
+- trend: 趋势/统计/时效类（最近/本周/今天/多少/哪些/新增）
 - general: 一般安全问答
-返回 JSON：{"route":..., "sub_questions":[...], "entities":[...], "filters":{"severity":[...],"since":"YYYY-MM-DD"}}"""
+时间表达式必须翻译成绝对日期（今天={today}）："最近一周/本周"→{today} 前推 7 天，"最近/近期"→前推 30 天，"今天"→{today}，"本月"→当月 1 日
+概念词要展开成实体：如"AI基础设施"→[ollama, vllm, triton, langchain, milvus, pytorch, tensorflow, mcp, llama.cpp, huggingface] 等组件名进 entities
+返回 JSON：{{"route":..., "sub_questions":[...], "entities":[...], "filters":{{"severity":[...],"since":"YYYY-MM-DD"}}}}"""
 
 
 class RouteOut(BaseModel):
@@ -47,7 +51,7 @@ class AnswerOut(BaseModel):
 async def _route(question: str, history: list[dict]) -> RouteOut:
     try:
         return await chat_structured(
-            [{"role": "system", "content": ROUTE_SYS},
+            [{"role": "system", "content": _route_sys()},
              *[{"role": h["role"], "content": h["content"]} for h in history[-4:]],
              {"role": "user", "content": question}], RouteOut)
     except Exception as e:  # noqa: BLE001
@@ -85,6 +89,7 @@ AGENT_SYS = """你是 AI 安全情报分析 Agent，可自主调用工具收集�
 1. 分析问题后决定调用哪些工具（可多轮调用），收集足够证据后停止
 2. 已有证据能覆盖问题时不再调用，直接结束
 3. 每次调用有明确目的（查具体漏洞/找关联/枚举清单/多跳桥接）
+4. 工具返回 0 条或结果明显不相关时，先用更宽/更短的查询重试一次（去掉时间限定/改用实体名/换关键词），再考虑换工具
 """
 
 # DeepSeek 兼容参数：chat() 若支持 parallel_tool_calls 则透传（单轮决策即可并行发多个
@@ -335,8 +340,13 @@ async def _prepare(question: str, session_id: str | None = None,
         # ---- 2.5 快速通道（deep=False：跳过路由/Agent/KG，直接检索生成，≤10s）----
         if not deep:
             step("fast_path")
-            hits = await _guard(retriever.retrieve(question, top_k=top_k, do_rerank=False),
-                                [], "retrieve")
+            det_since, _ = _parse_since(question)
+            hits, recent_ctx = await asyncio.gather(
+                _guard(retriever.retrieve(question, top_k=top_k, do_rerank=False),
+                       [], "retrieve"),
+                _guard(_recent_items(det_since, vuln_only=True, ai_bias=True),
+                       None, "recent") if det_since else _none(),
+            )
             hit_items = await _guard(_hydrate([h["item_id"] for h in hits]), {}, "hydrate")
             for i, h in enumerate(hits, 1):
                 it = hit_items.get(h["item_id"])
@@ -344,8 +354,14 @@ async def _prepare(question: str, session_id: str | None = None,
                 contexts.append({"n": i, "item_id": h["item_id"], "title": h.get("title_zh") or h.get("title"),
                                  "url": h.get("url"), "text": (struct + "\n" + h.get("text", ""))[:1800],
                                  "meta": {"cve": h.get("cve")}, "score": h.get("rerank_score", h["score"])})
+            if recent_ctx:
+                recent_ctx = {**recent_ctx, "n": len(contexts) + 1}
+                contexts.append(recent_ctx)
+                step("recent_facts", n=recent_ctx["meta"]["total"], since=det_since)
             cites = [{"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"],
-                      "score": round(c["score"], 3)} for c in contexts]
+                      "score": round(c["score"], 3),
+                      "snippet": (c["text"].split("\n", 1)[1] if "\n" in c["text"] else c["text"])[:200]}
+                     for c in contexts]
             step("context", n=len(contexts))
             step("generate")
             return contexts, cites, trace, t0
@@ -367,17 +383,38 @@ async def _prepare(question: str, session_id: str | None = None,
         # ---- 4. 第二轮并发：Agent 工具循环 ∥ 子问句补充检索 ∥ 路由实体 KG 扩展 ----
         extra_ents = [e for e in (routed.entities or [])[:5] if e not in kg_seed]
         sub_extra = [q for q in sub_qs if q != question]
-        filters = routed.filters or {}
-        agent_ev, sub_hit_lists, kg_facts2 = await asyncio.gather(
+        filters = dict(routed.filters or {})
+        # 确定性时间解析（LLM 不算日期）：正则命中即覆盖/补全 filters.since
+        det_since, window_name = _parse_since(question)
+        if det_since:
+            filters["since"] = det_since
+        # 概念展开实体拼一条补充检索（sparse/BM42 吃精确组件名，召回 AI 基础设施类条目）
+        ent_q = " ".join((routed.entities or [])[:8])
+        if ent_q and ent_q not in sub_extra:
+            sub_extra.append(ent_q)
+        sev_pref = {s.lower() for s in filters.get("severity") or []}
+        vuln_intent = bool(re.search(r"漏洞|CVE|vuln|exploit|高危|严重", question, re.I))
+        ai_intent = bool(re.search(r"AI|智能|LLM|模型|agent|大模型|infra|基础设施", question, re.I))
+        agent_ev, sub_hit_lists, kg_facts2, recent_ctx = await asyncio.gather(
             _guard(_agent_evidence(question, history, step), [], "agent")
             if routed.route != "general" else _nil(),
             asyncio.gather(*[
-                _guard(retriever.retrieve(q, top_k=top_k, do_rerank=False, **filters),
-                       [], "retrieve")
+                _guard(retriever.retrieve(
+                    q, top_k=top_k, do_rerank=False,
+                    # since 不下推向量层：存量 payload 里 published_at 有 NULL，
+                    # 时效过滤由水合层 DB 权威字段执行（COALESCE first_seen_at）
+                    **{k: v for k, v in filters.items() if k != "since"}),
+                    [], "retrieve")
                 for q in sub_extra]),
             _kg_expand(extra_ents, hops=2, limit=40),
+            # trend/时效意图：SQL 确定性窗口枚举（带总数），向量检索给不出"共N条"
+            _guard(_recent_items(filters["since"], sev_pref or None,
+                                 vuln_only=vuln_intent, ai_bias=ai_intent),
+                   None, "recent") if filters.get("since") else _none(),
         )
         kg_facts = _dedupe_facts(kg_facts + kg_facts2)
+        if recent_ctx:
+            step("recent_facts", n=recent_ctx["meta"]["total"], since=filters["since"])
 
         all_hits: list[dict] = []
         seen_iid: set[str] = set()
@@ -405,6 +442,46 @@ async def _prepare(question: str, session_id: str | None = None,
         )
         rerank_seg.sort(key=lambda h: h.get("rerank_score", h["score"]), reverse=True)
         all_hits = (rerank_seg + tail_hits)[:top_k * 2]
+
+        # ---- 5b. 时效/严重度过滤 + CRAG 式放宽重试 ----
+        # 过滤在水合后的 DB 权威字段上做（published_at 为空回退 first_seen_at）
+        sev_set = {s.lower() for s in filters.get("severity") or []}
+        since = filters.get("since")
+
+        def _time_ok(h, since_dt) -> bool:
+            it = hit_items.get(h["item_id"])
+            if not it:
+                return True
+            dt = it.published_at or it.first_seen_at
+            return bool(dt) and (dt.replace(tzinfo=None) if getattr(dt, "tzinfo", None) else dt) >= since_dt
+
+        def _sev_ok(h) -> bool:
+            it = hit_items.get(h["item_id"])
+            return not it or not sev_set or (it.severity or "").lower() in sev_set
+
+        if since:
+            try:
+                since_dt = datetime.fromisoformat(since[:10])
+            except ValueError:
+                since_dt = None
+            if since_dt:
+                kept = [h for h in all_hits if _time_ok(h, since_dt) and _sev_ok(h)]
+                if len(kept) < 3:
+                    # CRAG-lite：窗口过窄→×4 放宽一次，仍不足再完全放开
+                    wide_dt = since_dt - timedelta(days=21)
+                    kept = [h for h in all_hits if _time_ok(h, wide_dt) and _sev_ok(h)]
+                    step("time_filter_retry", kept=len(kept), since=wide_dt.strftime("%Y-%m-%d"))
+                if len(kept) < 3:
+                    kept = [h for h in all_hits if _sev_ok(h)]
+                    step("time_filter_dropped", kept=len(kept))
+                if kept:
+                    all_hits = kept
+                    step("time_filter", kept=len(all_hits), since=since)
+        elif sev_set:
+            kept = [h for h in all_hits if _sev_ok(h)]
+            if kept:
+                all_hits = kept
+                step("severity_filter", kept=len(all_hits))
         step("retrieve", hits=len(all_hits), sub_qs=len(sub_qs))
         step("kg_expand", facts=len(kg_facts), entities=(kg_seed + extra_ents)[:8])
 
@@ -421,6 +498,9 @@ async def _prepare(question: str, session_id: str | None = None,
         if kev_ctx:
             kev_ctx = {**kev_ctx, "n": len(contexts) + 1}
             contexts.append(kev_ctx)
+        if recent_ctx:
+            recent_ctx = {**recent_ctx, "n": len(contexts) + 1}
+            contexts.append(recent_ctx)
         step("context", n=len(contexts))
         step("generate")
 
@@ -458,6 +538,77 @@ async def answer(question: str, session_id: str | None = None,
     route = next((s.get("route") for s in trace.get("steps", []) if s.get("route")), "general")
     out = await _generate(question, history or [], contexts, route=route)
     return _final(out, cites, trace, t0)
+
+
+# ---- 确定性时间窗解析（jionlp 式：LLM 不算日期，正则直接出绝对窗口）----
+_TIME_RULES: list[tuple[str, int | str]] = [
+    (r"今天|今日|日内", 0),
+    (r"昨天|昨日", 1),
+    (r"近[两2]天", 2), (r"近[三3]天", 3),
+    (r"本周|这周|本星期|最近一?周|近一?周|近7天|最近7天|过去一?周", 7),
+    (r"近[两2]周|最近[两2]周|过去[两2]周|近14天", 14),
+    (r"上月|上个月", "prev_month"),
+    (r"本月|这个月|当月", "month"),
+    (r"近[一1]个月|最近一个月|近30天|最近30天", 30),
+    (r"近[三3]个月|最近[三3]个月|近90天", 90),
+    (r"今年|本年|本年度", "year"),
+    (r"近期|最近|近来|最新", 30),  # 兜底弱时效词
+]
+
+
+def _parse_since(question: str) -> tuple[str | None, str]:
+    """中文时间表达 → (since 'YYYY-MM-DD', 窗口名)。None = 无时效意图"""
+    today = datetime.now().date()
+    for pat, spec in _TIME_RULES:
+        if not re.search(pat, question):
+            continue
+        if spec == "month":
+            return today.replace(day=1).isoformat(), "本月"
+        if spec == "prev_month":
+            return (today.replace(day=1) - timedelta(days=1)).replace(day=1).isoformat(), "上月"
+        if spec == "year":
+            return today.replace(month=1, day=1).isoformat(), "今年"
+        return (today - timedelta(days=int(spec))).isoformat(), \
+            ("今天" if spec == 0 else "昨天" if spec == 1 else f"近{spec}天")
+    return None, ""
+
+
+async def _recent_items(since: str, severities: set[str] | None = None,
+                        vuln_only: bool = True, ai_bias: bool = True,
+                        limit: int = 30) -> dict | None:
+    """trend/时效问题的确定性枚举：SQL 直接窗口枚举 + COUNT（向量检索给不出总数）"""
+    async with get_session_factory()() as db:
+        eff = func.coalesce(Item.published_at, Item.first_seen_at)
+        conds = [eff >= datetime.fromisoformat(since)]
+        if severities:
+            conds.append(func.lower(Item.severity).in_(list(severities)))
+        if vuln_only:
+            conds.append(Item.item_type.in_(["vuln", "advisory", "exploit"]))
+        total = (await db.execute(
+            select(func.count()).select_from(Item).where(*conds))).scalar() or 0
+        if not total:
+            return None
+        order = [Item.ai_relevance_score.desc().nullslast()] if ai_bias else []
+        items = (await db.execute(select(Item).where(*conds)
+                 .order_by(*(order + [eff.desc()])).limit(limit))).scalars().all()
+    lines = []
+    for i in items:
+        dt = (i.published_at or i.first_seen_at)
+        d = dt.strftime("%m-%d") if dt else "-"
+        flags = [i.severity or "-", f"EPSS{i.epss_score:.2f}" if i.epss_score else "-",
+                 f"AI{i.ai_relevance_score:.2f}" if i.ai_relevance_score else "-"]
+        if i.is_kev:
+            flags.append("KEV")
+        if i.products:
+            flags.append("产品:" + ",".join(i.products[:2]))
+        lines.append(f"- {d} {','.join(i.cve_ids[:3] or [])} {i.title[:70]} [{'｜'.join(flags)}]")
+    scope = "、".join(sorted(severities)) if severities else "全部严重度"
+    return {"n": 0, "item_id": "recent_facts",
+            "title": f"{since} 以来{'漏洞' if vuln_only else '情报'}窗口枚举（命中 {total} 条，列前 {len(items)}）",
+            "url": None,
+            "text": (f"情报库确定性窗口枚举（口径：发布或入库时间 ≥ {since}，范围 {scope}）："
+                     f"共 {total} 条命中，以下按 AI 相关度+时间排序取前 {len(lines)} 条：\n" + "\n".join(lines)),
+            "meta": {"kind": "recent_facts", "since": since, "total": total}, "score": 0.95}
 
 
 async def _kev_facts(limit: int = 30) -> dict | None:

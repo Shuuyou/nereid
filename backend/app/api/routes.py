@@ -222,7 +222,7 @@ async def list_items(
 
     order = {
         "priority": desc(func.coalesce(Item.priority_score, 0) + func.coalesce(Item.ai_relevance_score, 0)),
-        "published": desc(Item.published_at),
+        "published": desc(func.coalesce(Item.published_at, Item.first_seen_at)),
         "seen": desc(Item.first_seen_at),
     }[sort]
 
@@ -318,7 +318,7 @@ async def related_items(item_id: str, db: AsyncSession = Depends(get_db)):
         ors.append(Item.products.overlap(it.products))
     if ors:
         conds.append(or_(*ors))
-    rows = (await db.execute(select(Item).where(*conds).order_by(desc(Item.published_at)).limit(8))).scalars().all()
+    rows = (await db.execute(select(Item).where(*conds).order_by(desc(func.coalesce(Item.published_at, Item.first_seen_at))).limit(8))).scalars().all()
     return {"items": [_item_card(r) for r in rows]}
 
 

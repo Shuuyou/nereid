@@ -73,3 +73,11 @@
 - **评测口径可辩护**：eval_enrichment 分层随机抽样（severity×年份，ID 层均匀随机）；EPSS 评测前对样本同快照刷新消除漂移假阴性
 - **个性化推荐**：PUT/GET /api/profile/{name}；GET /api/feed/personalized；POST /api/feed/{id}/feedback；GET /api/feed/digest（规则匹配+向量召回+matched_entities/why 解释+反馈闭环）
 - **systemd**：三 user service + linger；前端 standalone 每次 build 后 systemd 重启（旧 nohup 进程会抢端口——先杀再起）
+
+## 新增契约（2026-10-19 时效检索修复后）
+- **时效语义**：查询层统一 `effective_at = COALESCE(published_at, first_seen_at)`；`published_at` 只存真实披露时间（KEV collector 不再写 dateAdded）；排序全部 `coalesce desc`（PG NULLS FIRST 坑已修）
+- **时间解析确定性**：`_parse_since(question)` 正则表产绝对窗口，覆盖 LLM 路由的 filters.since；LLM 不计算日期（_route_sys 注入 today 仅兜底）
+- **trend/时效 SQL 枚举**：`_recent_items(since, severities)` 直接窗口枚举+COUNT 注入 context（向量检索给不出总数）；deep/fast 路径都接
+- **时效过滤权威层**：水合后 DB 字段过滤（`_time_ok`），`since` 不下推向量层（存量 payload NULL）；CRAG-lite：窗口×4→全放开
+- **ai_classify L1-L6 定义必须与 core/taxonomy.py 一致**（L1=基础设施推理…L6=滥用威胁）——2026-10-19 前 LLM 写的 ai_layer 是错层数据
+- **published_at 回填**：`scripts/published_backfill.py --apply` 从 cvelistV5 datePublished 回填并清 indexed_hash（重索引待逐条 ingest 触发）

@@ -381,7 +381,8 @@ class KevCollector(BaseCollector):
             items.append(RawItemData(
                 title=f"[KEV] {v.get('vulnerabilityName', cid)}",
                 url=f"https://www.cve.org/CVERecord?id={cid}",
-                native_id=cid, published_at=added,
+                # published_at 语义=披露时间；KEV dateAdded 是"入目录"时间，只进 raw.kev，由 scorers 回写 kev_date_added
+                native_id=cid, published_at=None,
                 content_text=f"{v.get('vulnerabilityName','')}\n{v.get('shortDescription','')}\nRequired: {v.get('requiredAction','')}\nRansomware: {v.get('knownRansomwareCampaignUse','Unknown')}",
                 lang="en", raw={"kev": v}, item_type="vuln", cve_ids=[cid],
                 vendors=[v.get("vendorProject")] if v.get("vendorProject") else [],

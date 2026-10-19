@@ -29,7 +29,9 @@ async def run(item, ctx) -> dict:
         [{"role": "system", "content": (
             "判断该安全情报是否与 AI/ML/LLM 系统安全相关（AI 基础设施、模型、框架、Agent、"
             "AI 供应链、提示注入、AI 滥用、AI 治理政策）。输出 is_ai_related、置信度、AI 层（"
-            "L1=应用/Agent L2=模型/数据 L3=框架/组件 L4=部署/暴露 L5=平台/基础设施 L6=滥用/治理）与一句话理由。")},
+            "L1=基础设施与推理层(GPU/Ollama/vLLM/Triton/向量库/MLOps) "
+            "L2=模型与数据层(越狱/注入/投毒/窃取) L3=应用与智能体层(ChatGPT类/MCP/Agent) "
+            "L4=供应链层(HF仓库/PyPI/模型格式) L5=政策与治理 L6=滥用与威胁行为）与一句话理由。")},
          {"role": "user", "content": f"标题：{item.title}\n\n{text}"}],
         ClassifyOut)
     if not out:

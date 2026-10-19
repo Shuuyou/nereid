@@ -52,7 +52,8 @@ def _payload(item: Item, chunk: str, idx: int) -> dict:
         "has_poc": bool(item.has_poc), "ai_layer": item.ai_layer,
         "ai_relevance": item.ai_relevance_score or 0.0,
         "source_name": (item.source_names or [None])[0],
-        "published_at": item.published_at.isoformat() if item.published_at else None,
+        "published_at": (item.published_at or item.first_seen_at).isoformat()
+                        if (item.published_at or item.first_seen_at) else None,
         "epss": item.epss_score, "cvss": item.cvss_v31_score,
         "summary_zh": (item.summary_zh or "")[:800],
     }

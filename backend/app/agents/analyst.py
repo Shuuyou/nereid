@@ -103,7 +103,7 @@ async def generate_topic_report(topic: str) -> str:
         like = f"%{topic}%"
         rows = (await db.execute(select(Item).where(or_(
             Item.title.ilike(like), Item.title_zh.ilike(like), Item.products.overlap([topic]),
-        ), Item.ai_relevance_score >= 0.2).order_by(desc(Item.published_at)).limit(40))).scalars().all()
+        ), Item.ai_relevance_score >= 0.2).order_by(desc(func.coalesce(Item.published_at, Item.first_seen_at))).limit(40))).scalars().all()
     data = [{"title": it.title_zh or it.title, "cve": it.cve_ids, "severity": it.severity,
              "layer": it.ai_layer, "date": it.published_at.isoformat() if it.published_at else None,
              "techniques": it.attack_techniques, "summary": (it.summary_zh or it.summary or "")[:200]}
