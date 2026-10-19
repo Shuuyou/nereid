@@ -1,210 +1,414 @@
-@import "@fontsource-variable/inter";
-@import "@fontsource/jetbrains-mono/latin-400.css";
-@import "@fontsource/jetbrains-mono/latin-500.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============ 捞针 · Nereid — 工作台设计系统 v2 ============
+   参照：Linear luminance stacking + OpenCTI/Elastic 密度 + 工程图纸语言
+   原则：发丝线分区而非卡片 · 亮度堆叠而非阴影 · mono 承载技术值
+   ============================================================ */
+
 :root {
-  color-scheme: dark;
-  font-synthesis: none;
-  --accent-glow: rgba(62, 200, 232, 0.35);
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
-  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* luminance stack — 微冷调近黑，非深蓝黑 */
+  --bg: #08090a;
+  --panel: #0d0e10;
+  --surface: #121315;
+  --surface-2: #17181b;
+  --overlay: #1d1f23;
+  /* hairlines */
+  --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.14);
+  /* text */
+  --text: #eceef0;
+  --text-2: #a9adb3;
+  --text-3: #64676d;
+  /* accent — 去饱和青，仅交互/focus/图表主序列，全站克制 */
+  --acc: #5ab4c4;
+  --acc-dim: rgba(90, 180, 196, 0.14);
+  /* semantic */
+  --ok: #57ab5a;
+  --warn: #daaa3f;
+  --err: #e5534b;
+  /* severity 独立色板 — 不吃品牌色 */
+  --sev-crit: #f13242;
+  --sev-high: #ed9a00;
+  --sev-med: #d8b432;
+  --sev-low: #4c8fd6;
+  --sev-info: #71717a;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
 }
 
-html { scroll-behavior: smooth; }
-
+html {
+  color-scheme: dark;
+}
 body {
-  @apply bg-bg text-fg antialiased;
-  /* 深渊顶光：海面透光的一束，克制 */
-  background:
-    radial-gradient(1400px 700px at 50% -12%, rgba(62, 200, 232, 0.055), transparent 60%),
-    linear-gradient(#070b12, #0a0f18 400px);
-  background-attachment: fixed;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter Variable", "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
   font-feature-settings: "cv01", "ss03";
 }
 
-::selection { background: rgba(62, 200, 232, 0.28); }
-
-/* ---------- 面板 ---------- */
-.card {
-  @apply rounded-[10px] border border-line bg-panel p-4;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
+::selection {
+  background: rgba(90, 180, 196, 0.25);
 }
-.card-hover {
-  transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out), transform 150ms var(--ease-out);
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
-.card-hover:hover { @apply border-linestrong bg-raised; }
+::-webkit-scrollbar-thumb {
+  background: #2a2c30;
+  border: 3px solid var(--bg);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-/* ---------- 徽标 ---------- */
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  letter-spacing: -0.01em;
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 图纸语言：页面级 mono 元数据行 ── */
+.spec-row {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.spec-row .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex: none;
+}
+
+/* ── 分区：hairline + 留白，不是卡片 ── */
+.sect {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 28px;
+}
+.sect-title {
+  font-size: 12.5px;
+  font-weight: 590;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.sect-sub {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* ── 表格：高密度、行分隔 hairline、hover 背景移 ── */
+table.dt {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.dt thead th {
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 590;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-2);
+  white-space: nowrap;
+}
+.dt thead th.r,
+.dt td.r {
+  text-align: right;
+}
+.dt tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.dt tbody tr {
+  transition: background-color 120ms;
+}
+.dt tbody tr:hover {
+  background: var(--surface);
+}
+.dt .num {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ── badge：一种中性样式打天下；severity 用点+文字 ── */
 .badge {
-  @apply inline-flex items-center gap-1 rounded-[5px] border px-1.5 py-[3px] text-[11px] font-medium leading-none tracking-[0.02em];
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1.5px 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-2);
+  border: 1px solid var(--line);
+  white-space: nowrap;
 }
-.sev-critical { @apply badge border-critical/30 bg-critical/[0.14] text-critical; }
-.sev-high     { @apply badge border-high/30 bg-high/[0.13] text-high; }
-.sev-medium   { @apply badge border-medium/30 bg-medium/[0.12] text-medium; }
-.sev-low      { @apply badge border-low/30 bg-low/[0.12] text-low; }
-.sev-none     { @apply badge border-none/30 bg-none/[0.12] text-dim; }
-.tag        { @apply badge border-line bg-white/[0.04] text-dim; }
-.tag-accent { @apply badge border-accent/30 bg-accent/[0.12] text-accent; }
-.tag-ai     { @apply badge border-ai/30 bg-ai/[0.12] text-ai; }
-.tag-kev    { @apply badge border-critical/40 bg-critical/[0.18] text-critical; }
-.tag-ok     { @apply badge border-low/30 bg-low/[0.12] text-low; }
-
-/* ---------- 表单 ---------- */
-.input {
-  @apply w-full rounded-lg border border-line bg-edge px-3 py-2 text-[13px] text-fg placeholder:text-faint transition-colors;
+.badge .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex: none;
 }
-.input:focus { @apply border-accent/50 outline-none; box-shadow: 0 0 0 3px rgba(62, 200, 232, 0.10); }
-select.input { @apply w-auto cursor-pointer; }
+.badge.mono {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: -0.01em;
+}
+.sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 590;
+}
+.sev .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.sev-crit .dot { background: var(--sev-crit); }
+.sev-high .dot { background: var(--sev-high); }
+.sev-med .dot { background: var(--sev-med); }
+.sev-low .dot { background: var(--sev-low); }
+.sev-crit { color: #ff8a94; }
+.sev-high { color: #f0b45a; }
+.sev-med { color: #e3cd6b; }
+.sev-low { color: #7fb3e8; }
 
+/* ── 控件：4-6px 圆角纪律、零阴影 ── */
 .btn {
-  @apply inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-abyss transition-all duration-150;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 590;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+  white-space: nowrap;
 }
-.btn:hover { filter: brightness(1.12); }
-.btn:active { transform: translateY(0.5px); }
-.btn:disabled { @apply opacity-50 pointer-events-none; }
-
-.btn-soft {
-  @apply inline-flex items-center gap-1.5 rounded-lg border border-accent/25 bg-accent/[0.10] px-3 py-2 text-[13px] font-medium text-accent transition-all duration-150;
+.btn:hover {
+  background: var(--overlay);
 }
-.btn-soft:hover { @apply bg-accent/[0.18] border-accent/40; }
-
+.btn-acc {
+  background: var(--acc-dim);
+  border-color: rgba(90, 180, 196, 0.4);
+  color: #8fd4e0;
+}
+.btn-acc:hover {
+  background: rgba(90, 180, 196, 0.22);
+}
+.btn-sm {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  border-radius: 5px;
+}
 .btn-ghost {
-  @apply inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-[13px] text-dim transition-all duration-150;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-3);
 }
-.btn-ghost:hover { @apply border-linestrong bg-white/[0.04] text-fg; }
-
-/* ---------- 导航 ---------- */
-.nav-item {
-  @apply relative rounded-md px-3 py-1.5 text-[13px] text-dim transition-colors duration-150 whitespace-nowrap;
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text);
 }
-.nav-item:hover { @apply bg-white/[0.05] text-fg; }
-.nav-item-active {
-  @apply bg-white/[0.07] text-fg;
-  box-shadow: inset 2px 0 0 var(--tw-accent, #3ec8e8), inset 2px 0 0 #3ec8e8;
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
-
-/* ---------- 排版细节 ---------- */
-.mono { @apply font-mono text-[0.93em]; }
-.kpi  { @apply font-semibold tabular-nums tracking-[-0.01em]; }
-.h2   { @apply text-[15px] font-medium text-fg; }
-.h3   { @apply text-micro font-medium uppercase tracking-[0.08em] text-faint; }
-
-/* ---------- 表格 ---------- */
-.tbl { @apply w-full text-left text-[13px]; }
-.tbl thead th {
-  @apply border-b border-line px-3 py-2 text-micro font-medium uppercase tracking-[0.06em] text-faint;
+.input {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12.5px;
+  height: 30px;
+  padding: 0 10px;
+  outline: none;
+  transition: border-color 120ms;
 }
-.tbl tbody td { @apply border-b border-line/60 px-3 py-2.5 text-fg/90; }
-.tbl tbody tr { @apply transition-colors duration-100; }
-.tbl tbody tr:hover { @apply bg-white/[0.025]; }
-.tbl tbody tr:last-child td { @apply border-b-0; }
-
-/* ---------- 状态点 ---------- */
-.dot { @apply inline-block h-1.5 w-1.5 rounded-full; }
-.dot-glow { box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.22), 0 0 8px rgba(63, 185, 80, 0.55); }
-.dot-glow-accent { box-shadow: 0 0 0 3px rgba(62, 200, 232, 0.20), 0 0 10px rgba(62, 200, 232, 0.5); }
-
-/* ---------- 动效 ---------- */
-@keyframes feed-in {
-  from { opacity: 0; transform: translateY(-6px); }
+.input:focus {
+  border-color: var(--acc);
 }
-.feed-in { animation: feed-in 240ms var(--ease-expo); }
-
-@keyframes shimmer {
-  to { background-position: -200% 0; }
+.input::placeholder {
+  color: var(--text-3);
 }
-.shimmer {
-  background: linear-gradient(110deg, #93a3b8 30%, #e9eef5 50%, #93a3b8 70%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shimmer 1.8s linear infinite;
+select.input {
+  padding-right: 28px;
 }
 
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+/* ── 面板：仅真浮层/容器用，6-8px 圆角、发丝边、零阴影 ── */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
-.skeleton {
-  @apply rounded-md bg-white/[0.05];
-  animation: skeleton-pulse 1.6s ease-in-out infinite;
+.panel-h {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-h .t {
+  font-size: 11px;
+  font-weight: 590;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.panel-b {
+  padding: 14px;
 }
 
-@keyframes breathe {
+/* ── 状态点：纯色小点 + 文字，无发光 ── */
+.st {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.st .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex: none;
+}
+.st-ok .dot { background: var(--ok); }
+.st-err .dot { background: var(--err); }
+.st-warn .dot { background: var(--warn); }
+.st-live .dot { background: var(--acc); animation: pulse-dot 2.4s ease-in-out infinite; }
+@keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
-.breathe { animation: breathe 2.2s var(--ease-out) infinite; }
 
-/* 问答 composer 聚焦光晕（全站两处光效之一） */
-.composer:focus-within {
-  border-color: rgba(62, 200, 232, 0.35);
-  box-shadow: 0 0 0 3px rgba(62, 200, 232, 0.08), 0 0 28px rgba(62, 200, 232, 0.10);
+/* ── 骨架屏 ── */
+.skel {
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
+  background-size: 400% 100%;
+  animation: skel 1.8s ease-in-out infinite;
+}
+@keyframes skel {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
 }
 
-/* 深海光晕（dashboard 顶部） */
-.abyss-glow {
-  background: radial-gradient(ellipse 55% 60% at 50% -10%, rgba(62, 200, 232, 0.10), transparent 70%);
+/* ── QA 流式 ── */
+.caret::after {
+  content: "▍";
+  color: var(--acc);
+  animation: caret 1s steps(1) infinite;
+}
+@keyframes caret {
+  50% { opacity: 0; }
+}
+.prose-a {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.prose-a h1, .prose-a h2, .prose-a h3, .prose-a h4 {
+  font-weight: 590;
+  margin: 18px 0 8px;
+  letter-spacing: -0.01em;
+}
+.prose-a h2 { font-size: 16px; }
+.prose-a h3 { font-size: 14px; }
+.prose-a p { margin: 8px 0; color: var(--text-2); }
+.prose-a ul, .prose-a ol { margin: 8px 0 8px 18px; color: var(--text-2); }
+.prose-a li { margin: 3px 0; }
+.prose-a code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #c9d1d9;
+}
+.prose-a pre {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.prose-a pre code { background: none; padding: 0; }
+.prose-a table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+  margin: 10px 0;
+}
+.prose-a th {
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--line-2);
+  padding: 6px 10px;
+}
+.prose-a td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 10px;
+  color: var(--text-2);
+}
+.prose-a strong { color: var(--text); font-weight: 590; }
+.prose-a a { color: var(--acc); }
+.cite {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--acc);
+  background: var(--acc-dim);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin: 0 1px;
+  vertical-align: 1px;
+  cursor: pointer;
+}
+.cite:hover { background: rgba(90, 180, 196, 0.28); }
+
+/* ── 进入动画：唯一保留的动效，克制 ── */
+@keyframes rise {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.rise {
+  animation: rise 200ms ease-out both;
 }
 
-/* 海雪：dashboard 背景的极稀疏上浮微粒 */
-@keyframes marine-rise {
-  from { transform: translateY(0); opacity: 0; }
-  12% { opacity: var(--o, 0.5); }
-  88% { opacity: var(--o, 0.5); }
-  to { transform: translateY(-104vh); opacity: 0; }
-}
-.marine-snow {
-  position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
-}
-.marine-snow span {
-  position: absolute; bottom: -8px; display: block; border-radius: 9999px;
-  background: #9fd8ec;
-  animation: marine-rise linear infinite;
-}
-.marine-snow span.glow { box-shadow: 0 0 6px 1px rgba(62, 200, 232, 0.7); }
-
-@media (prefers-reduced-motion: reduce) {
-  .feed-in, .shimmer, .breathe, .marine-snow span { animation: none !important; }
-  html { scroll-behavior: auto; }
-}
-
-/* ---------- markdown 正文（qa/reports 共用，替代缺失的 prose） ---------- */
-.md { @apply text-[13.5px] leading-[1.75] text-fg/90; }
-.md h1, .md h2, .md h3, .md h4 { @apply mt-4 mb-1.5 font-semibold text-fg; }
-.md h1 { @apply text-lg; } .md h2 { @apply text-[15px]; } .md h3 { @apply text-sm; }
-.md p { @apply my-1.5; }
-.md ul, .md ol { @apply my-1.5 pl-5 space-y-1; }
-.md ul { @apply list-disc; } .md ol { @apply list-decimal; }
-.md li::marker { @apply text-faint; }
-.md strong { @apply font-semibold text-fg; }
-.md code { @apply rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[12px] text-accent; }
-.md pre { @apply my-2 overflow-x-auto rounded-lg border border-line bg-edge p-3; }
-.md pre code { @apply bg-transparent p-0 text-fg/90; }
-.md blockquote { @apply my-2 border-l-2 border-accent/40 pl-3 text-dim; }
-.md a { @apply text-accent hover:underline; }
-.md table { @apply my-2 w-full text-[12.5px]; }
-.md th { @apply border-b border-line px-2 py-1.5 text-left text-micro text-faint; }
-.md td { @apply border-b border-line/50 px-2 py-1.5; }
-.md hr { @apply my-3 border-line; }
-
-/* ---------- 滚动条 ---------- */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply rounded bg-white/[0.09]; }
-::-webkit-scrollbar-thumb:hover { @apply bg-white/[0.16]; }
-* { scrollbar-color: rgba(255, 255, 255, 0.12) transparent; }
-
-/* ---------- 杂项 ---------- */
-.divide-line > * + * { @apply border-t border-line/60; }
-a { @apply outline-none; }
-a:focus-visible, button:focus-visible, .input:focus-visible {
-  outline: 2px solid rgba(62, 200, 232, 0.45);
-  outline-offset: 1px;
-}
+::-webkit-scrollbar-corner { background: transparent; }

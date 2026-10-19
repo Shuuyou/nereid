@@ -425,7 +425,9 @@ async def _prepare(question: str, session_id: str | None = None,
         step("generate")
 
         cites = [
-            {"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"], "score": round(c["score"], 3)}
+            {"n": c["n"], "item_id": c["item_id"], "title": c["title"], "url": c["url"],
+             "score": round(c["score"], 3),
+             "snippet": (c["text"].split("\n", 1)[1] if "\n" in c["text"] else c["text"])[:200]}
             for c in contexts if c["item_id"] != "kg"]
         if kg_facts:
             trace["kg_facts"] = kg_facts[:15]
@@ -436,7 +438,8 @@ async def _prepare(question: str, session_id: str | None = None,
             step("prepare_error", error=str(e)[:200])
             if not cites and contexts:
                 cites = [{"n": c["n"], "item_id": c["item_id"], "title": c["title"],
-                          "url": c["url"], "score": round(c.get("score", 0), 3)}
+                          "url": c["url"], "score": round(c.get("score", 0), 3),
+                          "snippet": (c["text"].split("\n", 1)[1] if "\n" in c["text"] else c["text"])[:200]}
                          for c in contexts if c["item_id"] != "kg"]
             if len(trace["steps"]) < 3:  # 兜底：任意路径 trace ≥3 步
                 step("context", n=len(contexts))
@@ -452,7 +455,8 @@ async def answer(question: str, session_id: str | None = None,
     """主入口（非流式，评测用）：返回 {answer, citations, trace, confidence, latency_ms}"""
     contexts, cites, trace, t0 = await _prepare(
         question, session_id, history, top_k, deep, progress)
-    out = await _generate(question, history or [], contexts)
+    route = next((s.get("route") for s in trace.get("steps", []) if s.get("route")), "general")
+    out = await _generate(question, history or [], contexts, route=route)
     return _final(out, cites, trace, t0)
 
 
@@ -490,14 +494,22 @@ async def _hydrate(item_ids: list[str]) -> dict[str, Item]:
         return {i.id: i for i in rows}
 
 
+def _cap_ids(ids: list | None, k: int = 6) -> str:
+    """证据侧枚举预聚合：>k 个同类 ID 只给前 k 个 + 总数（防模型把 30 个 CVE 铺进正文）"""
+    ids = ids or []
+    if len(ids) <= k:
+        return ",".join(ids)
+    return ",".join(ids[:k]) + f" 等{len(ids)}个"
+
+
 def _struct_line(i: Item) -> str:
-    parts = [f"CVE:{','.join(i.cve_ids or [])}", f"严重度:{i.severity or '-'}"]
+    parts = [f"CVE:{_cap_ids(i.cve_ids)}", f"严重度:{i.severity or '-'}"]
     if i.cwe_ids:
-        parts.append(f"CWE:{','.join(i.cwe_ids)}")
+        parts.append(f"CWE:{_cap_ids(i.cwe_ids)}")
     if i.attack_techniques:
-        parts.append(f"ATT&CK:{','.join(i.attack_techniques)}")
+        parts.append(f"ATT&CK:{_cap_ids(i.attack_techniques)}")
     if i.atlas_techniques:
-        parts.append(f"ATLAS:{','.join(i.atlas_techniques)}")
+        parts.append(f"ATLAS:{_cap_ids(i.atlas_techniques)}")
     if i.products:
         parts.append(f"产品:{','.join(i.products[:6])}")
     if i.affected_versions:
@@ -509,16 +521,39 @@ def _struct_line(i: Item) -> str:
     return "｜".join(parts)
 
 
-async def _generate(question: str, history: list[dict], contexts: list[dict], trace_note: str = "") -> AnswerOut:
+# 分类型回答形态（route → answer form），GraphRAG/Claude 式塑形
+_FORM: dict[str, str] = {
+    "vuln_lookup": "实体研判：首行给定性（严重度·是否KEV在野·有无公开PoC），随后关键属性、影响面，需要时给处置建议",
+    "comparison": "对比：先一句结论，再用简表（≤6行）对比关键维度",
+    "multi_hop": "分析：先 1-2 句直接结论，再列证据链要点；只有内容真正多维时才分小节",
+    "trend": "枚举统计：先给命中总数与时间范围，再列要点条目",
+    "general": "简答：直接回答，通常 2-5 句；除非问题确实多维，否则不分节",
+}
+
+_SYS_BODY = """你是资深安全情报分析师，在分析师工作台中回答同行的问题。
+
+输出纪律：
+1. 首行直接给答案（BLUF）——不重复问题、不要"根据提供的信息"式开场
+2. 回答形态：{form}
+3. 默认连贯段落、最小化格式；只有内容真正多维时才用小节/表格；一句话问题一句话答
+4. 枚举纪律：同类实体（CVE/CWE/IOC/技术等）超过5个时，正文只写"共N个"+最多3个代表样例+"等"——总数与范围必须保留，但禁止逐条堆叠 ID
+5. 引用证据用 [n] 内联标注；无证据支撑的内容不要编造
+6. 证据不足时直说"当前情报库未收录相关信息"并指出缺什么，不要硬答
+7. 中文回答，CVE/CWE/版本号等技术标识保留原文
+8. 答完即停——不写"总结/综上所述"，不追加未被问到的建议
+9. 拿不准时用"很可能/可能/尚不确定"等分级措辞，不要裸写百分比概率"""
+
+
+def _sys_for(route: str, json_tail: str = "") -> str:
+    return _SYS_BODY.format(form=_FORM.get(route, _FORM["general"])) + json_tail
+
+
+async def _generate(question: str, history: list[dict], contexts: list[dict],
+                    route: str = "general", trace_note: str = "") -> AnswerOut:
     ctx_txt = "\n\n".join(
         f"[{c['n']}] {c['title'] or ''}\nURL: {c['url'] or '-'}\n元数据: {c.get('meta')}\n{c['text']}"
         for c in contexts[:12])
-    sys_p = """你是 AI 安全情报分析助手。基于给定证据回答，要求：
-1. 引用证据用 [n] 标注；无证据支撑的内容不要编造
-2. 证据不足时明确说"当前情报库信息有限"
-3. 回答结构化：结论 → 关键事实 → 建议；若问题要求枚举（哪些/所有/列出），须逐条列全
-4. 中文回答，技术名词保留原文
-5. 输出 JSON: {"answer": "...", "confidence": 0-1, "followups": ["建议的追问"]}"""
+    sys_p = _sys_for(route, '\n10. 输出 JSON: {"answer": "...", "confidence": 0-1, "followups": ["建议的追问"]}')
     # 消息顺序固定 system→证据→history→问题：证据块前置，前缀缓存友好
     msgs = [{"role": "system", "content": sys_p},
             {"role": "user", "content": f"证据：\n{ctx_txt}"},
@@ -532,21 +567,14 @@ async def _generate(question: str, history: list[dict], contexts: list[dict], tr
         return AnswerOut(answer=raw["content"], confidence=0.4)
 
 
-_STREAM_SYS = """你是 AI 安全情报分析助手。基于给定证据回答，要求：
-1. 引用证据用 [n] 标注；无证据支撑的内容不要编造
-2. 证据不足时明确说"当前情报库信息有限"
-3. 回答结构化：结论 → 关键事实 → 建议；枚举类问题须逐条列全
-4. 中文回答，技术名词保留原文
-5. 直接输出答案正文（markdown），不要 JSON、不要前后缀"""
-
-
-async def _generate_stream(question: str, history: list[dict], contexts: list[dict]):
+async def _generate_stream(question: str, history: list[dict], contexts: list[dict],
+                           route: str = "general"):
     """真流式生成：yield 文本 delta"""
     ctx_txt = "\n\n".join(
         f"[{c['n']}] {c['title'] or ''}\nURL: {c['url'] or '-'}\n元数据: {c.get('meta')}\n{c['text']}"
         for c in contexts[:12])
     # 消息顺序固定 system→证据→history→问题：证据块前置，前缀缓存友好
-    msgs = [{"role": "system", "content": _STREAM_SYS},
+    msgs = [{"role": "system", "content": _sys_for(route, "\n10. 直接输出答案正文（markdown），不要 JSON、不要前后缀")},
             {"role": "user", "content": f"证据：\n{ctx_txt}"},
             *[{"role": h["role"], "content": h["content"]} for h in history[-6:]],
             {"role": "user", "content": f"问题：{question}"}]
@@ -556,14 +584,14 @@ async def _generate_stream(question: str, history: list[dict], contexts: list[di
 
 def _format_item_block(item: Item, pocs: list, maps: list) -> dict:
     poc_txt = "\n".join(f"- {p.url} ({p.platform}, {p.credibility})" for p in pocs[:8])
-    map_txt = ", ".join(sorted({x for m in maps for x in (m.capec_id, m.atlas_technique, m.attack_technique) if x}))
-    atlas = ", ".join(item.atlas_techniques or [])
-    attack = ", ".join(item.attack_techniques or [])
+    map_txt = ", ".join(sorted({x for m in maps for x in (m.capec_id, m.atlas_technique, m.attack_technique) if x}))[:400]
+    atlas = _cap_ids(item.atlas_techniques)
+    attack = _cap_ids(item.attack_techniques)
     enr = item.enrichment or {}
     text = f"""标题: {item.title_zh or item.title}
 类型: {item.item_type} | 严重性: {item.severity} | CVSS: {item.cvss_v31_score} | EPSS: {item.epss_score}
 KEV: {item.is_kev} | PoC: {item.has_poc} | AI层: {item.ai_layer}
-CWE: {', '.join(item.cwe_ids or [])} | ATLAS: {atlas} | ATT&CK: {attack}
+CWE: {_cap_ids(item.cwe_ids)} | ATLAS: {atlas} | ATT&CK: {attack}
 产品: {', '.join(item.products or [])} | 受影响版本: {item.affected_versions or '-'}
 摘要: {item.summary_zh or item.summary or ''}
 内容: {(item.content_text or '')[:2000]}
@@ -604,9 +632,10 @@ async def stream_answer(question: str, session_id: str | None = None,
     yield {"type": "citations", "data": {"citations": cites}}
     yield {"type": "status", "data": {"msg": "DeepSeek 生成答案…"}}
     # 真流式：LLM delta 直通 SSE（首 token 延迟即感知延迟）
+    route = next((s.get("route") for s in trace.get("steps", []) if s.get("route")), "general")
     ans = ""
     try:
-        async for piece in _generate_stream(question, history or [], contexts):
+        async for piece in _generate_stream(question, history or [], contexts, route=route):
             ans += piece
             yield {"type": "token", "data": {"t": piece}}
     except Exception as e:  # noqa: BLE001

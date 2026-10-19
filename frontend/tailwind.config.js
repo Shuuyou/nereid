@@ -4,31 +4,32 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // 深海 luminance stacking（每层 +4-6% 白）
-        abyss: "#070b12", // 最深层 body 底
-        bg: "#0a0f18", // 页面画布
-        panel: "#0e1520", // 卡片
-        raised: "#141d2b", // hover/elevated
-        overlay: "#1b2635", // popover/tooltip
-        edge: "#131c29", // 嵌套容器底
-        // 发丝描边（alpha 白，弃用实色灰蓝）
-        line: "rgba(198,215,235,0.07)",
-        linestrong: "rgba(198,215,235,0.14)",
-        // 旧名兼容（border 是 tailwind 类前缀不能用作色名值，改走 line/edge）
-        border: "rgba(198,215,235,0.07)",
-        // 三级文字
-        fg: "#e9eef5",
-        dim: "#93a3b8",
-        faint: "#5d6b7e",
-        // 品牌：深海生物荧光（单一强调色纪律）
-        accent: "#3ec8e8",
-        ai: "#2dd4bf",
-        // 信号色（降饱和）
-        critical: "#f0554f",
-        high: "#f0883e",
-        medium: "#e3b341",
-        low: "#3fb950",
-        none: "#6e7681",
+        // luminance stacking — 微冷调近黑
+        bg: "#08090a",
+        panel: "#0d0e10",
+        surface: "#121315",
+        surface2: "#17181b",
+        overlay: "#1d1f23",
+        // hairlines
+        line: "rgba(255,255,255,0.07)",
+        line2: "rgba(255,255,255,0.14)",
+        border: "rgba(255,255,255,0.07)",
+        // text
+        fg: "#eceef0",
+        dim: "#a9adb3",
+        faint: "#64676d",
+        // accent — 去饱和青，仅交互
+        accent: "#5ab4c4",
+        // severity 独立色板（OpenCTI 刻度对齐）
+        critical: "#f13242",
+        high: "#ed9a00",
+        medium: "#d8b432",
+        low: "#4c8fd6",
+        none: "#71717a",
+        // semantic
+        ok: "#57ab5a",
+        warn: "#daaa3f",
+        err: "#e5534b",
       },
       fontFamily: {
         sans: [
@@ -39,7 +40,7 @@ module.exports = {
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       fontSize: {
-        micro: ["11px", { lineHeight: "1.4", letterSpacing: "0.03em" }],
+        micro: ["10.5px", { lineHeight: "1.4", letterSpacing: "0.06em" }],
       },
       transitionTimingFunction: {
         "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)",

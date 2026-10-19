@@ -1,80 +1,189 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { ItemCard } from "@/components/cards";
-import { Skeleton, Empty, PageHeader } from "@/components/ui";
+import { Empty, SpecRow, SpecDot, Sev } from "@/components/ui";
 
 const LAYERS = ["", "L1", "L2", "L3", "L4", "L5", "L6"];
-const SEV = ["", "critical", "high", "medium", "low"];
-const TYPES = ["", "vuln", "advisory", "exploit", "article", "paper", "incident", "policy"];
+const LAYER_NAMES: Record<string, string> = {
+  L1: "L1 基础设施", L2: "L2 模型数据", L3: "L3 应用智能体",
+  L4: "L4 供应链", L5: "L5 政策治理", L6: "L6 滥用威胁",
+};
+const SEV: [string, string][] = [
+  ["", "严重级"], ["critical", "严重"], ["high", "高危"], ["medium", "中危"], ["low", "低危"],
+];
+const TYPES: [string, string][] = [
+  ["", "类型"], ["vuln", "vuln"], ["advisory", "advisory"], ["exploit", "exploit"],
+  ["article", "article"], ["paper", "paper"], ["incident", "incident"], ["policy", "policy"],
+];
+const SORTS: [string, string][] = [
+  ["priority", "优先级"], ["published", "披露时间"], ["seen", "入库时间"],
+];
+const PAGE_SIZE = 20;
 
 export default function ItemsPage() {
+  const router = useRouter();
   const [data, setData] = useState<any>({ items: [], total: 0 });
-  const [f, setF] = useState({ q: "", layer: "", severity: "", item_type: "", kev: false, poc: false, ai_only: true, page: 1 });
+  const [q, setQ] = useState("");
+  const [f, setF] = useState({
+    q: "", layer: "", severity: "", item_type: "",
+    kev: false, poc: false, ai_only: true, page: 1, sort: "priority",
+  });
   const [loading, setLoading] = useState(true);
+
+  // 查询词防抖 → 写入过滤器
+  useEffect(() => {
+    const t = setTimeout(() => setF((s) => ({ ...s, q: q.trim(), page: 1 })), 320);
+    return () => clearTimeout(t);
+  }, [q]);
 
   const load = useCallback(() => {
     setLoading(true);
-    api.items({ size: 20, sort: "priority", ...f })
+    const params: Record<string, string | number | boolean> = { size: PAGE_SIZE, ...f };
+    // 输入恰为 CVE-ID 时走专用等值过滤（cve_ids 数组 contains），其余走 ilike
+    if (/^CVE-\d{4}-\d{4,}$/i.test(f.q)) { params.cve = f.q.toUpperCase(); params.q = ""; }
+    api.items(params)
       .then(setData).catch(() => setData({ items: [], total: 0 }))
       .finally(() => setLoading(false));
   }, [f]);
   useEffect(load, [load]);
 
-  const pages = Math.max(1, Math.ceil((data.total || 0) / 20));
+  const total = data.total || 0;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const range = total === 0 ? "0" : `${(f.page - 1) * PAGE_SIZE + 1}–${Math.min(f.page * PAGE_SIZE, total)}`;
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="情报库" desc={`${(data.total || 0).toLocaleString()} 条 · 按优先级排序`}
-        right={
-          <div className="relative">
-            <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
-            <input className="input w-64 !pl-8" placeholder="搜索标题/CVE/产品…"
-              value={f.q} onChange={(e) => setF({ ...f, q: e.target.value, page: 1 })} />
-          </div>
-        } />
+    <div>
+      <SpecRow>
+        <span>FIG_02</span><SpecDot />
+        <span>INTEL LIBRARY</span><SpecDot />
+        <span>{total.toLocaleString()} ITEMS</span>
+      </SpecRow>
 
-      <div className="card flex flex-wrap items-center gap-2 !p-3">
-        <select className="input" value={f.layer} onChange={(e) => setF({ ...f, layer: e.target.value, page: 1 })}>
-          {LAYERS.map((l) => <option key={l} value={l}>{l || "全部层级"}</option>)}
+      {/* 查询条：全宽 mono（Shodan/Elastic 式） */}
+      <div className="relative mt-4">
+        <Search size={14} strokeWidth={1.75}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
+        <input
+          className="input h-9 w-full !pl-9 font-mono text-[12.5px]"
+          placeholder="筛选: CVE-ID / 关键词 / 类型…"
+          value={q} onChange={(e) => setQ(e.target.value)}
+          spellCheck={false}
+        />
+      </div>
+
+      {/* facet 行：下拉 + 开关 chips（无侧栏） */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <select className="input w-auto" value={f.layer}
+          onChange={(e) => setF({ ...f, layer: e.target.value, page: 1 })}>
+          {LAYERS.map((l) => <option key={l} value={l}>{l ? LAYER_NAMES[l] : "AI 层"}</option>)}
         </select>
-        <select className="input" value={f.severity} onChange={(e) => setF({ ...f, severity: e.target.value, page: 1 })}>
-          {SEV.map((s) => <option key={s} value={s}>{s || "全部严重级"}</option>)}
+        <select className="input w-auto" value={f.severity}
+          onChange={(e) => setF({ ...f, severity: e.target.value, page: 1 })}>
+          {SEV.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <select className="input" value={f.item_type} onChange={(e) => setF({ ...f, item_type: e.target.value, page: 1 })}>
-          {TYPES.map((t) => <option key={t} value={t}>{t || "全部类型"}</option>)}
+        <select className="input w-auto font-mono" value={f.item_type}
+          onChange={(e) => setF({ ...f, item_type: e.target.value, page: 1 })}>
+          {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <div className="mx-1 h-4 w-px bg-line" />
-        {([["kev", "仅 KEV"], ["poc", "仅 PoC"], ["ai_only", "AI 相关"]] as const).map(([k, label]) => (
+        <div className="mx-1 h-4 w-px bg-line2" />
+        {([["kev", "KEV"], ["poc", "PoC"], ["ai_only", "AI 相关"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setF({ ...f, [k]: !f[k], page: 1 })}
-            className={`rounded-md border px-2.5 py-1 text-[12px] transition-colors ${
-              f[k] ? "border-accent/40 bg-accent/[0.12] text-accent" : "border-line text-dim hover:border-linestrong hover:text-fg"}`}>
+            className={`h-6 rounded-[5px] border px-2.5 text-[11.5px] transition-colors ${
+              f[k]
+                ? "border-accent/50 bg-[rgba(90,180,196,0.12)] text-accent"
+                : "border-line text-faint hover:border-line2 hover:text-dim"}`}>
             {label}
           </button>
         ))}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint">sort</span>
+          <select className="input w-auto" value={f.sort}
+            onChange={(e) => setF({ ...f, sort: e.target.value, page: 1 })}>
+            {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[104px]" />)}
-        </div>
-      ) : data.items.length === 0 ? (
-        <Empty text="没有匹配的情报" hint="试试放宽筛选条件或关闭「AI 相关」" />
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {data.items.map((it: any) => <ItemCard key={it.id} item={it} />)}
-        </div>
-      )}
+      {/* 高密度数据表 */}
+      <div className="mt-3 overflow-x-auto">
+        <table className="dt table-fixed">
+          <thead>
+            <tr>
+              <th className="w-[84px]">级别</th>
+              <th>标题</th>
+              <th className="w-[148px]">CVE</th>
+              <th className="w-[92px]">类型</th>
+              <th className="r w-[72px]">EPSS</th>
+              <th className="w-[150px]">来源</th>
+              <th className="w-[100px]">披露</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              Array.from({ length: 10 }).map((_, i) => (
+                <tr key={i}><td colSpan={7}><div className="skel h-5" /></td></tr>
+              ))
+            ) : data.items.length === 0 ? (
+              <tr><td colSpan={7} className="!border-0 !p-0">
+                <div className="py-4">
+                  <Empty text="没有匹配的情报" hint="试试放宽筛选条件或关闭「AI 相关」" />
+                </div>
+              </td></tr>
+            ) : data.items.map((it: any) => (
+              <tr key={it.id} className="cursor-pointer"
+                onClick={() => router.push(`/items/${it.id}`)}>
+                <td><Sev level={it.severity} /></td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <span className="min-w-0 truncate text-fg/90"
+                      title={it.title_zh ? `${it.title_zh}\n${it.title}` : it.title}>
+                      {it.title_zh || it.title}
+                    </span>
+                    {it.is_kev && (
+                      <span className="badge shrink-0">
+                        <span className="dot" style={{ background: "#e5534b" }} />KEV
+                      </span>
+                    )}
+                    {it.has_poc && (
+                      <span className="badge shrink-0">
+                        <span className="dot" style={{ background: "#daaa3f" }} />PoC
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="num truncate text-dim">
+                  {(it.cve_ids || []).length
+                    ? <>{it.cve_ids[0]}{it.cve_ids.length > 1 && <span className="text-faint"> +{it.cve_ids.length - 1}</span>}</>
+                    : "—"}
+                </td>
+                <td><span className="badge mono">{it.item_type || "—"}</span></td>
+                <td className="r num text-dim">
+                  {it.epss_score != null ? `${(it.epss_score * 100).toFixed(1)}%` : "—"}
+                </td>
+                <td className="truncate text-dim">{(it.source_names || []).slice(0, 2).join(" · ") || "—"}</td>
+                <td className="num text-faint">{it.published_at ? it.published_at.slice(0, 10) : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      <div className="flex items-center justify-center gap-2 text-[12px]">
-        <button className="btn-ghost !py-1.5" disabled={f.page <= 1} onClick={() => setF({ ...f, page: f.page - 1 })}>
-          <ChevronLeft size={13} />上一页
-        </button>
-        <span className="mono px-2 text-faint">{f.page} / {pages}</span>
-        <button className="btn-ghost !py-1.5" disabled={f.page >= pages} onClick={() => setF({ ...f, page: f.page + 1 })}>
-          下一页<ChevronRight size={13} />
-        </button>
+      {/* 分页：mono 小字 */}
+      <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint">
+        <span>{range} / {total.toLocaleString()}</span>
+        <div className="flex items-center gap-1">
+          <button className="btn btn-ghost btn-sm" disabled={f.page <= 1}
+            onClick={() => setF({ ...f, page: f.page - 1 })}>
+            <ChevronLeft size={12} />Prev
+          </button>
+          <span className="px-2 tnum">P{f.page} / {pages}</span>
+          <button className="btn btn-ghost btn-sm" disabled={f.page >= pages}
+            onClick={() => setF({ ...f, page: f.page + 1 })}>
+            Next<ChevronRight size={12} />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { API } from "@/lib/api";
-import { SevBadge } from "@/components/cards";
-import { CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { API, api } from "@/lib/api";
+import { SpecRow, SpecDot, PageHeader, Empty, Skeleton, Sev } from "@/components/ui";
+import { Check, Undo2, RefreshCw } from "lucide-react";
 
 const TABS = [
   ["needs_review", "待复核"],
@@ -23,14 +23,22 @@ interface ReviewItem {
   first_seen_at?: string | null;
 }
 
-function confCls(c?: number) {
-  if (c == null) return "bg-border";
-  if (c >= 0.7) return "bg-low";
-  if (c >= 0.4) return "bg-medium";
-  return "bg-critical";
+/** 置信度 → 语义色（高可信 ok / 中 warn / 低 err，不吃品牌色） */
+function confTone(c?: number) {
+  if (c == null) return "bg-surface2";
+  if (c >= 0.7) return "bg-ok";
+  if (c >= 0.4) return "bg-warn";
+  return "bg-err";
+}
+function confText(c?: number) {
+  if (c == null) return "text-faint";
+  if (c >= 0.7) return "text-ok";
+  if (c >= 0.4) return "text-warn";
+  return "text-err";
 }
 
 export default function ReviewPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("needs_review");
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [count, setCount] = useState(0);
@@ -60,7 +68,7 @@ export default function ReviewPage() {
   }
 
   async function act(it: ReviewItem, action: "confirm" | "reject") {
-    setBusy(it.id);
+    setBusy(it.id + action);
     try {
       const r = await fetch(`${API}/api/review/${encodeURIComponent(it.id)}/${action}`, { method: "POST" });
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
@@ -76,102 +84,130 @@ export default function ReviewPage() {
     }
   }
 
+  async function reEnrich(it: ReviewItem) {
+    setBusy(it.id + "enrich");
+    try {
+      await api.enrich(it.id);
+      toast(`重富化已触发：${(it.title || it.id).slice(0, 30)}`);
+    } catch (e) {
+      toast(`触发失败：${e}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const pendingLabel = tab === "needs_review" ? "PENDING" : tab === "confirmed" ? "CONFIRMED" : "AUTO";
+
   return (
-    <div className="space-y-4">
-      <div className="mb-1 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="h2">HITL 复核队列</h1>
-          <p className="mt-0.5 text-[12px] text-faint">
-            {tab === "needs_review" ? <>待复核 <span className="text-accent">{count}</span> 条 · 低置信/富化异常需人工确认</>
-              : <>共 {count} 条 · review_status = {tab}</>}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-line p-0.5">
-            {TABS.map(([v, l]) => (
-              <button key={v} onClick={() => setTab(v)}
-                className={`rounded-md px-3 py-1 text-[11px] transition-colors ${tab === v ? "bg-white/[0.08] text-fg" : "text-faint hover:text-dim"}`}>
-                {l}
-              </button>
-            ))}
-          </div>
-          <button className="btn-ghost !px-2 !py-1 !text-[11px]" onClick={load}>刷新</button>
-        </div>
+    <div>
+      <SpecRow>
+        <span>FIG_04</span><SpecDot />
+        <span>REVIEW QUEUE</span><SpecDot />
+        <span>{count} {pendingLabel}</span>
+      </SpecRow>
+
+      <PageHeader title="HITL 复核队列" desc="低置信 / 富化异常条目需人工确认 · reject 后清空富化结果回炉"
+        right={<button className="btn" onClick={load}><RefreshCw size={12} strokeWidth={1.75} />刷新</button>} />
+
+      {/* 状态 tabs — 下划线式，非药丸 */}
+      <div className="flex h-10 items-stretch gap-5 border-b border-line">
+        {TABS.map(([v, l]) => (
+          <button key={v} onClick={() => setTab(v)}
+            className={`h-full border-b-2 text-[12px] transition-colors ${
+              tab === v ? "border-accent font-medium text-fg" : "border-transparent text-faint hover:text-dim"}`}>
+            {l}
+            {tab === v && <span className="ml-1.5 font-mono text-[10.5px] text-faint">{count}</span>}
+          </button>
+        ))}
+        <span className="ml-auto self-center font-mono text-[10.5px] uppercase tracking-[0.06em] text-faint">
+          review_status = {tab}
+        </span>
       </div>
 
       {loading ? (
-        <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="skeleton h-14" />)}</div>
+        <div className="mt-4 space-y-px">
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-9" />)}
+        </div>
       ) : items.length === 0 ? (
-        <div className="card flex flex-col items-center gap-2 py-14">
-          <CheckCircle2 size={28} strokeWidth={1.5} className="text-low" />
-          <div className="text-[13px] text-dim">{tab === "needs_review" ? "队列已清空" : "该状态下无条目"}</div>
+        <div className="mt-4">
+          <Empty text={tab === "needs_review" ? "队列已清空" : "该状态下无条目"}
+            hint={tab === "needs_review" ? "所有待复核条目均已处理" : undefined} />
         </div>
       ) : (
-        <div className="card overflow-x-auto !p-0">
-          <table className="tbl">
-            <thead>
-              <tr><th>标题</th><th>CVE</th><th>严重级</th><th>置信度</th><th>薄弱维度</th><th>首次发现</th><th></th></tr>
-            </thead>
-            <tbody>
-              {items.map((it) => (
-                <tr key={it.id}>
-                  <td className="max-w-md">
-                    <Link href={`/items/${it.id}`} className="line-clamp-2 font-medium hover:text-accent">
-                      {it.title || it.id}
-                    </Link>
-                  </td>
-                  <td>
-                    {(it.cve || []).length
-                      ? it.cve!.map((c) => <span key={c} className="tag mono mr-1">{c}</span>)
-                      : <span className="text-xs text-dim">—</span>}
-                  </td>
-                  <td><SevBadge s={it.severity} /></td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/[0.07]">
-                        <div className={`h-full rounded-full ${confCls(it.confidence)}`}
-                          style={{ width: `${Math.round((it.confidence ?? 0) * 100)}%` }} />
-                      </div>
-                      <span className="mono text-[11px] text-dim">{it.confidence != null ? it.confidence.toFixed(2) : "—"}</span>
+        <table className="dt mt-2">
+          <thead>
+            <tr>
+              <th>条目</th>
+              <th>CVE</th>
+              <th>严重级</th>
+              <th>置信度</th>
+              <th>薄弱维度</th>
+              <th>首次发现</th>
+              <th className="r">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it) => (
+              <tr key={it.id} className="cursor-pointer" onClick={() => router.push(`/items/${it.id}`)}>
+                <td className="max-w-[380px]">
+                  <div className="truncate text-[12.5px] text-fg">{it.title || it.id}</div>
+                  <div className="mono mt-0.5 text-[10px] text-faint">{it.id}</div>
+                </td>
+                <td>
+                  {(it.cve || []).length
+                    ? it.cve!.map((c) => <span key={c} className="badge mono">{c}</span>)
+                    : <span className="text-faint">—</span>}
+                </td>
+                <td><Sev level={it.severity} /></td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <div className="h-[3px] w-16 rounded-full bg-surface2">
+                      <div className={`h-full rounded-full ${confTone(it.confidence)}`}
+                        style={{ width: `${Math.round((it.confidence ?? 0) * 100)}%` }} />
                     </div>
-                  </td>
-                  <td>
-                    <div className="flex max-w-[220px] flex-wrap gap-1">
-                      {(it.weak_dims || []).length
-                        ? it.weak_dims!.map((d) => (
-                            <span key={d} className="tag">
-                              <span className="h-1.5 w-1.5 rounded-full bg-critical" />{d}
-                            </span>
-                          ))
-                        : <span className="text-xs text-dim">—</span>}
-                    </div>
-                  </td>
-                  <td className="text-[11px] text-faint">
-                    {it.first_seen_at ? it.first_seen_at.slice(5, 16).replace("T", " ") : "—"}
-                  </td>
-                  <td>
-                    <div className="flex gap-1.5">
-                      <button
-                        className="rounded-md border border-low/30 bg-low/[0.08] px-2 py-1 text-[11px] text-low transition-colors hover:bg-low/[0.15] disabled:opacity-40"
-                        disabled={busy === it.id} onClick={() => act(it, "confirm")}>
-                        确认
-                      </button>
-                      <button
-                        className="rounded-md border border-critical/30 bg-critical/[0.08] px-2 py-1 text-[11px] text-critical transition-colors hover:bg-critical/[0.15] disabled:opacity-40"
-                        disabled={busy === it.id} onClick={() => act(it, "reject")}>
-                        回炉
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <span className={`tnum font-mono text-[11px] ${confText(it.confidence)}`}>
+                      {it.confidence != null ? `${Math.round(it.confidence * 100)}%` : "—"}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div className="flex max-w-[200px] flex-wrap gap-1">
+                    {(it.weak_dims || []).length
+                      ? it.weak_dims!.map((d) => (
+                          <span key={d} className="badge mono">
+                            <span className="dot" style={{ background: "var(--err)" }} />{d}
+                          </span>
+                        ))
+                      : <span className="text-faint">—</span>}
+                  </div>
+                </td>
+                <td className="num text-faint">
+                  {it.first_seen_at ? it.first_seen_at.slice(5, 16).replace("T", " ") : "—"}
+                </td>
+                <td className="r" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-end gap-1.5">
+                    <button className="btn btn-sm !border-ok/40 !text-ok hover:!bg-ok/10"
+                      disabled={busy !== null} onClick={() => act(it, "confirm")}>
+                      <Check size={11} strokeWidth={2} />确认
+                    </button>
+                    <button className="btn btn-sm !border-err/40 !text-err hover:!bg-err/10"
+                      disabled={busy !== null} onClick={() => act(it, "reject")}>
+                      <Undo2 size={11} strokeWidth={2} />回炉
+                    </button>
+                    <button className="btn btn-sm btn-ghost" title="重新触发富化 worker"
+                      disabled={busy !== null} onClick={() => reEnrich(it)}>
+                      <RefreshCw size={11} strokeWidth={1.75} />重富化
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       {msg && (
-        <div className="card fixed bottom-6 right-6 z-50 border-accent/30 bg-overlay px-4 py-3 text-[13px] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <div className="rise fixed bottom-5 right-5 z-50 rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[12.5px] text-fg">
           {msg}
         </div>
       )}

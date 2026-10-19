@@ -2,56 +2,128 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { FileText, Plus } from "lucide-react";
+import { FileText, FilePlus2, X, Download } from "lucide-react";
 import { api } from "@/lib/api";
+import { SpecRow, SpecDot, PageHeader, Empty, Skeleton } from "@/components/ui";
 
 export default function ReportsPage() {
   const [rows, setRows] = useState<any[]>([]);
   const [cur, setCur] = useState<any>(null);
+  const [loaded, setLoaded] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [msg, setMsg] = useState("");
 
-  const load = () => { api.reports().then((d) => setRows(d.reports || [])).catch(() => {}); };
+  const load = () => { api.reports().then((d) => { setRows(d.reports || []); setLoaded(true); }).catch(() => setLoaded(true)); };
   useEffect(() => { load(); }, []);
 
+  function toast(t: string) { setMsg(t); setTimeout(() => setMsg(""), 3000); }
+
+  async function generate() {
+    setGenerating(true);
+    await api.dailyReport().catch(() => {});
+    toast("日报生成中（LLM 撰写约 10-20s）…");
+    setTimeout(load, 15000);
+    setTimeout(() => setGenerating(false), 15000);
+  }
+
+  async function open(id: string) {
+    const r = await api.report(id).catch(() => null);
+    if (r) setCur(r);
+  }
+
+  async function exportMd(id: string) {
+    const r = await api.report(id).catch(() => null);
+    if (!r) { toast("导出失败：报告不可达"); return; }
+    const blob = new Blob([r.content_md || ""], { type: "text/markdown;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(r.title || r.id).replace(/[\\/:*?"<>|\s]+/g, "_")}.md`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   return (
-    <div className="grid gap-4 lg:grid-cols-4">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h1 className="h2">情报报告</h1>
-          <button className="btn-soft !py-1.5 !text-[12px]" disabled={generating}
-            onClick={async () => { setGenerating(true); await api.dailyReport().catch(() => {}); setTimeout(load, 15000); setTimeout(() => setGenerating(false), 15000); }}>
-            <Plus size={12} />{generating ? "生成中…" : "生成日报"}
+    <div>
+      <SpecRow>
+        <span>FIG_08</span><SpecDot />
+        <span>REPORTS</span><SpecDot />
+        <span>{rows.length} GENERATED</span>
+      </SpecRow>
+
+      <PageHeader title="情报报告" desc="LLM 分析师按周期聚合生成 · Markdown"
+        right={
+          <button className="btn btn-acc" disabled={generating} onClick={generate}>
+            <FilePlus2 size={12} strokeWidth={1.75} />{generating ? "生成中…" : "生成日报"}
           </button>
-        </div>
-        {rows.map((r) => {
-          const active = cur?.id === r.id;
-          return (
-            <button key={r.id} onClick={() => api.report(r.id).then(setCur)}
-              className={`card card-hover w-full text-left transition-colors ${active ? "border-accent/40 bg-accent/[0.06]" : ""}`}>
-              <div className="flex items-start gap-2">
-                <FileText size={14} strokeWidth={1.5} className={`mt-0.5 shrink-0 ${active ? "text-accent" : "text-faint"}`} />
-                <div className="min-w-0">
-                  <div className="truncate text-[13px] font-medium text-fg/90">{r.title}</div>
-                  <div className="mt-1 text-[11px] text-faint">
-                    <span className="tag !px-1">{r.report_type}</span>
-                    <span className="ml-2 tabular-nums">{r.created_at?.slice(0, 16).replace("T", " ")}</span>
+        } />
+
+      {!loaded ? (
+        <div className="space-y-px">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-9" />)}</div>
+      ) : rows.length === 0 ? (
+        <Empty text="暂无报告" hint="点击右上角「生成日报」聚合近 24h 情报" />
+      ) : (
+        <table className="dt">
+          <thead>
+            <tr><th>生成时间</th><th>标题</th><th>类型</th><th className="r">覆盖条目</th><th className="r">操作</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className="cursor-pointer" onClick={() => open(r.id)}>
+                <td className="num text-faint">{r.created_at?.slice(0, 16).replace("T", " ")}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <FileText size={13} strokeWidth={1.75} className="shrink-0 text-faint" />
+                    <span className="text-[12.5px] text-fg">{r.title}</span>
                   </div>
-                </div>
+                </td>
+                <td><span className="badge mono">{r.report_type}</span></td>
+                <td className="r num text-dim">{r.stats?.total ?? r.stats?.items ?? "—"}</td>
+                <td className="r" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-end gap-1.5">
+                    <button className="btn btn-sm" onClick={() => open(r.id)}>查看</button>
+                    <button className="btn btn-sm btn-ghost" title="导出 Markdown" onClick={() => exportMd(r.id)}>
+                      <Download size={11} strokeWidth={1.75} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* ── 报告详情：右侧滑出 ── */}
+      {cur && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setCur(null)} />
+          <div className="rise fixed bottom-0 right-0 top-12 z-50 flex w-[760px] max-w-[85vw] flex-col border-l border-line bg-panel">
+            <div className="panel-h shrink-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="t shrink-0">REPORT</span>
+                <span className="truncate text-[12.5px] text-fg">{cur.title}</span>
+                <span className="mono shrink-0 text-[10px] text-faint">{cur.created_at?.slice(0, 16).replace("T", " ")}</span>
               </div>
-            </button>
-          );
-        })}
-        {rows.length === 0 && <div className="card text-[12px] text-faint">暂无报告，点击「生成日报」</div>}
-      </div>
-      <div className="card lg:col-span-3 overflow-y-auto">
-        {cur ? (
-          <div className="md max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{cur.content_md}</ReactMarkdown>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button className="btn btn-sm btn-ghost" onClick={() => exportMd(cur.id)}>
+                  <Download size={11} strokeWidth={1.75} />导出
+                </button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setCur(null)}><X size={12} strokeWidth={1.75} /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <div className="prose-a mx-auto max-w-[640px]">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{cur.content_md}</ReactMarkdown>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="flex h-full items-center justify-center text-[13px] text-faint">选择左侧报告查看</div>
-        )}
-      </div>
+        </>
+      )}
+
+      {msg && (
+        <div className="panel rise fixed bottom-5 right-5 z-[60] border-l-2 border-l-accent px-4 py-2.5 text-[12.5px] text-fg">
+          {msg}
+        </div>
+      )}
     </div>
   );
 }
