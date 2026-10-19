@@ -35,6 +35,7 @@ function ReviewInner() {
   const tab: Tab = TAB_VALUES.has(tabParam) ? (tabParam as Tab) : "needs_review";
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
@@ -53,9 +54,9 @@ function ReviewInner() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [sp, router, pathname]);
 
-  const setTab = (v: Tab) => replaceParams((p) => {
+  const setTab = (v: Tab) => { setPage(1); replaceParams((p) => {
     if (v === "needs_review") p.delete("status"); else p.set("status", v);
-  });
+  }); };
 
   const openPeek = useCallback((id: string) => {
     setPeekId(id);
@@ -69,7 +70,7 @@ function ReviewInner() {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`${API}/api/review?status=${tab}&limit=50`, { cache: "no-store" })
+    fetch(`${API}/api/review?status=${tab}&limit=50&offset=${(page - 1) * 50}`, { cache: "no-store" })
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
         return r.json();
@@ -80,7 +81,7 @@ function ReviewInner() {
       })
       .catch(() => { setItems([]); setCount(0); })
       .finally(() => setLoading(false));
-  }, [tab]);
+  }, [tab, page]);
   useEffect(load, [load]);
 
   const [undoInfo, setUndoInfo] = useState<{ id: string; title: string; action: string } | null>(null);
@@ -164,7 +165,7 @@ function ReviewInner() {
           </button>
         ))}
         <span className="ml-auto self-center text-[11px] text-faint">
-          共 {count} 条
+          共 {count.toLocaleString()} 条{count > 50 && `，按优先级排序`}
         </span>
       </div>
 
@@ -256,6 +257,20 @@ function ReviewInner() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* 分页：count 为真实总数（后端 COUNT 查询，非本页行数） */}
+      {!loading && count > 50 && (
+        <div className="mt-3 flex items-center justify-between text-[12px] text-faint">
+          <span>第 {((page - 1) * 50 + 1).toLocaleString()}–{Math.min(page * 50, count).toLocaleString()} 条</span>
+          <div className="flex items-center gap-1">
+            <button className="btn btn-ghost btn-sm" disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}>上一页</button>
+            <span className="px-2 tnum">第 {page} / {Math.ceil(count / 50)} 页</span>
+            <button className="btn btn-ghost btn-sm" disabled={page * 50 >= count}
+              onClick={() => setPage((p) => p + 1)}>下一页</button>
+          </div>
+        </div>
       )}
 
       {/* ── 右抽屉 peek：Chronicle/Elastic 式队列速览 ── */}

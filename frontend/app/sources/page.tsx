@@ -47,6 +47,7 @@ export default function SourcesPage() {
   }
 
   const ok = rows.filter((r) => r.enabled && !r.consecutive_failures).length;
+  const enabledCount = rows.filter((r) => r.enabled).length;
   const totalItems = rows.reduce((s, r) => s + (r.total_items || 0), 0);
   const intervals = rows.map((r) => r.poll_interval_sec).filter((x) => x > 0);
   const avgInterval = intervals.length ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length) : null;
@@ -59,7 +60,7 @@ export default function SourcesPage() {
         </button>} />
 
       <StatStrip stats={[
-        { label: "在线源", value: `${ok}/${rows.length}`, tone: ok === rows.length ? "ok" : "high" },
+        { label: "健康源", value: `${ok}/${enabledCount}`, tone: ok === enabledCount ? "ok" : "high" },
         { label: "累计条目", value: totalItems.toLocaleString() },
         { label: "平均采集间隔", value: avgInterval ? fmtInterval(avgInterval) : "—", tone: "accent" },
         { label: "失败源", value: rows.filter((r) => r.consecutive_failures > 0).length, tone: rows.some((r) => r.consecutive_failures > 0) ? "critical" : "fg" },

@@ -140,7 +140,7 @@ export default function DutyDesk() {
           { label: "24h 新增", v: stats.new_24h ?? "—", href: "/items" },
           { label: "KEV 在野", v: (stats.kev_count ?? 0).toLocaleString(), href: "/items?kev=1" },
           { label: "AI 相关", v: (stats.ai_items || 0).toLocaleString(), href: "/items" },
-          { label: "数据源", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, href: "/sources" },
+          { label: "健康源", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.enabled ?? stats.sources?.total ?? 0}`, href: "/sources" },
         ] as const).map((m) => (
           <Link key={m.label} href={m.href} className="group block">
             <span className={`block mono text-[26px] font-medium leading-none tnum transition-colors group-hover:text-accent ${

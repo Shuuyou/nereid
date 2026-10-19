@@ -122,14 +122,15 @@ async def stats_overview(db: AsyncSession = Depends(get_db)):
     ))).all()
 
     sources_total = (await db.execute(select(func.count(Source.id)))).scalar() or 0
-    sources_ok = (await db.execute(select(func.count(Source.id)).where(Source.consecutive_failures == 0, Source.last_success_at.isnot(None)))).scalar() or 0
+    sources_enabled = (await db.execute(select(func.count(Source.id)).where(Source.enabled.is_(True)))).scalar() or 0
+    sources_ok = (await db.execute(select(func.count(Source.id)).where(Source.enabled.is_(True), Source.consecutive_failures == 0, Source.last_success_at.isnot(None)))).scalar() or 0
 
     return {
         "total_items": total, "new_24h": new24, "ai_items": ai_items,
         "kev_count": kev, "poc_count": poc, "vuln_count": vulns,
         "by_layer": by_layer, "by_type": by_type, "by_severity": by_sev,
         "trend_14d": [{"date": str(r[0].date()), "count": r[1]} for r in trend],
-        "sources": {"total": sources_total, "healthy": sources_ok},
+        "sources": {"total": sources_total, "enabled": sources_enabled, "healthy": sources_ok},
     }
 
 
@@ -272,13 +273,16 @@ async def item_detail(item_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/review")
 async def review_queue(status: str = "needs_review", limit: int = 50,
-                       db: AsyncSession = Depends(get_db)):
-    """HITL 复核队列：低置信/富化失败条目待人工确认"""
+                       offset: int = 0, db: AsyncSession = Depends(get_db)):
+    """HITL 复核队列：低置信/富化异常条目待人工确认。
+    count=匹配总数（非本页行数）；limit+offset 分页。"""
+    total = await db.scalar(
+        select(func.count()).select_from(Item).where(Item.review_status == status)) or 0
     rows = (await db.execute(
         select(Item).where(Item.review_status == status)
         .order_by(Item.priority_score.desc().nullslast(), Item.first_seen_at.desc())
-        .limit(limit))).scalars().all()
-    return {"count": len(rows), "items": [
+        .offset(offset).limit(limit))).scalars().all()
+    return {"count": total, "items": [
         {"id": i.id, "title": i.title_zh or i.title, "cve": i.cve_ids[:1],
          "severity": i.severity, "confidence": i.confidence,
          "review_status": i.review_status,
