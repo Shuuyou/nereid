@@ -16,7 +16,7 @@ export default function Loading() {
       {/* stat strip 骨架：hairline 栅格 */}
       <div
         className="grid overflow-hidden rounded-md border border-line"
-        style={{ gridTemplateColumns: "repeat(4,1fr)", gap: 1, background: "rgba(255,255,255,0.07)" }}
+        style={{ gridTemplateColumns: "repeat(4,1fr)", gap: 1, background: "rgba(33,31,38,0.07)" }}
       >
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="bg-bg px-4 py-3.5">

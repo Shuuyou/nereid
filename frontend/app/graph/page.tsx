@@ -70,8 +70,8 @@ export default function GraphPage() {
     tooltip: {
       ...echartsBase.tooltip,
       formatter: (p: any) => p.dataType === "node"
-        ? `<div style="font-family:JetBrains Mono;font-size:10.5px;color:#64676d">${p.data.category}</div>` +
-          `<div style="font-size:12px;color:#eceef0;max-width:260px">${p.data.lbl || p.data.id}</div>`
+        ? `<div style="font-family:JetBrains Mono;font-size:10.5px;color:#8a8694">${p.data.category}</div>` +
+          `<div style="font-size:12px;color:#211f26;max-width:260px">${p.data.lbl || p.data.id}</div>`
         : `${p.data.rel || ""}`,
     },
     series: [{
@@ -96,7 +96,7 @@ export default function GraphPage() {
       }),
       links: links.map((l) => ({
         source: l.source, target: l.target, rel: l.type,
-        lineStyle: { color: "rgba(255,255,255,0.14)", width: 1 },
+        lineStyle: { color: "rgba(33,31,38,0.2)", width: 1 },
       })),
       emphasis: { focus: "adjacency", lineStyle: { color: C.accent, width: 1.5 } },
     }],

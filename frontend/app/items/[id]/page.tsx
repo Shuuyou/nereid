@@ -41,7 +41,7 @@ function IdChips({ ids }: { ids: string[] }) {
 }
 
 const CRED_DOT: Record<string, string> = {
-  trusted: "#57ab5a", community: "#71717a", suspicious: "#daaa3f", malicious: "#e5534b",
+  trusted: "#2e7d5b", community: "#71717a", suspicious: "#b07c00", malicious: "#d92638",
 };
 
 export default function ItemDetail() {
@@ -166,11 +166,11 @@ export default function ItemDetail() {
           <LayerTag l={it.ai_layer} />
           {(it.cve_ids || []).map((c: string) => <span key={c} className="badge mono">{c}</span>)}
           {it.is_kev && (
-            <span className="badge"><span className="dot" style={{ background: "#e5534b" }} />
+            <span className="badge"><span className="dot" style={{ background: "#d92638" }} />
               KEV{it.kev_date_added ? ` ${it.kev_date_added.slice(0, 10)}` : ""}
             </span>
           )}
-          {it.has_poc && <span className="badge"><span className="dot" style={{ background: "#daaa3f" }} />PoC</span>}
+          {it.has_poc && <span className="badge"><span className="dot" style={{ background: "#b07c00" }} />PoC</span>}
           {(it.owasp_llm || []).map((o: string) => <span key={o} className="badge mono">{o}</span>)}
           {ex.is_demo && <span className="badge mono">DEMO</span>}
           {it.review_status === "needs_review" && <St tone="warn">待复核</St>}
@@ -497,7 +497,7 @@ export default function ItemDetail() {
       {related.length > 0 && (
         <div className="sect">
           <h2 className="sect-title">相关情报</h2>
-          <div className="mt-2 divide-y divide-[rgba(255,255,255,0.06)]">
+          <div className="mt-2 divide-y divide-[rgba(33,31,38,0.06)]">
             {related.map((r: any) => (
               <Link key={r.id} href={`/items/${r.id}`}
                 className="group flex items-center gap-3 py-2 transition-colors hover:bg-surface">

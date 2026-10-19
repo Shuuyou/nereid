@@ -92,7 +92,7 @@ export default function ItemsPage() {
           <button key={k} onClick={() => setF({ ...f, [k]: !f[k], page: 1 })}
             className={`h-6 rounded-[5px] border px-2.5 text-[11.5px] transition-colors ${
               f[k]
-                ? "border-accent/50 bg-[rgba(90,180,196,0.12)] text-accent"
+                ? "border-accent/50 bg-[rgba(21,122,119,0.1)] text-accent"
                 : "border-line text-faint hover:border-line2 hover:text-dim"}`}>
             {label}
           </button>
@@ -143,12 +143,12 @@ export default function ItemsPage() {
                     </span>
                     {it.is_kev && (
                       <span className="badge shrink-0">
-                        <span className="dot" style={{ background: "#e5534b" }} />KEV
+                        <span className="dot" style={{ background: "#d92638" }} />KEV
                       </span>
                     )}
                     {it.has_poc && (
                       <span className="badge shrink-0">
-                        <span className="dot" style={{ background: "#daaa3f" }} />PoC
+                        <span className="dot" style={{ background: "#b07c00" }} />PoC
                       </span>
                     )}
                   </div>

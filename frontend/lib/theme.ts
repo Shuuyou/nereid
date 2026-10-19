@@ -1,56 +1,92 @@
-// ECharts 与 CSS 颜色单一来源——保持与 tailwind.config.js 同步
+/** ECharts 主题：浅色简报室版——与 tailwind.config / globals.css 同 token */
 export const C = {
-  bg: "#08090a",
-  panel: "#0d0e10",
-  surface: "#121315",
-  surface2: "#17181b",
-  overlay: "#1d1f23",
-  line: "rgba(255,255,255,0.07)",
-  line2: "rgba(255,255,255,0.14)",
-  fg: "#eceef0",
-  dim: "#a9adb3",
-  faint: "#64676d",
-  accent: "#5ab4c4",
-  critical: "#f13242",
-  high: "#ed9a00",
-  medium: "#d8b432",
-  low: "#4c8fd6",
-  none: "#71717a",
-  ok: "#57ab5a",
-  warn: "#daaa3f",
-  err: "#e5534b",
-  ai: "#9b86d8", // AI 层标记用紫（OpenCTI #B286FF 降饱和）
-} as const;
+  accent: "#157a77",
+  critical: "#d92638",
+  medium: "#a68a1b",
+  acc: "#157a77",
+  crit: "#d92638",
+  high: "#c77400",
+  med: "#a68a1b",
+  low: "#2e6fb8",
+  ok: "#2e7d5b",
+  warn: "#b07c00",
+  err: "#d92638",
+  ai: "#6b4fa0",
+  fg: "#211f26",
+  dim: "#4e4b57",
+  faint: "#8a8694",
+  line: "rgba(33,31,38,0.07)",
+  line2: "rgba(33,31,38,0.13)",
+  bg: "#faf9f7",
+  panel: "#ffffff",
+  mint: "#2e7d5b",
+  lav: "#6b4fa0",
+  peach: "#b4593a",
+  sky: "#3e6fb0",
+  butter: "#8f6b1f",
+  rose: "#a8485f",
+};
 
-export const SERIES = [C.accent, "#7fb3e8", C.medium, "#a78bfa", C.high, C.critical, C.low];
+export function baseTooltip() {
+  return {
+    backgroundColor: "#ffffff",
+    borderColor: C.line2,
+    borderWidth: 1,
+    padding: [8, 12],
+    textStyle: { color: C.fg, fontSize: 11.5 },
+    extraCssText: "box-shadow:0 4px 16px rgba(60,50,90,.12);border-radius:8px;",
+  };
+}
+
+export function baseGrid() {
+  return { left: 8, right: 8, top: 28, bottom: 8, containLabel: true };
+}
+
+export function baseAxis() {
+  return {
+    axisLine: { lineStyle: { color: C.line2 } },
+    axisTick: { show: false },
+    axisLabel: { color: C.faint, fontSize: 10.5, fontFamily: "JetBrains Mono" },
+    splitLine: { lineStyle: { color: C.line, width: 0.5 } },
+  };
+}
 
 export const SEV_COLOR: Record<string, string> = {
-  critical: C.critical, high: C.high, medium: C.medium, low: C.low, none: C.none,
+  critical: C.crit, high: C.high, medium: C.med, low: C.low, none: "#71717a",
 };
 
+/** ECharts 序列色板：pastel-ink 族 + acc，浅色底可读 */
+export const SERIES = [C.acc, C.peach, C.lav, C.mint, C.sky, C.butter, C.rose, C.low];
+
+/** 页面惯用的聚合基座 */
 export const echartsBase = {
-  color: SERIES,
-  textStyle: { color: C.dim, fontFamily: "Inter Variable, Inter, PingFang SC, sans-serif", fontSize: 11 },
-  axisPointer: { lineStyle: { color: "rgba(255,255,255,0.2)" } },
+  tooltip: baseTooltip(),
   categoryAxis: {
-    axisLine: { lineStyle: { color: "rgba(255,255,255,0.12)" } },
-    axisTick: { show: false },
-    axisLabel: { color: C.faint, fontSize: 10.5, fontFamily: "JetBrains Mono, monospace" },
-    splitLine: { show: false },
+    type: "category" as const,
+    ...baseAxis(),
   },
   valueAxis: {
-    axisLine: { show: false },
-    axisLabel: { color: C.faint, fontSize: 10.5, fontFamily: "JetBrains Mono, monospace" },
-    splitLine: { lineStyle: { color: "rgba(255,255,255,0.05)", width: 0.5 } },
+    type: "value" as const,
+    ...baseAxis(),
+    splitLine: { lineStyle: { color: C.line, width: 0.5 } },
   },
-  legend: { textStyle: { color: C.dim, fontSize: 11 }, itemWidth: 10, itemHeight: 6, icon: "rect" },
-  tooltip: {
-    backgroundColor: "#1d1f23",
-    borderColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    textStyle: { color: C.fg, fontSize: 12 },
-    padding: [8, 12] as any,
-    extraCssText: "border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);",
+  legend: {
+    icon: "circle",
+    itemWidth: 7,
+    itemHeight: 7,
+    textStyle: { color: C.dim, fontSize: 11 },
   },
-  animationDuration: 250,
 };
+
+/** 面积图渐变色（hex → 半透明） */
+export function areaGrad(hex: string, a = 0.14) {
+  return {
+    color: {
+      type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+      colorStops: [
+        { offset: 0, color: hex + "40" },
+        { offset: 1, color: hex + (a > 10 ? "08" : "00") },
+      ],
+    },
+  };
+}

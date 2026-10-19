@@ -2,48 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============ 捞针 · Nereid — 工作台设计系统 v2 ============
-   参照：Linear luminance stacking + OpenCTI/Elastic 密度 + 工程图纸语言
-   原则：发丝线分区而非卡片 · 亮度堆叠而非阴影 · mono 承载技术值
+/* ============ 捞针 · Nereid — 简报室设计系统 v3 ============
+   参照：soft bento（Amie/Gumroad 色块分类学）+ editorial 排版（spec-row 保留）
+       + OpenCTI/Elastic 密度；浅色暖纸面
+   原则：pastel=分类学而非装饰 · severity 独立全饱和 · 色块分区而非描边
    ============================================================ */
 
 :root {
-  /* luminance stack — 微冷调近黑，非深蓝黑 */
-  --bg: #08090a;
-  --panel: #0d0e10;
-  --surface: #121315;
-  --surface-2: #17181b;
-  --overlay: #1d1f23;
-  /* hairlines */
-  --line: rgba(255, 255, 255, 0.07);
-  --line-2: rgba(255, 255, 255, 0.14);
-  /* text */
-  --text: #eceef0;
-  --text-2: #a9adb3;
-  --text-3: #64676d;
-  /* accent — 去饱和青，仅交互/focus/图表主序列，全站克制 */
-  --acc: #5ab4c4;
-  --acc-dim: rgba(90, 180, 196, 0.14);
-  /* semantic */
-  --ok: #57ab5a;
-  --warn: #daaa3f;
-  --err: #e5534b;
-  /* severity 独立色板 — 不吃品牌色 */
-  --sev-crit: #f13242;
-  --sev-high: #ed9a00;
-  --sev-med: #d8b432;
-  --sev-low: #4c8fd6;
+  --bg: #FAF9F7;
+  --panel: #ffffff;
+  --surface: #f4f2ed;
+  --surface-2: #edeae3;
+  --overlay: #ffffff;
+  --line: rgba(33, 31, 38, 0.07);
+  --line-2: rgba(33, 31, 38, 0.13);
+  --text: #211f26;
+  --text-2: #4e4b57;
+  --text-3: #8a8694;
+  --acc: #157a77;
+  --acc-dim: rgba(21, 122, 119, 0.1);
+  --ok: #2e7d5b;
+  --warn: #b07c00;
+  --err: #d92638;
+  --sev-crit: #d92638;
+  --sev-high: #c77400;
+  --sev-med: #a68a1b;
+  --sev-low: #2e6fb8;
   --sev-info: #71717a;
+  /* pastel 色块的阴影色相（同族 ink 色 alpha） */
+  --sh-card: 60, 50, 90;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Inter Variable", "Inter", system-ui, sans-serif;
+  font-family: "Inter Variable", "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   font-size: 13px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
@@ -51,14 +48,14 @@ body {
 }
 
 ::selection {
-  background: rgba(90, 180, 196, 0.25);
+  background: rgba(21, 122, 119, 0.2);
 }
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2c30;
+  background: #d6d2c9;
   border: 3px solid var(--bg);
   border-radius: 8px;
 }
@@ -74,8 +71,12 @@ body {
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+/* 大写缩写/标签的微间距（CVE/CVSS/TLP 透气感） */
+.caps {
+  font-feature-settings: "cpsp";
+}
 
-/* ── 图纸语言：页面级 mono 元数据行 ── */
+/* ── 图纸语言：页面级 mono 元数据行（编辑排版感，保留） ── */
 .spec-row {
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -85,6 +86,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  font-feature-settings: "cpsp";
 }
 .spec-row .dot {
   width: 3px;
@@ -94,7 +96,7 @@ body {
   flex: none;
 }
 
-/* ── 分区：hairline + 留白，不是卡片 ── */
+/* ── 分区：hairline + 留白 ── */
 .sect {
   border-top: 1px solid var(--line);
   padding-top: 20px;
@@ -128,6 +130,7 @@ table.dt {
   padding: 8px 12px;
   border-bottom: 1px solid var(--line-2);
   white-space: nowrap;
+  font-feature-settings: "cpsp";
 }
 .dt thead th.r,
 .dt td.r {
@@ -159,7 +162,7 @@ table.dt {
   font-weight: 500;
   padding: 1.5px 8px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(33, 31, 38, 0.05);
   color: var(--text-2);
   border: 1px solid var(--line);
   white-space: nowrap;
@@ -192,12 +195,12 @@ table.dt {
 .sev-high .dot { background: var(--sev-high); }
 .sev-med .dot { background: var(--sev-med); }
 .sev-low .dot { background: var(--sev-low); }
-.sev-crit { color: #ff8a94; }
-.sev-high { color: #f0b45a; }
-.sev-med { color: #e3cd6b; }
-.sev-low { color: #7fb3e8; }
+.sev-crit { color: var(--sev-crit); }
+.sev-high { color: var(--sev-high); }
+.sev-med { color: var(--sev-med); }
+.sev-low { color: var(--sev-low); }
 
-/* ── 控件：4-6px 圆角纪律、零阴影 ── */
+/* ── 控件 ── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -206,30 +209,33 @@ table.dt {
   font-weight: 590;
   height: 30px;
   padding: 0 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--line-2);
-  background: var(--surface-2);
+  background: var(--panel);
   color: var(--text);
   cursor: pointer;
-  transition: background-color 120ms, border-color 120ms;
+  transition: background-color 120ms, border-color 120ms, transform 80ms;
   white-space: nowrap;
 }
 .btn:hover {
-  background: var(--overlay);
+  background: var(--surface);
+}
+.btn:active {
+  transform: scale(0.97);
 }
 .btn-acc {
-  background: var(--acc-dim);
-  border-color: rgba(90, 180, 196, 0.4);
-  color: #8fd4e0;
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #fff;
 }
 .btn-acc:hover {
-  background: rgba(90, 180, 196, 0.22);
+  background: #0e5c5a;
 }
 .btn-sm {
   height: 24px;
   padding: 0 8px;
   font-size: 11.5px;
-  border-radius: 5px;
+  border-radius: 6px;
 }
 .btn-ghost {
   border-color: transparent;
@@ -237,7 +243,7 @@ table.dt {
   color: var(--text-3);
 }
 .btn-ghost:hover {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
 }
 .btn:disabled {
@@ -245,18 +251,19 @@ table.dt {
   cursor: not-allowed;
 }
 .input {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
   color: var(--text);
   font-size: 12.5px;
   height: 30px;
   padding: 0 10px;
   outline: none;
-  transition: border-color 120ms;
+  transition: border-color 120ms, box-shadow 120ms;
 }
 .input:focus {
   border-color: var(--acc);
+  box-shadow: 0 0 0 3px rgba(21, 122, 119, 0.12);
 }
 .input::placeholder {
   color: var(--text-3);
@@ -265,11 +272,11 @@ select.input {
   padding-right: 28px;
 }
 
-/* ── 面板：仅真浮层/容器用，6-8px 圆角、发丝边、零阴影 ── */
+/* ── 面板（轻容器） ── */
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 14px;
 }
 .panel-h {
   padding: 10px 14px;
@@ -284,12 +291,43 @@ select.input {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-3);
+  font-feature-settings: "cpsp";
 }
 .panel-b {
   padding: 14px;
 }
 
-/* ── 状态点：纯色小点 + 文字，无发光 ── */
+/* ── bento 色块卡（.tile）：白/淡彩/深，色块即分类 ── */
+.tile {
+  border-radius: 22px;
+  padding: 20px 22px;
+  box-shadow:
+    0 1px 2px rgba(var(--sh-card), 0.05),
+    0 8px 24px -6px rgba(var(--sh-card), 0.1);
+  position: relative;
+}
+.tile-white { background: var(--panel); box-shadow: 0 0 0 1px rgba(33,31,38,.05), 0 1px 2px rgba(60,50,90,.05), 0 8px 24px -6px rgba(60,50,90,.1); }
+.tile-dark {
+  background: #22212a;
+  color: #eceef0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 12px 32px -8px rgba(0, 0, 0, 0.35);
+}
+.tile-mint   { background: #dcf3ea; --sh-card: 46, 125, 91; }
+.tile-lav    { background: #efe6ff; --sh-card: 107, 79, 160; }
+.tile-peach  { background: #ffe4d6; --sh-card: 180, 89, 58; }
+.tile-sky    { background: #ddeaff; --sh-card: 62, 111, 176; }
+.tile-butter { background: #fff3c9; --sh-card: 143, 107, 31; }
+.tile-rose   { background: #fde1e8; --sh-card: 168, 72, 95; }
+.tile-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  font-feature-settings: "cpsp";
+}
+
+/* ── 状态点 ── */
 .st {
   display: inline-flex;
   align-items: center;
@@ -351,15 +389,15 @@ select.input {
 .prose-a code {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  background: var(--surface-2);
+  background: var(--surface);
   padding: 1px 5px;
   border-radius: 4px;
-  color: #c9d1d9;
+  color: var(--text);
 }
 .prose-a pre {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 12px 14px;
   overflow-x: auto;
   margin: 10px 0;
@@ -400,9 +438,9 @@ select.input {
   vertical-align: 1px;
   cursor: pointer;
 }
-.cite:hover { background: rgba(90, 180, 196, 0.28); }
+.cite:hover { background: rgba(21, 122, 119, 0.22); }
 
-/* ── 进入动画：唯一保留的动效，克制 ── */
+/* ── 进入动画 ── */
 @keyframes rise {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -410,5 +448,11 @@ select.input {
 .rise {
   animation: rise 200ms ease-out both;
 }
+
+/* ── 行内左色条（Grafana 式 severity rail，用于日志/事件流） ── */
+.row-sev-crit { box-shadow: inset 3px 0 var(--sev-crit); }
+.row-sev-high { box-shadow: inset 3px 0 var(--sev-high); }
+.row-sev-med { box-shadow: inset 3px 0 var(--sev-med); }
+.row-sev-low { box-shadow: inset 3px 0 var(--sev-low); }
 
 ::-webkit-scrollbar-corner { background: transparent; }

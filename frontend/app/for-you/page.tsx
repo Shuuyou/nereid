@@ -189,7 +189,7 @@ export default function ForYouPage() {
             <Empty text="暂无推荐"
               hint="先填写画像名与资产/关注标签，点击「保存画像并推荐」；已有画像可降低严重度门槛" />
           ) : (
-            <div className="divide-y divide-[rgba(255,255,255,0.05)] border-t border-line">
+            <div className="divide-y divide-[rgba(33,31,38,0.05)] border-t border-line">
               {feed.items.map((it: any) => (
                 <div key={it.id} className="group py-3 transition-colors hover:bg-surface/60">
                   <div className="flex items-center gap-2.5 px-1">

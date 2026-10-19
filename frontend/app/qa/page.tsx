@@ -429,7 +429,7 @@ export default function QaPage() {
                 const Card = ({ c, dimmed }: { c: any; dimmed?: boolean }) => (
                   <a key={c.n} href={c.url || `/items/${c.item_id}`} target={c.url ? "_blank" : "_self"}
                     className={`group mb-1 block rounded-[6px] border px-2.5 py-2 transition-colors ${
-                      citeFocus === c.n ? "border-accent/50 bg-[rgba(90,180,196,0.14)]"
+                      citeFocus === c.n ? "border-accent/50 bg-[rgba(21,122,119,0.12)]"
                         : "border-transparent hover:border-line hover:bg-surface"} ${dimmed ? "opacity-50" : ""}`}>
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[10px] text-accent">[{c.n}]</span>

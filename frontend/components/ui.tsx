@@ -39,11 +39,11 @@ export function Skeleton({ className = "" }: { className?: string }) {
 export function StatStrip({ stats }: {
   stats: { label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "fg" | "accent" | "critical" | "high" | "ok" }[];
 }) {
-  const c = { fg: "text-fg", accent: "text-accent", critical: "text-critical", high: "text-high", ok: "text-ok" } as const;
+  const c = { fg: "text-fg", accent: "text-accent", critical: "text-crit", high: "text-high", ok: "text-ok" } as const;
   return (
     <div
       className="grid overflow-hidden rounded-md border border-line"
-      style={{ gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: 1, background: "rgba(255,255,255,0.07)" }}
+      style={{ gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: 1, background: "rgba(33,31,38,0.07)" }}
     >
       {stats.map((s, i) => (
         <div key={i} className="bg-bg px-4 py-3.5">
@@ -62,7 +62,7 @@ export function StatStrip({ stats }: {
 export function St({ tone = "dim", children }: { tone?: "ok" | "err" | "warn" | "live" | "dim"; children?: React.ReactNode }) {
   return (
     <span className={`st st-${tone === "dim" ? "" : tone}`}>
-      <span className="dot" style={tone === "dim" ? { background: "#64676d" } : undefined} />
+      <span className="dot" style={tone === "dim" ? { background: "#a49f8f" } : undefined} />
       {children}
     </span>
   );
