@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-10-19T16:30:00+00:00",
+  "metric": "dedup_clusters 审计表回测：P=确定性合并构造正确+模糊层抽样核验；R=1-漏并检对/总合并",
+  "precision": 0.8662, "recall": 0.9930, "f1": 0.9253,
+  "detail": {
+    "deterministic_merges": 15440, "fuzzy_merges": 20409,
+    "fuzzy_sample": {"n": 200, "correct": 153},
+    "missed_pairs_shared_cve_high_sim": 251
+  }
+}
