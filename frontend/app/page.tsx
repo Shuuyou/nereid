@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { api, subscribeFeed, getDigest } from "@/lib/api";
 import { St, Skeleton, SpecRow, SpecDot, Sev } from "@/components/ui";
-import { CheckCheck, RotateCcw, ArrowRight, Flame, Crosshair, Newspaper, TrendingUp, Layers, Database } from "lucide-react";
+import { CheckCheck, RotateCcw, ArrowRight, Newspaper } from "lucide-react";
 import { C, echartsBase } from "@/lib/theme";
 
 const Chart = dynamic(() => import("echarts-for-react"), { ssr: false });
@@ -137,34 +137,23 @@ export default function DutyDesk() {
   return (
     <div>
       <SpecRow>
-        <span>DUTY_01</span><SpecDot />
         <span>今日值班台</span><SpecDot />
         <span>{now.toISOString().slice(0, 16).replace("T", " ")}Z</span>
-        <span className="ml-auto flex items-center gap-1.5 normal-case tracking-normal">
-          <St tone={liveOn ? "live" : "dim"}>{liveOn ? "LIVE" : "IDLE"}</St>
-        </span>
       </SpecRow>
 
-      {/* 指标卡：白卡为底，pastel 只留给语义图标芯片——色彩即分类不是装饰 */}
-      <div className="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+      {/* 指标行：数字+灰标签的文字链（Linear/Stripe 式——无icon无卡片无彩色，可点击下钻） */}
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-9 gap-y-2 border-b border-line pb-4">
         {([
-          { label: "待复核", sub: "队列待人工确认", v: reviewTotal, chip: "bg-rose text-rose-ink", icon: Crosshair, href: "/review?status=needs_review" },
-          { label: "24h 新增", sub: "情报流入", v: stats.new_24h ?? "—", chip: "bg-mint text-mint-ink", icon: TrendingUp, href: "/items" },
-          { label: "KEV 在野", sub: "已确认被利用", v: stats.kev_count ?? "—", chip: "bg-peach text-peach-ink", icon: Flame, href: "/items?kev=1" },
-          { label: "AI 相关", sub: "命中画像占比", v: (stats.ai_items || 0).toLocaleString(), chip: "bg-lav text-lav-ink", icon: Layers, href: "/items" },
-          { label: "数据源", sub: "健康 / 总数", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, chip: "bg-sky text-sky-ink", icon: Database, href: "/sources" },
+          { label: "待复核", v: reviewTotal, href: "/review?status=needs_review" },
+          { label: "24h 新增", v: stats.new_24h ?? "—", href: "/items" },
+          { label: "KEV 在野", v: (stats.kev_count ?? 0).toLocaleString(), href: "/items?kev=1" },
+          { label: "AI 相关", v: (stats.ai_items || 0).toLocaleString(), href: "/items" },
+          { label: "数据源", v: `${stats.sources?.healthy ?? 0}/${stats.sources?.total ?? 0}`, href: "/sources" },
         ] as const).map((m) => (
-          <Link key={m.label} href={m.href}
-            className={`tile group flex flex-col justify-between transition-transform duration-100 hover:-translate-y-px ${
-              m.label === "待复核" && reviewTotal > 0 ? "tile-rose" : "tile-white"}`}>
-            <span className="flex items-center gap-2">
-              <span className={`flex h-6 w-6 items-center justify-center rounded-[8px] ${m.chip}`}>
-                <m.icon size={13} strokeWidth={2} />
-              </span>
-              <span className="tile-kicker">{m.label}</span>
-            </span>
-            <span className="tile-metric mt-4">{m.v}</span>
-            <span className="tile-sub mt-1.5">{m.sub}</span>
+          <Link key={m.label} href={m.href} className="group flex items-baseline gap-2">
+            <span className={`mono text-[22px] font-medium tnum transition-colors group-hover:text-accent ${
+              m.label === "待复核" && reviewTotal > 0 ? "text-err" : "text-fg"}`}>{m.v}</span>
+            <span className="text-[12px] text-faint transition-colors group-hover:text-dim">{m.label}</span>
           </Link>
         ))}
       </div>
@@ -179,11 +168,9 @@ export default function DutyDesk() {
             </Link>
           </div>
           <div className="tile tile-white !p-0 overflow-hidden">
-            {/* 待复核组 — pastel 标签条 */}
-            <div className="flex items-center gap-2.5 border-b border-line bg-surface px-3 py-2">
-              <span className="h-2 w-2 rounded-[3px] bg-rose" style={{ background: "var(--rose-ink)" }} />
+            {/* 待复核组 */}
+            <div className="flex items-center gap-2.5 border-b border-line px-3 py-2">
               <span className="text-[12px] font-medium text-fg">待复核</span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">AI 初判待确认</span>
               <span className="ml-auto mono text-[12px] text-faint">{reviewTotal}</span>
             </div>
             {review.length === 0 && <div className="px-3 py-4 text-[12px] text-faint">复核队列已清空 ✓</div>}
@@ -195,20 +182,16 @@ export default function DutyDesk() {
               ))}
             </div>
             {/* 高优组 */}
-            <div className="flex items-center gap-2.5 border-y border-line bg-surface px-3 py-2">
-              <span className="h-2 w-2 rounded-[3px]" style={{ background: "var(--sky-ink)" }} />
+            <div className="flex items-center gap-2.5 border-y border-line px-3 py-2">
               <span className="text-[12px] font-medium text-fg">高优先级</span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">AI 情报</span>
               <span className="ml-auto mono text-[12px] text-faint">{queue.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {queue.slice(0, 5).map((it) => <QueueRow key={it.id} it={it} kind="pri" />)}
             </div>
             {/* KEV 组 */}
-            <div className="flex items-center gap-2.5 bg-surface px-3 py-2">
-              <span className="h-2 w-2 rounded-[3px]" style={{ background: "var(--peach-ink)" }} />
+            <div className="flex items-center gap-2.5 px-3 py-2">
               <span className="text-[12px] font-medium text-fg">新 KEV</span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">在野利用</span>
               <span className="ml-auto mono text-[12px] text-faint">{kev.length}</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
@@ -249,10 +232,9 @@ export default function DutyDesk() {
           <div className="mt-5">
             <div className="mb-2 flex items-baseline justify-between">
               <h2 className="sect-title">14 天情报流入</h2>
-              {fresh && (
-                <span className="font-mono text-[11px] text-faint">
-                  P50 {fresh.p50_min != null ? (fresh.p50_min < 60 ? `${fresh.p50_min.toFixed(0)}m` : `${(fresh.p50_min / 60).toFixed(1)}h`) : "—"}
-                  {"  "}P95 {fresh.p95_min != null ? (fresh.p95_min < 60 ? `${fresh.p95_min.toFixed(0)}m` : `${(fresh.p95_min / 60).toFixed(1)}h`) : "—"}
+              {fresh?.p50_min != null && (
+                <span className="text-[11px] text-faint" title="入库时效中位数">
+                  入库时效 {fresh.p50_min < 60 ? `${fresh.p50_min.toFixed(0)} 分钟` : `${(fresh.p50_min / 60).toFixed(1)} 小时`}
                 </span>
               )}
             </div>
