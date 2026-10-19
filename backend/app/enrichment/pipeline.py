@@ -109,8 +109,11 @@ async def enrich_item(item_id: str, dims: list[str] | None = None) -> dict:
 
         # HITL：真·异常才进复核——≥3 维 error；或"高价值条目"低置信
         # （KEV/高危/AI相关值得人看；低信号薄记录查无信号是正常态，不进人审）
+        # 置信度均分只统计"实际跑过"的维度——skipped 是不适用而非低置信，
+        # 把 skipped 的 0 分计入平均会让 skip 多发的薄记录集体误判 needs_review
         errs = [k for k, v in enrichment.items() if isinstance(v, dict) and v.get("status") == "error"]
-        confs = [v.get("confidence", 0) for v in enrichment.values() if isinstance(v, dict)]
+        confs = [v.get("confidence", 0) for v in enrichment.values()
+                 if isinstance(v, dict) and v.get("status") != "skipped"]
         high_value = bool(item.is_kev) or item.severity in ("critical", "high") \
             or (item.ai_relevance_score or 0) >= 0.3
         if len(errs) >= 3 or (high_value and confs and sum(confs) / len(confs) < 0.4):

@@ -187,6 +187,17 @@ DEMO_ITEMS = [
         source_names=["wiz", "thehackernews"], source_count=2, reliability_score=0.9,
     ),
     dict(
+        item_type="incident", title="Unverified: 开源推理框架供应链投毒传闻（多源矛盾待核实）",
+        title_zh="未经证实：某开源推理框架镜像仓库疑似投毒，社区报告相互矛盾",
+        summary_zh="社区渠道流传某开源推理框架官方镜像仓库遭投毒的说法，但官方公告与仓库签名核验结果相互矛盾，威胁级别与影响面暂无法定论——典型需要人工研判的低置信情报。",
+        summary="Community channels report suspected poisoning of an OSS inference framework registry, but official statements and signature checks conflict — threat level undetermined.",
+        url="https://example.com/demo/unverified-registry-poisoning",
+        published_at=NOW - timedelta(days=2), severity="high",
+        vendors=["demo-vendor"], products=["demo-framework"],
+        ai_relevance_score=0.9, ai_layer="L4", owasp_asi=["ASI04"],
+        source_names=["demo"], source_count=1, reliability_score=0.3,
+    ),
+    dict(
         item_type="vuln", title="LangChain serialization injection via 'lc' key (GHSA-c67j-w6g6-q2cm)",
         title_zh="LangChain 序列化注入：'lc' 键未转义致任意类实例化与机密泄露",
         summary_zh="LangChain dumps/loads 未转义 'lc' 键，攻击者可注入构造器实例化可信命名空间内任意 Serializable 类，secrets_from_env 可泄露环境机密；修复引入 allowed_objects 白名单。",
@@ -238,6 +249,22 @@ async def main() -> None:
                 "UPDATE items SET extra = jsonb_set(COALESCE(extra,'{}'::jsonb),"
                 " '{is_demo}', 'true'::jsonb) WHERE url = ANY(:urls)"),
                 {"urls": urls})
+        await db.commit()
+        # HITL 演示位：未经证实条目写入"跑了但不完整"的富化态 + needs_review，
+        # 复核队列可现场演示 确认/回炉/重富化/撤销 闭环（is_demo 已标记，统计剔除）
+        from sqlalchemy import text as _t2
+        await db.execute(_t2(
+            "UPDATE items SET review_status='needs_review', confidence=0.38, "
+            " enrichment=jsonb_build_object("
+            "   'nlp',       jsonb_build_object('status','ok','confidence',0.62,'note','zh summary ok'),"
+            "   'scorers',   jsonb_build_object('status','partial','confidence',0.30,'note','无官方评分源可查'),"
+            "   'ai_classify',jsonb_build_object('status','partial','confidence',0.22,'note','层级归属存疑 L3/L4'),"
+            "   'mappings',  jsonb_build_object('status','skipped','confidence',0,'note','no cwes'),"
+            "   'poc',       jsonb_build_object('status','skipped','confidence',0,'note','no cve_ids'),"
+            "   'assets',    jsonb_build_object('status','skipped','confidence',0,'note','no products to map'),"
+            "   'papers',    jsonb_build_object('status','skipped','confidence',0,'note','no related papers'),"
+            "   'chain',     jsonb_build_object('status','skipped','confidence',0,'note','no chain basis'))"
+            " WHERE url = 'https://example.com/demo/unverified-registry-poisoning'"))
         await db.commit()
     print(f"seeded via ingest pipeline: {stats}")
 

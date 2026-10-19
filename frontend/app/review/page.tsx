@@ -11,7 +11,8 @@ import { Check, Undo2, RefreshCw } from "lucide-react";
 const TABS = [
   ["needs_review", "待复核"],
   ["confirmed", "已确认"],
-  ["auto", "自动通过"],
+  ["rejected", "已回炉"],
+  ["auto", "自动放行"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 const TAB_VALUES = new Set<string>(TABS.map(([v]) => v));
@@ -176,7 +177,9 @@ function ReviewInner() {
       ) : items.length === 0 ? (
         <div className="mt-4">
           <Empty text={tab === "needs_review" ? "队列已清空" : "该状态下无条目"}
-            hint={tab === "needs_review" ? "所有待复核条目均已处理" : undefined} />
+            hint={tab === "needs_review"
+              ? "入队规则：高价值条目（KEV/严重/高危/AI相关）富化均分<40%，或 ≥3 个富化维度失败——当前无命中"
+              : undefined} />
         </div>
       ) : (
         <table className="dt mt-2">

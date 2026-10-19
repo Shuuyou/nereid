@@ -84,3 +84,11 @@
 - **时效过滤权威层**：水合后 DB 字段过滤（`_time_ok`），`since` 不下推向量层（存量 payload NULL）；CRAG-lite：窗口×4→全放开
 - **ai_classify L1-L6 定义必须与 core/taxonomy.py 一致**（L1=基础设施推理…L6=滥用威胁）——2026-10-19 前 LLM 写的 ai_layer 是错层数据
 - **published_at 回填**：`scripts/published_backfill.py --apply` 从 cvelistV5 datePublished 回填并清 indexed_hash（重索引待逐条 ingest 触发）
+
+## 新增契约（2026-10-19 HITL 队列治理 SOTA 对齐后）
+- **置信度均分只统计 status≠skipped 的维度**（pipeline.py）：skipped="不适用"非低置信；计入会把薄记录批量误判 needs_review（曾致 16k 假队列）。item.confidence 同口径已回填
+- **入队谓词**：≥3 维 error，或高价值（KEV|severity∈{critical,high}|ai_relevance≥0.3）且 attempted 均分<0.4——队列语义="值得人看且系统拿不准"
+- **复核动作语义**（routes.py）：confirm→confirmed / reject→**rejected**（非 auto，labels.ts 有映射）/ undo→needs_review；每次判决写 TaskRun(task_name="review") 审计 + extra.review_decision 归因（actor/at/action）
+- **批量分诊**：POST /api/review/bulk/{action} body={ids}（≤500/次）
+- **队列设计红线**：skipped 不计均分；瞬时基础设施错误应走重试通道非人审（Splunk finding/notable 分层原则）；排序用 priority_score×(1-confidence)；积压与待办分层展示；auto-resolve 规则未来须过 ≥0.98 精度回测护栏（Stripe Radar 惯例）
+- **/api/review count 字段**=COUNT(*) 真实总数（非本页行数），配 offset 分页

@@ -292,22 +292,58 @@ async def review_queue(status: str = "needs_review", limit: int = 50,
         for i in rows]}
 
 
+def _mark_decision(item: Item, action: str, actor: str = "human") -> None:
+    """判决归因：谁、何时、什么动作——复核可追溯（Stripe review.reason 同款）"""
+    item.extra = {**(item.extra or {}), "review_decision": {
+        "action": action, "actor": actor,
+        "at": datetime.now(timezone.utc).isoformat()}}
+
+
+@router.post("/review/bulk/{action}")
+async def review_bulk(action: str, body: dict, db: AsyncSession = Depends(get_db)):
+    """批量分诊：同签名/同批次一次判决（Sentry bulk-mutate 同构）
+    body: {ids: [...]}；action: confirm|reject|undo"""
+    ids = [str(x) for x in (body.get("ids") or [])][:500]
+    if action not in ("confirm", "reject", "undo"):
+        raise HTTPException(400, "action must be confirm|reject|undo")
+    n = 0
+    for item_id in ids:
+        item = await db.get(Item, item_id)
+        if not item:
+            continue
+        if action == "confirm":
+            item.review_status = "confirmed"
+        elif action == "reject":
+            item.review_status = "rejected"
+            item.enrichment = {}
+        else:
+            item.review_status = "needs_review"
+        _mark_decision(item, action)
+        n += 1
+    db.add(TaskRun(task_name="review:bulk", status="done",
+                   detail={"action": action, "count": n, "actor": "human"}))
+    await db.commit()
+    return {"action": action, "count": n}
+
+
 @router.post("/review/{item_id}/{action}")
 async def review_action(item_id: str, action: str, db: AsyncSession = Depends(get_db)):
-    """人工复核确认/驳回：confirm → confirmed；reject → 回炉重富化"""
+    """人工复核：confirm→confirmed；reject→rejected（回炉，清空富化待重跑）；undo→needs_review"""
     item = await db.get(Item, item_id)
     if not item:
         raise HTTPException(404)
     if action == "confirm":
         item.review_status = "confirmed"
     elif action == "reject":
-        item.review_status = "auto"
+        item.review_status = "rejected"
         item.enrichment = {}
     elif action == "undo":
-        # 撤销复核动作 → 回待复核队列（reject 已清空的 enrichment 由前端补一次重富化）
         item.review_status = "needs_review"
     else:
         raise HTTPException(400, "action must be confirm|reject|undo")
+    _mark_decision(item, action)
+    db.add(TaskRun(task_name="review", status="done",
+                   detail={"item_id": item_id, "action": action, "actor": "human"}))
     await db.commit()
     return {"id": item_id, "review_status": item.review_status}
 
