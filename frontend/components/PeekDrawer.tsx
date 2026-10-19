@@ -36,11 +36,13 @@ export interface PeekDrawerProps {
   title?: string;
   /** 任一复核动作进行中 → 禁用全部动作按钮 */
   busy?: boolean;
+  /** 只读模式：隐藏复核动作（确认/回炉/重富化），仅留翻页与完整页外链 —— items 页速览用 */
+  readonly?: boolean;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
-  onAct: (it: PeekTarget, action: "confirm" | "reject") => void;
-  onReEnrich: (it: PeekTarget) => void;
+  onAct?: (it: PeekTarget, action: "confirm" | "reject") => void;
+  onReEnrich?: (it: PeekTarget) => void;
 }
 
 /** 抽屉内分区标签（详情页 Rail 同式 mono 小灰） */
@@ -59,7 +61,7 @@ function Sect({ label, children }: { label: string; children: React.ReactNode })
  * Esc / 点遮罩关闭；打开期间锁 body 滚动；▲▼ 队列内翻页。
  */
 export function PeekDrawer({
-  id, index, total, title, busy,
+  id, index, total, title, busy, readonly = false,
   onClose, onPrev, onNext, onAct, onReEnrich,
 }: PeekDrawerProps) {
   const open = id != null;
@@ -100,7 +102,7 @@ export function PeekDrawer({
       if (e.key === "Escape") { e.preventDefault(); onClose(); }
       else if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); onNext(); }
       else if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); onPrev(); }
-      else if (!busy && lastIdRef.current) {
+      else if (!readonly && !busy && lastIdRef.current && onAct && onReEnrich) {
         const target: PeekTarget = { id: lastIdRef.current, title: "" };
         if (e.key === "c") { e.preventDefault(); onAct(target, "confirm"); }
         else if (e.key === "r") { e.preventDefault(); onAct(target, "reject"); }
@@ -109,7 +111,7 @@ export function PeekDrawer({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, busy, onClose, onPrev, onNext, onAct, onReEnrich]);
+  }, [open, busy, readonly, onClose, onPrev, onNext, onAct, onReEnrich]);
 
   /* id 变化 → 拉详情（▲▼ 翻页同抽屉内重拉；reqRef 防乱序响应覆写） */
   useEffect(() => {
@@ -269,18 +271,24 @@ export function PeekDrawer({
         {/* footer：确认 / 回炉 / 重富化 + 完整页外链 */}
         <footer className="shrink-0 border-t border-line px-3 py-2.5">
           <div className="flex items-center gap-1.5">
-            <button className="btn btn-sm !border-ok/40 !text-ok hover:!bg-ok/10" title="确认 (C)"
-              disabled={busy} onClick={() => onAct(target, "confirm")}>
-              <Check size={11} strokeWidth={2} />确认<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">c</kbd>
-            </button>
-            <button className="btn btn-sm !border-err/40 !text-err hover:!bg-err/10" title="回炉 (R)"
-              disabled={busy} onClick={() => onAct(target, "reject")}>
-              <Undo2 size={11} strokeWidth={2} />回炉<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">r</kbd>
-            </button>
-            <button className="btn btn-sm btn-ghost" title="重新触发富化 worker (E)"
-              disabled={busy} onClick={() => onReEnrich(target)}>
-              <RefreshCw size={11} strokeWidth={2} />重富化<kbd className="ml-1 rounded-[3px] border border-line px-0.5 font-mono text-[9px] opacity-60">e</kbd>
-            </button>
+            {!readonly && onAct && (
+              <button className="btn btn-sm !border-ok/40 !text-ok hover:!bg-ok/10" title="确认 (C)"
+                disabled={busy} onClick={() => onAct(target, "confirm")}>
+                <Check size={11} strokeWidth={2} />确认<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">c</kbd>
+              </button>
+            )}
+            {!readonly && onAct && (
+              <button className="btn btn-sm !border-err/40 !text-err hover:!bg-err/10" title="回炉 (R)"
+                disabled={busy} onClick={() => onAct(target, "reject")}>
+                <Undo2 size={11} strokeWidth={2} />回炉<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">r</kbd>
+              </button>
+            )}
+            {!readonly && onReEnrich && (
+              <button className="btn btn-sm btn-ghost" title="重新触发富化 worker (E)"
+                disabled={busy} onClick={() => onReEnrich(target)}>
+                <RefreshCw size={11} strokeWidth={2} />重富化<kbd className="ml-1 rounded-[3px] border border-line px-0.5 font-mono text-[9px] opacity-60">e</kbd>
+              </button>
+            )}
             <Link href={`/items/${effId}`} className="btn btn-sm btn-ghost ml-auto" title="整页详情">
               打开完整页<ArrowUpRight size={11} strokeWidth={2} />
             </Link>

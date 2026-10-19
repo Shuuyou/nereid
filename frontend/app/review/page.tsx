@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { API, api } from "@/lib/api";
@@ -82,9 +82,30 @@ function ReviewInner() {
   }, [tab]);
   useEffect(load, [load]);
 
-  function toast(text: string) {
-    setMsg(text);
-    setTimeout(() => setMsg(""), 2500);
+  const [undoInfo, setUndoInfo] = useState<{ id: string; title: string; action: string } | null>(null);
+  const undoT = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function toast(text: string, undo?: { id: string; title: string; action: string }) {
+    setMsg(text); setUndoInfo(undo ?? null);
+    if (undoT.current) clearTimeout(undoT.current);
+    undoT.current = setTimeout(() => { setMsg(""); setUndoInfo(null); }, undo ? 5000 : 2500);
+  }
+
+  /** 撤销上一次复核动作：undo 端点把条目送回待复核；reject 撤销时补一次重富化（清空过） */
+  async function undoLast() {
+    const u = undoInfo;
+    if (!u) return;
+    setUndoInfo(null); setMsg("");
+    if (undoT.current) clearTimeout(undoT.current);
+    try {
+      const r = await fetch(`${API}/api/review/${encodeURIComponent(u.id)}/undo`, { method: "POST" });
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      if (u.action === "reject") await api.enrich(u.id).catch(() => {});
+      load();
+      toast(`已撤销，回到待复核：${u.title.slice(0, 24)}`);
+    } catch (e) {
+      toast(`撤销失败：${e}`);
+    }
   }
 
   async function act(it: PeekTarget, action: "confirm" | "reject") {
@@ -98,7 +119,8 @@ function ReviewInner() {
       setItems(rest);
       setCount((c) => Math.max(0, c - 1));
       const name = (it.title || it.id).slice(0, 30);
-      toast(action === "confirm" ? `已确认入库：${name}` : `已回炉重富化：${name}`);
+      toast(action === "confirm" ? `已确认入库：${name}` : `已回炉重富化：${name}`,
+        { id: it.id, title: it.title || it.id, action });
       // 抽屉内复核 → 自动推进到下一条待办（原索引位已是后继）；队列清空则关抽屉
       if (peekId === it.id && idx >= 0) {
         if (rest.length === 0) closePeek();
@@ -258,8 +280,14 @@ function ReviewInner() {
       />
 
       {msg && (
-        <div className="rise fixed bottom-5 right-5 z-[60] rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[13px] text-fg">
+        <div className="rise fixed bottom-5 right-5 z-[60] flex items-center gap-3 rounded-[8px] border border-line border-l-2 border-l-accent bg-panel px-4 py-2.5 text-[13px] text-fg">
           {msg}
+          {undoInfo && (
+            <button onClick={undoLast}
+              className="font-mono text-[11px] uppercase tracking-[0.06em] text-accent hover:underline">
+              撤销
+            </button>
+          )}
         </div>
       )}
     </div>

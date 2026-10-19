@@ -51,29 +51,34 @@ function fmtMs(ms?: number) {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
 }
 /** 推理脊椎：纵向步骤条骑线节点（Grok/Devin 式），流式累积、完成可收 receipt */
-function TraceSpine({ steps, streaming, onJump }: {
-  steps: SpineStep[]; streaming: boolean; onJump?: () => void;
+function TraceSpine({ steps, streaming, elapsedNow, onJump }: {
+  steps: SpineStep[]; streaming: boolean; elapsedNow?: number; onJump?: () => void;
 }) {
   if (!steps.length && !streaming) return null;
   return (
     <div className="relative mb-3 ml-[7px] border-l border-line2 pl-4">
-      {steps.map((s, i) => (
-        <button key={i} type="button" onClick={onJump}
-          className="group relative flex w-full items-center gap-2 py-[5px] text-left">
-          <span className={`absolute -left-[21px] flex h-3.5 w-3.5 items-center justify-center rounded-full border bg-panel ${
-            s.error ? "border-err" : s.running ? "border-accent" : "border-line2"}`}>
-            {s.running && <span className="h-1.5 w-1.5 rounded-full bg-accent" style={{ animation: "pulse-dot 1.4s ease-in-out infinite" }} />}
-            {s.error && <X size={8} className="text-err" />}
-            {!s.running && !s.error && <Check size={8} className="text-ok" />}
-          </span>
-          <span className="flex-1 truncate text-[12px] text-dim transition-colors group-hover:text-fg">
-            {STEP_ZH[s.step] || s.step}
-            {s.hits != null && <span className="text-faint"> · {s.hits} 命中</span>}
-          </span>
-          <span className="font-mono text-[11px] tnum text-faint">{fmtMs(s.ms)}</span>
-        </button>
-      ))}
-      {streaming && steps.length > 0 && steps[steps.length - 1].running === false ? null : null}
+      {steps.map((s, i) => {
+        /* running 步显示实时跳动时长（elapsedNow - 步骤开始时累计ms），完成后显示差分值 */
+        const liveMs = s.running && elapsedNow != null ? Math.max(0, elapsedNow - s.ms) : null;
+        return (
+          <button key={i} type="button" onClick={onJump}
+            className="group relative flex w-full items-center gap-2 py-[5px] text-left">
+            <span className={`absolute -left-[21px] flex h-3.5 w-3.5 items-center justify-center rounded-full border bg-panel ${
+              s.error ? "border-err" : s.running ? "border-accent" : "border-line2"}`}>
+              {s.running && <span className="h-1.5 w-1.5 rounded-full bg-accent" style={{ animation: "pulse-dot 1.4s ease-in-out infinite" }} />}
+              {s.error && <X size={8} className="text-err" />}
+              {!s.running && !s.error && <Check size={8} className="text-ok" />}
+            </span>
+            <span className="flex-1 truncate text-[12px] text-dim transition-colors group-hover:text-fg">
+              {STEP_ZH[s.step] || s.step}
+              {s.hits != null && <span className="text-faint"> {s.hits} 命中</span>}
+            </span>
+            <span className={`font-mono text-[11px] tnum ${s.running ? "text-accent" : "text-faint"}`}>
+              {liveMs != null ? fmtMs(liveMs) : fmtMs(s.ms)}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -200,6 +205,8 @@ export default function QaPage() {
   const [peekItem, setPeekItem] = useState<any>(null);
   const [peekErr, setPeekErr] = useState(false);
   const peekCloseT = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -277,7 +284,9 @@ export default function QaPage() {
   async function send(q?: string) {
     const question = (q ?? input).trim();
     if (!question || busy) return;
-    setInput(""); setBusy(true); setSpine([]); setStatus(""); closePeek();
+    setInput(""); setBusy(true); setSpine([]); setStatus(""); setElapsed(0); closePeek();
+    const t0 = Date.now();
+    timerRef.current = setInterval(() => setElapsed(Date.now() - t0), 400);
     setMsgs((m) => [...m, { role: "user", content: question }, { role: "assistant", content: "" }]);
     const abort = new AbortController();
     abortRef.current = abort;
@@ -309,6 +318,8 @@ export default function QaPage() {
             });
           }
         } else if (ev.type === "token") {
+          // token 到达 = 生成阶段已在交付——脊椎步骤全部标完成，防"卡在生成"假象
+          if (acc === "") setSpine((s) => s.map((x) => ({ ...x, running: false })));
           acc += ev.data.t;
           setMsgs((m) => { const a = [...m]; a[a.length - 1] = { ...a[a.length - 1], content: acc }; return a; });
           setStatus("");
@@ -338,6 +349,7 @@ export default function QaPage() {
     }
     setSpine((s) => s.map((x) => ({ ...x, running: false })));
     setBusy(false); setStatus("");
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     abortRef.current = null;
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }
@@ -430,7 +442,13 @@ export default function QaPage() {
                   <div>
                     {/* 推理脊椎：流式中就地累积（Grok/Devin 式） */}
                     {busy && i === msgs.length - 1 && spine.length > 0 && (
-                      <TraceSpine steps={spine} streaming onJump={() => setTab("trace")} />
+                      <TraceSpine steps={spine} streaming elapsedNow={elapsed} onJump={() => setTab("trace")} />
+                    )}
+                    {busy && i === msgs.length - 1 && (
+                      <div className="mb-3 ml-[7px] flex items-center gap-2 font-mono text-[11px] text-faint">
+                        <span className="tnum">已用 {fmtMs(elapsed)}</span>
+                        {elapsed > 30000 && <span className="text-dim">· 深度推理耗时较长属正常，可随时 ■ 中止</span>}
+                      </div>
                     )}
                     {m.content
                       ? <AnswerBody content={m.content} streaming={busy && i === msgs.length - 1}

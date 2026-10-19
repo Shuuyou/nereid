@@ -787,7 +787,18 @@ async def stream_answer(question: str, session_id: str | None = None,
     route = next((s.get("route") for s in trace.get("steps", []) if s.get("route")), "general")
     ans = ""
     try:
-        async for piece in _generate_stream(question, history or [], contexts, route=route):
+        # 生成阶段心跳：token 静默 >12s 时发 status（流式窗口内零事件=用户以为卡死）
+        gen_iter = _generate_stream(question, history or [], contexts, route=route).__aiter__()
+        gen_start = time.time()
+        while True:
+            try:
+                piece = await asyncio.wait_for(gen_iter.__anext__(), timeout=12)
+            except asyncio.TimeoutError:
+                yield {"type": "status", "data": {"step": "generate", "msg": "仍在生成回答…",
+                                                 "ms": int((time.time() - t0) * 1000)}}
+                continue
+            except StopAsyncIteration:
+                break
             ans += piece
             yield {"type": "token", "data": {"t": piece}}
     except Exception as e:  # noqa: BLE001

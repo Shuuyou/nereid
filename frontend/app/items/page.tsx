@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { Empty, SpecRow, SpecDot, Sev } from "@/components/ui";
+import { PeekDrawer } from "@/components/PeekDrawer";
 
 const LAYERS = ["", "L1", "L2", "L3", "L4", "L5", "L6"];
 const LAYER_NAMES: Record<string, string> = {
@@ -64,6 +65,16 @@ function ItemsInner() {
   const [q, setQ] = useState(() => sp.get("q") || "");
   const [f, setF] = useState<Filters>(() => filtersFromParams(sp));
   const [loading, setLoading] = useState(true);
+  const [peekId, setPeekId] = useState<string | null>(() => sp.get("peek"));
+
+  /** 抽屉开关：?peek= 进 URL（刷新可恢复、可分享），保留其余筛选参数 */
+  const setPeek = useCallback((id: string | null) => {
+    setPeekId(id);
+    const p = new URLSearchParams(sp.toString());
+    if (id) p.set("peek", id); else p.delete("peek");
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp, router, pathname]);
 
   // 查询词防抖 → 写入过滤器
   useEffect(() => {
@@ -180,14 +191,16 @@ function ItemsInner() {
                   <button className="btn btn-sm" onClick={clearFilters}>清除全部筛选</button>
                 </div>
               </td></tr>
-            ) : data.items.map((it: any) => (
-              <tr key={it.id} className="rowlink">
+            ) : data.items.map((it: any, ri: number) => (
+              <tr key={it.id} className="rowlink cursor-pointer" onClick={() => setPeek(it.id)}
+                title="点击行速览">
                 <td><Sev level={it.severity} /></td>
                 <td>
                   <div className="flex items-center gap-2">
                     <Link href={`/items/${it.id}`}
-                      className="stretched min-w-0 truncate text-fg/90 transition-colors hover:text-accent"
-                      title={it.title_zh ? `${it.title_zh}\n${it.title}` : it.title}>
+                      className="min-w-0 truncate text-fg/90 transition-colors hover:text-accent"
+                      onClick={(e) => e.stopPropagation()}
+                      title={`${it.title_zh ? `${it.title_zh}\n` : ""}整页详情（Cmd+点击新标签）`}>
                       {it.title_zh || it.title}
                     </Link>
                     {it.is_kev && (
@@ -240,6 +253,25 @@ function ItemsInner() {
           </button>
         </div>
       </div>
+
+      {/* 行点击速览抽屉（只读模式：无复核动作）；j/k 翻页、Esc 关 */}
+      {(() => {
+        const items = data.items || [];
+        const idx = items.findIndex((i: any) => i.id === peekId);
+        const row = idx >= 0 ? items[idx] : null;
+        return (
+          <PeekDrawer
+            readonly
+            id={peekId}
+            index={idx}
+            total={items.length}
+            title={row ? row.title_zh || row.title : undefined}
+            onClose={() => setPeek(null)}
+            onPrev={() => idx > 0 && setPeek(items[idx - 1].id)}
+            onNext={() => idx >= 0 && idx < items.length - 1 && setPeek(items[idx + 1].id)}
+          />
+        );
+      })()}
     </div>
   );
 }

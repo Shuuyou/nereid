@@ -299,8 +299,11 @@ async def review_action(item_id: str, action: str, db: AsyncSession = Depends(ge
     elif action == "reject":
         item.review_status = "auto"
         item.enrichment = {}
+    elif action == "undo":
+        # 撤销复核动作 → 回待复核队列（reject 已清空的 enrichment 由前端补一次重富化）
+        item.review_status = "needs_review"
     else:
-        raise HTTPException(400, "action must be confirm|reject")
+        raise HTTPException(400, "action must be confirm|reject|undo")
     await db.commit()
     return {"id": item_id, "review_status": item.review_status}
 
