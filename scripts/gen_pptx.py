@@ -4,8 +4,11 @@
 用法: backend/.venv/bin/python scripts/gen_pptx.py docs/nereid-defense.pptx
 """
 import sys
+from pathlib import Path
 
 from pptx import Presentation
+
+root = Path(__file__).resolve().parent.parent
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Emu, Pt
@@ -227,14 +230,22 @@ def build(dst):
 
     # ---------- P9 演示 ----------
     s = _slide(prs)
-    _head(s, "一个 SOC 的早晨：从告警到日报，无人值守", "场景演示")
-    steps = ["① 值班台态势：41 源实时流入", "② 新 CVE 入库：15min 增量",
-             "③ 富化情报卡：8 worker 并发全景", "④ 内网风险问答：多跳推理+引用",
-             "⑤ 为你推荐+自动日报：画像驱动"]
-    y = 1500000
-    for st in steps:
-        _card(s, Emu(800000), Emu(y), Emu(10600000), Emu(800000), st, [], ACC)
-        y += 950000
+    _head(s, "一个 SOC 的早晨：从告警到日报，无人值守", "场景演示 · 系统实景")
+    shots = [
+        ("docs/screenshots/01-duty.png", "今日值班台 · 待复核/高优/KEV 队列 + 实时流"),
+        ("docs/screenshots/03-item-detail.png", "情报卡 · 评分溯源/富化维度/标识符"),
+        ("docs/screenshots/10-qa-answer.png", "深度问答 · 行内引用/推理链 13 步/证据面板"),
+        ("docs/screenshots/04-review.png", "HITL 复核队列 · 确认/回炉/重富化/撤销"),
+    ]
+    grid = [(450000, 1150000), (6250000, 1150000), (450000, 4150000), (6250000, 4150000)]
+    for (img, cap), (x, y) in zip(shots, grid):
+        tf = _box(s, Emu(x), Emu(y), Emu(5500000), Emu(240000))
+        _add(tf, cap, 10, True, ACC2, first=True)
+        pic = s.shapes.add_picture(str(root / img), Emu(x), Emu(y + 240000),
+                                   width=Emu(5500000), height=Emu(3094000))
+    steps = "演示流：值班台态势 → 新 CVE 15min 入库 → 8 worker 富化全景 → 多跳问答带引用 → 画像推荐+日报"
+    tf = _box(s, Emu(450000), Emu(6600000), Emu(11300000), Emu(260000))
+    _add(tf, steps, 11, False, DIM, first=True)
     _notes(s, "重点看第三四帧：富化是 8 个 worker 并发跑出来的；'内网跑了 Ollama 和 Milvus 2.4 有什么风险'要跨文档推理，是深度问答的真实考题。若放视频让位给视频。40 秒。")
 
     # ---------- P10 实测 ----------
