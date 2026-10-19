@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { API, api } from "@/lib/api";
-import { SpecRow, SpecDot, PageHeader, St, Empty } from "@/components/ui";
+import { SpecDot, PageHeader, St, Empty } from "@/components/ui";
+import { zh, SOURCE_TYPE, RUN_STATUS, STEP_NODE } from "@/lib/labels";
 import { Check, X, Play, Inbox } from "lucide-react";
 
 interface DagNode { id: string; label: string; desc: string }
@@ -89,7 +90,7 @@ export default function PipelinePage() {
       const d = await r.json();
       doneAt.current = {};
       setRun({ run_id: d.run_id, source_id: String(sid), status: "running", nodes: {} });
-      toast(`DAG 已启动 run_id=${d.run_id}`);
+      toast("流水线已启动");
       // 真实状态轮询：后端 Redis 回写每节点完成情况
       if (poll.current) clearInterval(poll.current);
       poll.current = setInterval(async () => {
@@ -102,7 +103,7 @@ export default function PipelinePage() {
           if (rec.status !== "running") {
             if (poll.current) clearInterval(poll.current);
             refreshRuns();
-            toast(rec.status === "done" ? "DAG 执行完成" : `执行失败：${rec.error || "未知错误"}`);
+            toast(rec.status === "done" ? "流水线执行完成" : "流水线执行失败，详情见运行记录");
           }
         } catch { /* ignore */ }
       }, 1000);
@@ -159,26 +160,17 @@ export default function PipelinePage() {
 
   return (
     <div>
-      <SpecRow>
-        <span>FIG_06</span><SpecDot />
-        <span>PIPELINE</span><SpecDot />
-        <span>{dag?.engine || "LANGGRAPH"} DAG</span>
-        <span className="ml-auto flex items-center gap-1.5 normal-case tracking-normal">
-          <St tone={running ? "live" : "dim"}>{running ? "RUNNING" : "IDLE"}</St>
-        </span>
-      </SpecRow>
-
-      <PageHeader title="LangGraph 流水线" desc={dag?.schedule || "collect → enrich → index → kg → notify"}
+      <PageHeader title="LangGraph 流水线" desc="采集 → 富化 → 索引 → 图谱 → 通知"
         right={
           <div className="flex items-center gap-2">
             <select className="input w-64" value={sid} onChange={(e) => setSid(Number(e.target.value))}>
               {sources.length === 0 && <option value="">（无数据源）</option>}
               {sources.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}（{s.source_type} T{s.tier}）</option>
+                <option key={s.id} value={s.id}>{s.name}（{zh(SOURCE_TYPE, s.source_type)}）</option>
               ))}
             </select>
             <button className="btn btn-acc" disabled={running || sid === ""} onClick={triggerRun}>
-              <Play size={12} strokeWidth={1.75} />{running ? "DAG 运行中…" : "运行完整 DAG"}
+              <Play size={12} strokeWidth={1.75} />{running ? "流水线运行中…" : "运行全链"}
             </button>
           </div>
         } />
@@ -199,7 +191,6 @@ export default function PipelinePage() {
                     <div className="mx-1 flex w-14 flex-col items-center justify-center gap-0.5">
                       <span className={`num text-[11px] ${ms ? "text-dim" : "text-transparent"}`}>{ms || "0"}</span>
                       <div className={`h-px w-full ${st === "pending" ? "bg-line2" : "bg-ok/50"}`} />
-                      <span className={`font-mono text-[9px] leading-none ${st === "pending" ? "text-faint" : "text-ok/70"}`}>▸</span>
                     </div>
                   )}
                   {/* 节点卡 */}
@@ -242,18 +233,18 @@ export default function PipelinePage() {
         {/* 运行状态行 */}
         {run && (
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[12px] text-dim">
-            <span>RUN <span className="mono text-fg">{run.run_id}</span></span>
+            <span>运行 <span className="mono text-fg">{run.run_id}</span></span>
             <SpecDot />
-            <span>SRC <span className="mono text-fg">{run.source_id}</span></span>
-            {run.current && <><SpecDot /><span>NODE <span className="mono text-accent">{run.current}</span></span></>}
+            <span>数据源 <span className="text-fg">{run.source_id}</span></span>
+            {run.current && <><SpecDot /><span>当前节点 <span className="text-accent">{zh(STEP_NODE, run.current)}</span></span></>}
             <SpecDot />
-            {run.status === "done" ? <St tone="ok">DONE</St>
-              : run.status === "error" ? <St tone="err">ERROR</St>
-              : <St tone="live">RUNNING</St>}
+            <St tone={run.status === "done" ? "ok" : run.status === "error" ? "err" : "live"}>
+              {zh(RUN_STATUS, run.status)}
+            </St>
             {run.started_at && run.finished_at && (
               <><SpecDot /><span className="num">{dur(run.started_at, run.finished_at)}</span></>
             )}
-            {run.error && <span className="mono text-[11px] text-err">{run.error}</span>}
+            {run.error && <span className="text-[11px] text-err" title={run.error}>{run.error.slice(0, 120)}</span>}
           </div>
         )}
       </div>
@@ -262,14 +253,14 @@ export default function PipelinePage() {
       <div className="sect">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="sect-title">运行历史</h2>
-          <span className="font-mono text-[11px] text-faint">REDIS pipeline:runs，LAST 20</span>
+          <span className="text-[11px] text-faint">最近 20 次运行</span>
         </div>
         {runs.length === 0 ? (
           /* 空态引导：说状态 + 内嵌直达动作 + 备选路径提示 */
           <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-line2 py-12 text-center">
             <Inbox size={18} strokeWidth={1.5} className="text-faint" />
             <div className="text-[13px] text-dim">暂无运行记录</div>
-            <div className="text-[12px] text-faint">全链 collect→enrich→index→kg→notify 尚未运行过</div>
+            <div className="text-[12px] text-faint">全链「采集→富化→索引→图谱→通知」尚未运行过</div>
             <button className="btn btn-acc btn-sm mt-1.5" disabled={running} onClick={runAllNow}>
               <Play size={11} strokeWidth={1.75} />立即运行全链
             </button>
@@ -278,7 +269,7 @@ export default function PipelinePage() {
         ) : (
           <table className="dt">
             <thead>
-              <tr><th>run_id</th><th>source</th><th>状态</th><th>节点进度</th><th>开始</th><th>结束</th><th className="r">耗时</th></tr>
+              <tr><th>运行 ID</th><th>数据源</th><th>状态</th><th>节点进度</th><th>开始</th><th>结束</th><th className="r">耗时</th></tr>
             </thead>
             <tbody>
               {runs.map((r) => {
@@ -290,9 +281,9 @@ export default function PipelinePage() {
                     <td className="mono text-[12px] text-accent">{r.run_id}</td>
                     <td className="text-[12px]">{r.source_id}</td>
                     <td>
-                      {r.status === "done" ? <St tone="ok">done</St>
-                        : r.status === "error" ? <St tone="err">error</St>
-                        : <St tone="live">{r.status}</St>}
+                      <St tone={r.status === "done" ? "ok" : r.status === "error" ? "err" : "live"}>
+                        {zh(RUN_STATUS, r.status)}
+                      </St>
                     </td>
                     <td>
                       <div className="flex items-center gap-2">

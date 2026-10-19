@@ -15,3 +15,4 @@ models/
 .DS_Store
 *.tsbuildinfo
 data/nvd_cvss_cache.json.gz
+data/avid-db/

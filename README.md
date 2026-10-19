@@ -67,7 +67,7 @@ cd backend && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/
 
 | 指标 | 设计 |
 |---|---|
-| 监测完整性 15 | 11类源+准实时 git/webhook+四层去重 |
+| 监测完整性 15 | 11类源+准实时 git 增量+四层去重 |
 | 富化完整性 15 | 10+维+关联推理+置信度合并 |
 | 问答完整性 15 | 跨文档多跳+KG桥接+推理链可视化+多轮 |
 | 时效 5 | 核心链路 ≤1h（cvelistV5 15min 增量） |

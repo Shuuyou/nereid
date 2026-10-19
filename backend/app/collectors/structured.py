@@ -505,7 +505,13 @@ class AvidCollector(BaseCollector):
         repo_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), repo_dir)
         git_url = "https://github.com/avidml/avid-db.git"
         items: list[RawItemData] = []
-        if not os.path.exists(os.path.join(repo_dir, ".git")):
+        if os.path.exists(os.path.join(repo_dir, ".git")):
+            subprocess.run(["git", "-C", repo_dir, "pull", "--ff-only"], capture_output=True, text=True, timeout=300)
+            since = _dt(source.state.get("cursor")) or (datetime.now(timezone.utc) - timedelta(days=30))
+        elif os.path.isdir(repo_dir) and os.listdir(repo_dir):
+            # 目录存在但非 git 仓库（随仓快照/离线环境）：直接扫描，不再 clone
+            since = _dt(source.state.get("cursor")) or (datetime.now(timezone.utc) - timedelta(days=30))
+        elif not os.path.exists(repo_dir):
             r = subprocess.run(["git", "clone", "--depth", "1", git_url, repo_dir],
                                capture_output=True, text=True, timeout=600)
             if r.returncode != 0:

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { CommandPalette, PaletteButton } from "@/components/CommandPalette";
 import { HeaderTitle } from "@/components/HeaderTitle";
+import { HealthDot } from "@/components/HealthDot";
 
 export const metadata = {
   title: "捞针 · nereid — AI 安全情报系统",
@@ -33,10 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Nav />
             </div>
             <div className="border-t border-line px-4 py-3">
-              <div className="spec-row">
-                <span className="dot" style={{ background: "#2e7d5b" }} />
-                SYS ONLINE
-              </div>
+              <HealthDot />
             </div>
           </aside>
 

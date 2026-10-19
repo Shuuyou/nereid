@@ -35,6 +35,7 @@ class RawItemData:
     cvss_v31_vector: str | None = None
     cvss_v40_score: float | None = None
     cvss_v40_vector: str | None = None
+    packages: list[str] = field(default_factory=list)   # 受影响包 purl/ecosystem 标识（GHSA/OSV）
 
 
 class BaseCollector:

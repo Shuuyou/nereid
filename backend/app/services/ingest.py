@@ -202,6 +202,7 @@ def _new_item(data: RawItemData, ids: dict, source: Source) -> Item:
         cve_ids=ids["cve"], ghsa_ids=ids["ghsa"], cnvd_ids=ids["cnvd"], cnnvd_ids=ids["cnnvd"],
         edb_ids=ids["edb"], cwe_ids=ids["cwe"],
         vendors=data.vendors, products=data.products,
+        packages=getattr(data, "packages", None) or [],
         severity=data.severity, cvss_v31_score=data.cvss_v31_score, cvss_v31_vector=data.cvss_v31_vector,
         cvss_v40_score=data.cvss_v40_score, cvss_v40_vector=data.cvss_v40_vector,
         ai_relevance_score=cls["ai_relevance_score"], ai_layer=cls["ai_layer"],
@@ -231,6 +232,7 @@ def _merge_into(item: Item, data: RawItemData, ids: dict, source: Source, method
     item.cwe_ids = _merge_list(item.cwe_ids, ids["cwe"])
     item.vendors = _merge_list(item.vendors, data.vendors)
     item.products = _merge_list(item.products, data.products)
+    item.packages = _merge_list(item.packages or [], getattr(data, "packages", None) or [])
     item.attack_techniques = _merge_list(item.attack_techniques, ids["attack"])
     item.atlas_techniques = _merge_list(item.atlas_techniques, ids["atlas"])
     if source.source_type == "kev" or (data.raw or {}).get("kev"):

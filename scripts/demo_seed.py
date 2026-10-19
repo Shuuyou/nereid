@@ -214,7 +214,7 @@ async def main() -> None:
         if not src:
             src = Source(name="demo", source_type="demo", tier=1, lang="mixed",
                          url="local://demo", poll_interval_sec=86400 * 365, enabled=False,
-                         tags=["demo"])
+                         state={"tags": ["demo"]})
             db.add(src)
             await db.commit()
             await db.refresh(src)

@@ -3,7 +3,8 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { API, api } from "@/lib/api";
-import { SpecRow, SpecDot, PageHeader, Empty, Skeleton, Sev } from "@/components/ui";
+import { PageHeader, Empty, Skeleton, Sev } from "@/components/ui";
+import { zh, ENRICH_DIM } from "@/lib/labels";
 import { PeekDrawer, confText, confTone, type PeekTarget } from "@/components/PeekDrawer";
 import { Check, Undo2, RefreshCw } from "lucide-react";
 
@@ -146,17 +147,10 @@ function ReviewInner() {
   }
 
   const peekIdx = peekId ? items.findIndex((x) => x.id === peekId) : -1;
-  const pendingLabel = tab === "needs_review" ? "PENDING" : tab === "confirmed" ? "CONFIRMED" : "AUTO";
 
   return (
     <div>
-      <SpecRow>
-        <span>FIG_04</span><SpecDot />
-        <span>REVIEW QUEUE</span><SpecDot />
-        <span>{count} {pendingLabel}</span>
-      </SpecRow>
-
-      <PageHeader title="HITL 复核队列" desc="低置信/富化异常条目需人工确认；reject 后清空富化结果回炉；点击行速览"
+      <PageHeader title="复核队列" desc="低置信/富化异常条目需人工确认；回炉后清空富化结果重新富化；点击行速览"
         right={<button className="btn" onClick={load}><RefreshCw size={12} strokeWidth={1.75} />刷新</button>} />
 
       {/* 状态 tabs — 下划线式，非药丸 */}
@@ -169,8 +163,8 @@ function ReviewInner() {
             {tab === v && <span className="ml-1.5 font-mono text-[11px] text-faint">{count}</span>}
           </button>
         ))}
-        <span className="ml-auto self-center font-mono text-[11px] uppercase tracking-[0.06em] text-faint">
-          review_status = {tab}
+        <span className="ml-auto self-center text-[11px] text-faint">
+          共 {count} 条
         </span>
       </div>
 
@@ -210,7 +204,6 @@ function ReviewInner() {
                     className="stretched block truncate text-[13px] text-fg transition-colors hover:text-accent">
                     {it.title || it.id}
                   </Link>
-                  <div className="mono mt-0.5 text-[11px] text-faint">{it.id}</div>
                 </td>
                 <td>
                   {(it.cve || []).length
@@ -233,8 +226,8 @@ function ReviewInner() {
                   <div className="flex max-w-[200px] flex-wrap gap-1">
                     {(it.weak_dims || []).length
                       ? it.weak_dims!.map((d) => (
-                          <span key={d} className="badge mono">
-                            <span className="dot" style={{ background: "var(--err)" }} />{d}
+                          <span key={d} className="badge">
+                            <span className="dot" style={{ background: "var(--err)" }} />{zh(ENRICH_DIM, d)}
                           </span>
                         ))
                       : <span className="text-faint">—</span>}
@@ -253,7 +246,7 @@ function ReviewInner() {
                       disabled={busy !== null} onClick={() => act(it, "reject")}>
                       <Undo2 size={11} strokeWidth={2} />回炉
                     </button>
-                    <button className="btn btn-sm btn-ghost" title="重新触发富化 worker"
+                    <button className="btn btn-sm btn-ghost" title="重新触发富化"
                       disabled={busy !== null} onClick={() => reEnrich(it)}>
                       <RefreshCw size={11} strokeWidth={1.75} />重富化
                     </button>

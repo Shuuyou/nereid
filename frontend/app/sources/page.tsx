@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { SpecRow, SpecDot, PageHeader, StatStrip, St } from "@/components/ui";
+import { PageHeader, StatStrip, St } from "@/components/ui";
+import { zh, SOURCE_TYPE, TIER } from "@/lib/labels";
 import { Radio, RefreshCw, Inbox } from "lucide-react";
 
-/** 采集间隔格式化：秒 → "15m" / "1.5h" */
+/** 采集间隔格式化：秒 → "15 分钟" / "1.5 小时" */
 function fmtInterval(sec?: number) {
   if (!sec) return "—";
-  if (sec < 3600) return `${Math.round(sec / 60)}m`;
-  return `${(sec / 3600).toFixed(1).replace(/\.0$/, "")}h`;
+  if (sec < 3600) return `${Math.round(sec / 60)} 分钟`;
+  return `${(sec / 3600).toFixed(1).replace(/\.0$/, "")} 小时`;
 }
 
 export default function SourcesPage() {
@@ -52,18 +53,7 @@ export default function SourcesPage() {
 
   return (
     <div>
-      <SpecRow>
-        <span>FIG_05</span><SpecDot />
-        <span>SOURCES</span><SpecDot />
-        <span>{ok}/{rows.length} ONLINE</span>
-        <span className="ml-auto flex items-center gap-1.5 normal-case tracking-normal">
-          <St tone={ok === rows.length && rows.length > 0 ? "ok" : ok > 0 ? "warn" : "dim"}>
-            {rows.length ? (ok === rows.length ? "ALL HEALTHY" : `${rows.length - ok} DEGRADED`) : "NO DATA"}
-          </St>
-        </span>
-      </SpecRow>
-
-      <PageHeader title="数据源监控" desc="采集器健康度监控，tier 调度与失败重试"
+      <PageHeader title="数据源监控" desc="采集器健康度监控，分层调度与失败重试"
         right={<button className="btn btn-acc" onClick={() => api.runAll().then(load)}>
           <Radio size={12} strokeWidth={1.75} />采集全部
         </button>} />
@@ -78,10 +68,7 @@ export default function SourcesPage() {
       <div className="sect !mt-6">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="sect-title">采集器清单</h2>
-          <span className="font-mono text-[11px] text-faint">
-            {rows.length > 0 && <>健康 <span className="text-dim">{ok}/{rows.length}</span></>}
-            POLL 15s AUTO-REFRESH
-          </span>
+          <span className="text-[11px] text-faint">每 15 秒自动刷新</span>
         </div>
         {!loaded ? (
           <div className="space-y-px">{[0, 1, 2].map((i) => <div key={i} className="skel h-9" />)}</div>
@@ -125,13 +112,13 @@ export default function SourcesPage() {
                     <td>
                       <div className="text-[13px] font-medium text-fg">{s.name}</div>
                       {s.last_error && (
-                        <div className="mono mt-0.5 max-w-[340px] truncate text-[11px] text-err" title={s.last_error}>
-                          {s.last_error}
+                        <div className="mt-0.5 max-w-[340px] truncate text-[11px] text-err" title={s.last_error}>
+                          {s.last_error.slice(0, 80)}
                         </div>
                       )}
                     </td>
-                    <td><span className="badge mono">{s.source_type}</span></td>
-                    <td><span className="badge mono">T{s.tier}</span></td>
+                    <td><span className="badge">{zh(SOURCE_TYPE, s.source_type)}</span></td>
+                    <td><span className="badge">{zh(TIER, String(s.tier))}</span></td>
                     <td>
                       {!s.enabled ? <St tone="dim">停用</St>
                         : s.consecutive_failures > 0 ? <St tone="err">失败</St>
@@ -149,7 +136,8 @@ export default function SourcesPage() {
                         : <span className="text-faint">0</span>}
                     </td>
                     <td className="r">
-                      <button className="btn btn-sm" disabled={running[s.id] || !s.enabled} onClick={() => run(s.id)}>
+                      <button className="btn btn-sm" disabled={running[s.id] || !s.enabled} onClick={() => run(s.id)}
+                        title={s.enabled ? "立即采集" : "该源已停用"}>
                         {running[s.id] ? <RefreshCw size={11} strokeWidth={1.75} className="animate-spin" /> : null}
                         {running[s.id] ? "采集中" : "采集"}
                       </button>

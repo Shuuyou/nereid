@@ -31,7 +31,7 @@ from app.config import get_settings
 from app.core.logging import get_logger
 from app.db.models import (
     AssetStat, Item, ItemSource, MappingLink, Paper, Poc, QaMessage, QaSession,
-    RawItem, Report, Source,
+    Report, Source, TaskRun,
 )
 from app.db.session import get_db, get_session_factory
 
@@ -474,6 +474,27 @@ async def pipeline_run_status(run_id: str):
     if h.get("result"):
         h["result"] = _j.loads(h["result"])
     return h
+
+
+@router.post("/pipeline/resume/{run_id}")
+async def pipeline_resume(run_id: str, db: AsyncSession = Depends(get_db)):
+    """断点续跑：同 thread_id 从未完成 checkpoint 恢复（durable execution 演示入口）。
+    用法：手动停掉一次运行中的流水线后调用，LangGraph 从 PG checkpoint 续跑。"""
+    import json as _j
+    from app.core.rds import rds
+    from app.agents.pipeline_graph import resume_pipeline
+    try:
+        h = await rds().hgetall(f"pipeline:run:{run_id}")
+    except Exception:  # noqa: BLE001
+        h = {}
+    source_id = int((h or {}).get("source_id") or 0)
+    if not source_id:
+        src = await db.scalar(select(Source.id).order_by(Source.id).limit(1))
+        if not src:
+            raise HTTPException(404, "run not found")
+        source_id = int(src)
+    asyncio.create_task(resume_pipeline(run_id, source_id))
+    return {"status": "resuming", "run_id": run_id}
 
 
 @router.get("/pipeline/runs")

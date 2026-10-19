@@ -6,7 +6,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, FileDown, Copy, Check } from "lucide-react";
 import { api } from "@/lib/api";
-import { SpecRow, SpecDot, Empty, Skeleton } from "@/components/ui";
+import { Empty, Skeleton } from "@/components/ui";
+import { zh, REPORT_TYPE } from "@/lib/labels";
 
 export default function ReportDetail() {
   const { id } = useParams<{ id: string }>();
@@ -58,16 +59,16 @@ export default function ReportDetail() {
   }
 
   const spec = (
-    <SpecRow>
-      <span>FIG_RP</span><SpecDot />
-      <span><Link href="/reports" className="transition-colors hover:text-accent">REPORTS</Link></span><SpecDot />
-      <span className="truncate">{id}</span>
+    <div className="flex items-center gap-2 text-[12px] text-faint">
       <button onClick={goBack}
-        className="ml-auto inline-flex items-center gap-1 transition-colors hover:text-accent"
-        title="返回来源页">
-        <ArrowLeft size={11} strokeWidth={2} />返回
+        className="inline-flex items-center gap-1 transition-colors hover:text-accent" title="返回来源页">
+        <ArrowLeft size={12} strokeWidth={2} />返回
       </button>
-    </SpecRow>
+      <span className="text-line2">/</span>
+      <Link href="/reports" className="transition-colors hover:text-accent">情报报告</Link>
+      <span className="text-line2">/</span>
+      <span className="text-dim">{r?.created_at?.slice(0, 10) || "详情"}</span>
+    </div>
   );
 
   if (err) return (
@@ -102,7 +103,7 @@ export default function ReportDetail() {
         <div className="min-w-0">
           <h1 className="text-[15px] font-semibold leading-snug tracking-[-0.005em] text-fg">{r.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="badge mono">{r.report_type || "—"}</span>
+            <span className="badge">{zh(REPORT_TYPE, r.report_type)}</span>
           </div>
           <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[12px] text-faint">
             <span>生成 <span className="tnum text-dim">{r.created_at?.slice(0, 16).replace("T", " ") || "—"}</span></span>

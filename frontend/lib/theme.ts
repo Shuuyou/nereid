@@ -27,7 +27,7 @@ export const C = {
   rose: "#a8485f",
 };
 
-export function baseTooltip() {
+function baseTooltip() {
   return {
     backgroundColor: "#ffffff",
     borderColor: C.line2,
@@ -38,11 +38,7 @@ export function baseTooltip() {
   };
 }
 
-export function baseGrid() {
-  return { left: 8, right: 8, top: 28, bottom: 8, containLabel: true };
-}
-
-export function baseAxis() {
+function baseAxis() {
   return {
     axisLine: { lineStyle: { color: C.line2 } },
     axisTick: { show: false },
@@ -54,9 +50,6 @@ export function baseAxis() {
 export const SEV_COLOR: Record<string, string> = {
   critical: C.crit, high: C.high, medium: C.med, low: C.low, none: "#71717a",
 };
-
-/** ECharts 序列色板：pastel-ink 族 + acc，浅色底可读 */
-export const SERIES = [C.acc, C.peach, C.lav, C.mint, C.sky, C.butter, C.rose, C.low];
 
 /** 页面惯用的聚合基座 */
 export const echartsBase = {
@@ -78,15 +71,4 @@ export const echartsBase = {
   },
 };
 
-/** 面积图渐变色（hex → 半透明） */
-export function areaGrad(hex: string, a = 0.14) {
-  return {
-    color: {
-      type: "linear", x: 0, y: 0, x2: 0, y2: 1,
-      colorStops: [
-        { offset: 0, color: hex + "40" },
-        { offset: 1, color: hex + (a > 10 ? "08" : "00") },
-      ],
-    },
-  };
-}
+

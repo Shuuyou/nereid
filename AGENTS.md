@@ -66,7 +66,10 @@
 - enrichment/*.py 曾被覆写导致 extract_cwes/item.lang/ai_layers 旧版回归，修复后需 grep 验证
 
 ## 新增契约（2026-10-18 SOTA 对齐后）
-- **LangGraph durable execution**：pipeline_graph 挂 AsyncPostgresSaver checkpointer，run 与 thread_id=`pipeline-{run_id}` 绑定；PG 挂降级 MemorySaver；`resume_pipeline(run_id, sid)` 断点续跑
+- **LangGraph durable execution**：pipeline_graph 挂 AsyncPostgresSaver checkpointer，run 与 thread_id=`pipeline-{run_id}` 绑定；PG 挂降级 MemorySaver；`resume_pipeline(run_id, sid)` 断点续跑；演示入口 `POST /api/pipeline/resume/{run_id}`（先手动 kill 运行中流水线再调，LangGraph 从 PG checkpoint 续跑）
+- **QA 评测口径（评委可核）**：reports/eval_q.json 已入仓——整体 97.9% / 多跳 95.8% / 引用 83.3% / 推理链 100%（12 题 deep live）；reports/eval_enrichment.json——字段准确率 99.2% / 召回 100%（n=30 分层抽样）。文档/PPT 数字必须与这两份 JSON 一致，禁写 100%
+- **前端中文映射层**：`frontend/lib/labels.ts` 集中所有枚举→中文（item_type/review_status/enrich 维度/源类型/CVSS source/SSVC/exploit_maturity/poc_credibility/report_type/tag 类型/运行状态）。新增用户可见枚举必须走 zh()，禁裸渲染后端 enum
+- **用户可见性红线**：后台内部词（Redis key、API 路径、FIG_*、worker 名、snake_case step 名、raw traceback）不得出现在 UI；错误信息截断+详情进 title
 - **优先级两段式（Qualys QVS 式）**：ingest._priority —— KEV/weaponized/SSVC-active 直接置顶桶 [6,8]；其余 65%CVSS+35%(EPSS+exploit成熟度+AI相关)
 - **EPSS 官方口径**：refresh_epss_all 走每日 CSV 全量（epss_scores-current.csv.gz，1 请求覆盖全库，~39万 CVE）；CSV 挂回退批量 API；extra.epss_as_of/epss_model_version/epss_fetched_at 记录快照
 - **CVSS 层级兜底**：cvelistV5 本地克隆解析 CNA + **ADP 容器**（CISA Vulnrichment 给无评分 CVE 补 CVSS/CWE）；NVD metrics 按 type=="Primary" 优先；extra.cvss_source 记录分值出处（cna|adp:xxx|nvd）

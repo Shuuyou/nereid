@@ -26,7 +26,7 @@ function QueueRow({ it, kind, onConfirm, onReject }: {
   onConfirm?: (id: string) => void; onReject?: (id: string) => void;
 }) {
   const title = String(it.title_zh || it.title || "").replace(/^\s*[【\[]?KEV[】\]]\s*/i, "");
-  const score = kind === "review" && it.confidence != null ? `置信 ${(it.confidence * 100).toFixed(0)}%`
+  const score = kind === "review" && it.confidence != null ? `置信度 ${(it.confidence * 100).toFixed(0)}%`
     : it.epss_score != null ? `EPSS ${(it.epss_score * 100).toFixed(1)}%` : null;
   return (
     <div className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface">
@@ -46,11 +46,11 @@ function QueueRow({ it, kind, onConfirm, onReject }: {
       {kind === "review" ? (
         <span className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button title="确认" onClick={() => onConfirm?.(it.id)}
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-ok transition-colors hover:bg-mint">
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-ok transition-colors hover:bg-ok/10">
             <CheckCheck size={13} strokeWidth={2} />
           </button>
           <button title="回炉重富化" onClick={() => onReject?.(it.id)}
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-warn transition-colors hover:bg-butter">
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-warn transition-colors hover:bg-warn/10">
             <RotateCcw size={13} strokeWidth={2} />
           </button>
         </span>
@@ -77,7 +77,7 @@ export default function DutyDesk() {
   const [err, setErr] = useState("");
 
   const loadReview = () =>
-    fetch("/api/review?status=needs_review&size=6").then(r => r.ok ? r.json() : null)
+    fetch("/api/review?status=needs_review&limit=6").then(r => r.ok ? r.json() : null)
       .then(rv => { setReview(rv?.items || []); setReviewTotal(rv?.count ?? rv?.items?.length ?? 0); })
       .catch(() => {});
 
@@ -95,7 +95,11 @@ export default function DutyDesk() {
     loadReview();
     const name = typeof window !== "undefined" ? localStorage.getItem("foryou_name") : "";
     if (name) getDigest(name, 7).then(setDigest).catch(() => {});
-    const off = subscribeFeed((item) => { setLiveOn(true); setLive((l) => [item, ...l].slice(0, 6)); });
+    const off = subscribeFeed((item) => {
+      setLiveOn(true);
+      // 到达时刻入栈——避免后续 state 变化重渲染把所有行时间刷成当下
+      setLive((l) => [{ ...item, _arrive: Date.now() }, ...l].slice(0, 6));
+    });
     return off;
   }, []);
 
@@ -155,13 +159,13 @@ export default function DutyDesk() {
               全部队列 →
             </Link>
           </div>
-          <div className="tile tile-white !p-0 overflow-hidden">
+          <div className="overflow-hidden rounded-nest border border-line bg-paper">
             {/* 待复核组 */}
             <div className="flex items-center gap-2.5 border-b border-line px-3 py-2">
               <span className="text-[12px] font-medium text-fg">待复核</span>
-              <span className="ml-auto mono text-[12px] text-faint">{reviewTotal}</span>
+              <span className="ml-auto text-[12px] text-faint">{reviewTotal} 条</span>
             </div>
-            {review.length === 0 && <div className="px-3 py-4 text-[12px] text-faint">复核队列已清空 ✓</div>}
+            {review.length === 0 && <div className="px-3 py-4 text-[12px] text-faint">复核队列已清空</div>}
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {review.slice(0, 5).map((it) => (
                 <QueueRow key={it.id} it={it} kind="review"
@@ -172,7 +176,7 @@ export default function DutyDesk() {
             {/* 高优组 */}
             <div className="flex items-center gap-2.5 border-y border-line px-3 py-2">
               <span className="text-[12px] font-medium text-fg">高优先级</span>
-              <span className="ml-auto mono text-[12px] text-faint">{queue.length}</span>
+              <span className="ml-auto text-[12px] text-faint">{Math.min(queue.length, 5)} 条</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {queue.slice(0, 5).map((it) => <QueueRow key={it.id} it={it} kind="pri" />)}
@@ -180,7 +184,7 @@ export default function DutyDesk() {
             {/* KEV 组 */}
             <div className="flex items-center gap-2.5 px-3 py-2">
               <span className="text-[12px] font-medium text-fg">新 KEV</span>
-              <span className="ml-auto mono text-[12px] text-faint">{kev.length}</span>
+              <span className="ml-auto text-[12px] text-faint">{Math.min(kev.length, 4)} 条</span>
             </div>
             <div className="divide-y divide-[rgba(33,31,38,0.05)]">
               {kev.slice(0, 4).map((it) => <QueueRow key={it.id} it={it} kind="kev" />)}
@@ -243,7 +247,7 @@ export default function DutyDesk() {
                   <Link key={it.id + it.first_seen_at} href={`/items/${it.id}`}
                     className="rise group flex items-baseline gap-2 px-3 py-2 transition-colors hover:bg-surface">
                     <span className="tnum shrink-0 font-mono text-[11px] text-faint">
-                      {new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(it._arrive || Date.now()).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <span className="truncate text-[12px] text-dim group-hover:text-fg">
                       {it.title_zh || it.title}

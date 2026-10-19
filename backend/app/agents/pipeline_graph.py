@@ -28,7 +28,7 @@ async def node_collect(state: PipelineState) -> PipelineState:
     stats = await run_source(state["source_id"]) or {}
     new_ids = stats.get("item_ids") or []
     return {**state, "item_ids": new_ids,
-            "stats": {**state.get("stats", {}), "collected": stats.get("new", 0)}}
+            "stats": {**state.get("stats", {}), "collected": stats.get("new_items", 0)}}
 
 
 async def node_enrich(state: PipelineState) -> PipelineState:

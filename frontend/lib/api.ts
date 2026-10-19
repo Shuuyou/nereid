@@ -58,6 +58,7 @@ export async function* streamChat(question: string, sessionId: string | null, de
     const blocks = buf.split(/\r?\n\r?\n/);
     buf = blocks.pop() || "";
     for (const block of blocks) {
+      evType = "message"; // 每个 block 独立事件类型，无 event: 行不继承上一个
       for (const line of block.split(/\r?\n/)) {
         if (line.startsWith("event:")) evType = line.slice(6).trim();
         else if (line.startsWith("data:")) {

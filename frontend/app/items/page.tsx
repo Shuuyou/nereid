@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { Empty, SpecRow, SpecDot, Sev } from "@/components/ui";
+import { Empty, Sev } from "@/components/ui";
+import { zh, ITEM_TYPE } from "@/lib/labels";
 import { PeekDrawer } from "@/components/PeekDrawer";
 
 const LAYERS = ["", "L1", "L2", "L3", "L4", "L5", "L6"];
@@ -16,8 +17,8 @@ const SEV: [string, string][] = [
   ["", "严重级"], ["critical", "严重"], ["high", "高危"], ["medium", "中危"], ["low", "低危"],
 ];
 const TYPES: [string, string][] = [
-  ["", "类型"], ["vuln", "vuln"], ["advisory", "advisory"], ["exploit", "exploit"],
-  ["article", "article"], ["paper", "paper"], ["incident", "incident"], ["policy", "policy"],
+  ["", "类型"], ["vuln", "漏洞"], ["advisory", "通报"], ["exploit", "利用"],
+  ["article", "文章"], ["paper", "论文"], ["incident", "事件"], ["policy", "政策"],
 ];
 const SORTS: [string, string][] = [
   ["priority", "优先级"], ["published", "披露时间"], ["seen", "入库时间"],
@@ -25,7 +26,7 @@ const SORTS: [string, string][] = [
 const PAGE_SIZE = 20;
 
 type Filters = {
-  q: string; layer: string; severity: string; item_type: string;
+  q: string; layer: string; severity: string; item_type: string; cve: string;
   kev: boolean; poc: boolean; ai_only: boolean; page: number; sort: string;
 };
 
@@ -35,6 +36,7 @@ function filtersFromParams(sp: URLSearchParams): Filters {
     layer: sp.get("layer") || "",
     severity: sp.get("severity") || "",
     item_type: sp.get("item_type") || "",
+    cve: sp.get("cve") || "",
     kev: sp.get("kev") === "1",
     poc: sp.get("poc") === "1",
     ai_only: sp.get("ai_only") !== "0",
@@ -49,6 +51,7 @@ function paramsFromFilters(f: Filters): URLSearchParams {
   if (f.layer) p.set("layer", f.layer);
   if (f.severity) p.set("severity", f.severity);
   if (f.item_type) p.set("item_type", f.item_type);
+  if (f.cve) p.set("cve", f.cve);
   if (f.kev) p.set("kev", "1");
   if (f.poc) p.set("poc", "1");
   if (!f.ai_only) p.set("ai_only", "0");
@@ -106,24 +109,20 @@ function ItemsInner() {
   const range = total === 0 ? "0" : `${(f.page - 1) * PAGE_SIZE + 1}–${Math.min(f.page * PAGE_SIZE, total)}`;
   const clearFilters = () => {
     setQ("");
-    setF({ q: "", layer: "", severity: "", item_type: "", kev: false, poc: false, ai_only: true, page: 1, sort: "priority" });
+    setF({ q: "", layer: "", severity: "", item_type: "", cve: "", kev: false, poc: false, ai_only: true, page: 1, sort: "priority" });
   };
 
   return (
     <div>
-      <SpecRow>
-        <span>FIG_02</span><SpecDot />
-        <span>INTEL LIBRARY</span><SpecDot />
-        <span>{total.toLocaleString()} ITEMS</span>
-      </SpecRow>
+      <div className="text-[12px] text-faint">共 {total.toLocaleString()} 条情报</div>
 
       {/* 查询条：全宽 mono（Shodan/Elastic 式） */}
-      <div className="relative mt-4">
+      <div className="relative mt-2">
         <Search size={14} strokeWidth={1.75}
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
         <input
           className="input h-9 w-full !pl-9 font-mono text-[13px]"
-          placeholder="筛选: CVE-ID / 关键词 / 类型…"
+          placeholder="筛选：CVE-ID / 关键词 / 类型…"
           value={q} onChange={(e) => setQ(e.target.value)}
           spellCheck={false}
         />
@@ -154,13 +153,23 @@ function ItemsInner() {
           </button>
         ))}
         <div className="ml-auto flex items-center gap-2">
-          <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-faint">sort</span>
+          <span className="text-[11px] text-faint">排序</span>
           <select className="input w-auto" value={f.sort}
             onChange={(e) => setF({ ...f, sort: e.target.value, page: 1 })}>
             {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
       </div>
+
+      {/* CVE 精确过滤激活态（QA 页 CVE 实体 chip 跳入路径 /items?cve=X） */}
+      {f.cve && (
+        <div className="mt-2">
+          <button onClick={() => setF({ ...f, cve: "", page: 1 })}
+            className="badge z-act cursor-pointer" title="点击清除 CVE 过滤">
+            CVE: <span className="mono">{f.cve}</span> ×
+          </button>
+        </div>
+      )}
 
       {/* 高密度数据表（行=stretched-link 真锚，支持 Cmd+click 新标签） */}
       <div className="mt-3 overflow-x-auto">
@@ -220,12 +229,12 @@ function ItemsInner() {
                     ? <>{it.cve_ids[0]}{it.cve_ids.length > 1 && <span className="text-faint"> +{it.cve_ids.length - 1}</span>}</>
                     : "—"}
                 </td>
-                <td><span className="badge mono">{it.item_type || "—"}</span></td>
+                <td><span className="badge">{zh(ITEM_TYPE, it.item_type)}</span></td>
                 <td className="r num text-dim">
                   {it.epss_score != null ? `${(it.epss_score * 100).toFixed(1)}%` : "—"}
                 </td>
                 <td className="truncate text-dim">
-                  {(it.source_names || []).slice(0, 2).join(" · ")}
+                  {(it.source_names || []).slice(0, 2).join(" / ")}
                   {(it.source_names || []).length > 2 && (
                     <span className="text-faint"> +{it.source_names.length - 2}</span>
                   )}
@@ -238,18 +247,18 @@ function ItemsInner() {
         </table>
       </div>
 
-      {/* 分页：mono 小字 */}
-      <div className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.06em] text-faint">
-        <span>{range} / {total.toLocaleString()}</span>
+      {/* 分页 */}
+      <div className="mt-3 flex items-center justify-between text-[12px] text-faint">
+        <span>第 {range} 条，共 {total.toLocaleString()} 条</span>
         <div className="flex items-center gap-1">
           <button className="btn btn-ghost btn-sm" disabled={f.page <= 1}
             onClick={() => setF({ ...f, page: f.page - 1 })}>
-            <ChevronLeft size={12} />Prev
+            <ChevronLeft size={12} />上一页
           </button>
-          <span className="px-2 tnum">P{f.page} / {pages}</span>
+          <span className="px-2 tnum">第 {f.page} / {pages} 页</span>
           <button className="btn btn-ghost btn-sm" disabled={f.page >= pages}
             onClick={() => setF({ ...f, page: f.page + 1 })}>
-            Next<ChevronRight size={12} />
+            下一页<ChevronRight size={12} />
           </button>
         </div>
       </div>

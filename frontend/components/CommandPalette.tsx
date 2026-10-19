@@ -27,7 +27,7 @@ const HELP: [string, string][] = [
   ["?", "显示本帮助"],
   ["j / k", "复核抽屉：上一条 / 下一条"],
   ["c", "复核抽屉：确认入库"],
-  ["r", "复核抽屉：驳回重富化"],
+  ["r", "复核抽屉：回炉重富化"],
   ["e", "复核抽屉：重新富化"],
 ];
 
@@ -40,7 +40,7 @@ export function PaletteButton() {
       title="全局搜索 (⌘K)">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <span>搜索</span>
-      <kbd className="rounded-[3px] border border-line bg-surface px-1 font-mono text-[9px]">⌘K</kbd>
+      <kbd className="rounded-[3px] border border-line bg-surface px-1 font-mono text-[10px]">⌘K</kbd>
     </button>
   );
 }
@@ -96,7 +96,7 @@ export function CommandPalette() {
 
   /** > 动作命令表（keys 供英文/拼音模糊匹配） */
   const ACTIONS = useMemo(() => [
-    { keys: ["collect", "run", "all", "caiji"], label: "采集所有源", hint: "POST /api/collect/run-all", icon: Zap,
+    { keys: ["collect", "run", "all", "caiji"], label: "采集所有源", hint: "触发 41 个采集器", icon: Zap,
       run: () => { setOpen(false); api.runAll().then(() => toast("已触发全源采集")).catch((e) => toast(`采集触发失败：${e}`)); } },
     { keys: ["report", "daily", "ribao"], label: "生成日报", hint: "LLM 聚合近 24h · 约 10-20s", icon: FilePlus2,
       run: () => { setOpen(false); api.dailyReport().then(() => { toast("日报生成中，完成后见报告页"); router.push("/reports"); }).catch((e) => toast(`日报生成失败：${e}`)); } },
@@ -104,7 +104,7 @@ export function CommandPalette() {
       run: () => { setOpen(false); router.push("/qa"); } },
     { keys: ["review", "fuhe"], label: "复核队列", hint: "/review", icon: List,
       run: () => { setOpen(false); router.push("/review"); } },
-    { keys: ["health", "zijian"], label: "系统自检", hint: "GET /api/health", icon: HeartPulse,
+    { keys: ["health", "zijian"], label: "系统自检", hint: "后端连通性探测", icon: HeartPulse,
       run: () => { setOpen(false); api.health().then(() => toast("后端服务正常")).catch((e) => toast(`后端不可达：${e}`)); } },
     { keys: ["sources", "source", "shujuyuan"], label: "管理数据源", hint: "/sources", icon: Database,
       run: () => { setOpen(false); router.push("/sources"); } },

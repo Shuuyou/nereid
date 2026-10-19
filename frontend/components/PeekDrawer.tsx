@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Empty, SevPill, Skeleton } from "@/components/ui";
+import { zh, ITEM_TYPE, ENRICH_DIM, cvssSrcZh, EXPLOIT_MATURITY } from "@/lib/labels";
 import { ArrowUpRight, Check, ChevronDown, ChevronUp, RefreshCw, Undo2, X } from "lucide-react";
 
 /** 置信度 → 语义色（高可信 ok / 中 warn / 低 err，不吃品牌色）；复核表与 peek 抽屉共用 */
@@ -142,14 +143,14 @@ export function PeekDrawer({
   /* 评分构成：scorers 跑过才展示，与详情页同序取前 3 */
   const scoreRows = (item && item.enrichment?.scorers
     ? ([
-        item.cvss_v31_score != null && { k: "cvss31", label: "CVSS v3.1", value: item.cvss_v31_score.toFixed(1), basis: ex.cvss_source ? `src ${ex.cvss_source}` : "采集器内联" },
-        item.cvss_v40_score != null && { k: "cvss40", label: "CVSS v4.0", value: item.cvss_v40_score.toFixed(1), basis: "v4.0 metric" },
-        item.epss_score != null && { k: "epss", label: "EPSS", value: `${(item.epss_score * 100).toFixed(2)}%`, basis: item.epss_percentile != null ? `pctl ${(item.epss_percentile * 100).toFixed(0)}%` : "—" },
-        item.is_kev && { k: "kev", label: "CISA KEV", value: <span className="text-err">在列</span>, basis: item.kev_date_added ? `added ${String(item.kev_date_added).slice(0, 10)}` : "—" },
-        ex.ssvc && { k: "ssvc", label: "SSVC", value: ex.ssvc.exploitation || "—", basis: "vulnrichment" },
-        item.exploit_maturity && { k: "maturity", label: "利用成熟度", value: item.exploit_maturity, basis: "kev/ssvc/poc" },
-        item.ai_relevance_score != null && { k: "airel", label: "AI 相关度", value: item.ai_relevance_score.toFixed(2), basis: "≥0.30 计入" },
-        item.priority_score != null && { k: "prio", label: "优先级", value: item.priority_score.toFixed(2), basis: "ingest._priority" },
+        item.cvss_v31_score != null && { k: "cvss31", label: "CVSS v3.1", value: item.cvss_v31_score.toFixed(1), basis: ex.cvss_source ? cvssSrcZh(ex.cvss_source) : "采集器内联" },
+        item.cvss_v40_score != null && { k: "cvss40", label: "CVSS v4.0", value: item.cvss_v40_score.toFixed(1), basis: "v4.0 向量" },
+        item.epss_score != null && { k: "epss", label: "EPSS", value: `${(item.epss_score * 100).toFixed(2)}%`, basis: item.epss_percentile != null ? `超过 ${(item.epss_percentile * 100).toFixed(0)}% CVE` : "—" },
+        item.is_kev && { k: "kev", label: "CISA KEV", value: <span className="text-err">在列</span>, basis: item.kev_date_added ? `列入 ${String(item.kev_date_added).slice(0, 10)}` : "—" },
+        ex.ssvc && { k: "ssvc", label: "SSVC", value: ex.ssvc.exploitation || "—", basis: "CISA 评估" },
+        item.exploit_maturity && { k: "maturity", label: "利用成熟度", value: zh(EXPLOIT_MATURITY, item.exploit_maturity), basis: "KEV/SSVC/PoC" },
+        item.ai_relevance_score != null && { k: "airel", label: "AI 相关度", value: item.ai_relevance_score.toFixed(2), basis: "高于纳入阈值" },
+        item.priority_score != null && { k: "prio", label: "优先级", value: item.priority_score.toFixed(2), basis: "两段式优先级" },
       ].filter(Boolean) as { k: string; label: string; value: React.ReactNode; basis: string }[]).slice(0, 3)
     : []) as { k: string; label: string; value: React.ReactNode; basis: string }[];
 
@@ -206,7 +207,7 @@ export function PeekDrawer({
             <>
               <div className="flex flex-wrap items-center gap-1.5">
                 <SevPill level={item.severity} />
-                {item.item_type && <span className="badge">{item.item_type}</span>}
+                {item.item_type && <span className="badge">{zh(ITEM_TYPE, item.item_type)}</span>}
                 {(item.cve_ids || []).slice(0, 3).map((c: string) => (
                   <span key={c} className="badge mono">{c}</span>
                 ))}
@@ -234,8 +235,8 @@ export function PeekDrawer({
                 {weak.length ? (
                   <div className="flex flex-wrap gap-1">
                     {weak.map((d) => (
-                      <span key={d} className="badge mono">
-                        <span className="dot" style={{ background: "var(--err)" }} />{d}
+                      <span key={d} className="badge">
+                        <span className="dot" style={{ background: "var(--err)" }} />{zh(ENRICH_DIM, d)}
                       </span>
                     ))}
                   </div>
@@ -274,19 +275,19 @@ export function PeekDrawer({
             {!readonly && onAct && (
               <button className="btn btn-sm !border-ok/40 !text-ok hover:!bg-ok/10" title="确认 (C)"
                 disabled={busy} onClick={() => onAct(target, "confirm")}>
-                <Check size={11} strokeWidth={2} />确认<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">c</kbd>
+                <Check size={11} strokeWidth={2} />确认<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[10px] opacity-60">c</kbd>
               </button>
             )}
             {!readonly && onAct && (
               <button className="btn btn-sm !border-err/40 !text-err hover:!bg-err/10" title="回炉 (R)"
                 disabled={busy} onClick={() => onAct(target, "reject")}>
-                <Undo2 size={11} strokeWidth={2} />回炉<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[9px] opacity-60">r</kbd>
+                <Undo2 size={11} strokeWidth={2} />回炉<kbd className="ml-1 rounded-[3px] border border-current/30 px-0.5 font-mono text-[10px] opacity-60">r</kbd>
               </button>
             )}
             {!readonly && onReEnrich && (
               <button className="btn btn-sm btn-ghost" title="重新触发富化 worker (E)"
                 disabled={busy} onClick={() => onReEnrich(target)}>
-                <RefreshCw size={11} strokeWidth={2} />重富化<kbd className="ml-1 rounded-[3px] border border-line px-0.5 font-mono text-[9px] opacity-60">e</kbd>
+                <RefreshCw size={11} strokeWidth={2} />重富化<kbd className="ml-1 rounded-[3px] border border-line px-0.5 font-mono text-[10px] opacity-60">e</kbd>
               </button>
             )}
             <Link href={`/items/${effId}`} className="btn btn-sm btn-ghost ml-auto" title="整页详情">

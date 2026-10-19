@@ -134,7 +134,7 @@ def build(dst):
     s = _slide(prs)
     _head(s, "一张图看懂捞针 · Nereid", "系统总览 · 架构")
     rows = [
-        ("表现层", "Next.js 大屏 / 情报卡 / 图谱探索 / 深度问答 / 为你推荐 / 报告", ACC),
+        ("表现层", "Next.js 值班台工作台 / 情报检索 / 图谱探索 / 深度问答 / 为你推荐 / 报告", ACC),
         ("智能体编排", "LangGraph 三层：Pipeline DAG · QueryAgent(Supervisor-as-Tools) · Analyst(P-E-C)", ACC2),
         ("能力层", "监测 11类41源 · 富化 8worker · Qdrant 混合检索 · Neo4j 图谱", TXT),
         ("底座", "PostgreSQL / Qdrant / Neo4j / Redis · docker-compose · systemd 自愈", DIM),
@@ -144,8 +144,8 @@ def build(dst):
         _card(s, Emu(600000), Emu(y), Emu(10900000), Emu(1050000), name, [desc], c)
         y += 1150000
     tf = _box(s, Emu(600000), Emu(6000000), Emu(11000000), Emu(500000))
-    _add(tf, "45,034 条情报 · 29,134 图谱节点 · 58,471 边 · 全流程无人值守", 14, True, WARN, first=True)
-    _notes(s, "四层结构：表现层六个界面，编排层三种图拓扑，能力层四大模块，底座四存储。数字全部是 2026-10-18 实测快照。")
+    _add(tf, "50,277 条情报 · 52,844 图谱节点 · 84,735 边 · 全流程无人值守", 14, True, WARN, first=True)
+    _notes(s, "四层结构：表现层六个界面，编排层三种图拓扑，能力层四大模块，底座四存储。数字全部是 2026-10-19 实测快照。")
 
     # ---------- P4 监测 ----------
     s = _slide(prs)
@@ -187,8 +187,8 @@ def build(dst):
            "→ 候选合并 → RRF 预排 → 交叉编码重排(真实 top 段) → KG ≤3 跳桥接 → 行内引用生成 → 置信度校准 → SSE 真流式"], ACC)
     _tbl(s, Emu(500000), Emu(3100000), Emu(5600000), Emu(2300000), [
         ("指标", "实测"),
-        ("整体命中率", "100%（12 题自建集 live）"),
-        ("多跳命中率", "100%"),
+        ("整体命中率", "97.9%（12 题自建集 live）"),
+        ("多跳命中率", "95.8%"),
         ("推理链完备率(≥3步)", "100%（每步带 ms 耗时）"),
         ("引用精确率", "83.3%"),
         ("延迟", "快路径 3.2s · 深度 p50 8.9s"),
@@ -208,8 +208,8 @@ def build(dst):
     _card(s, Emu(8100000), Emu(1250000), Emu(3600000), Emu(2900000), "分析链路 · P-E-C",
           ["聚合统计→提纲→逐节→校验", "LLM 不可用时模板兜底", "日报自动产出"], WARN)
     _card(s, Emu(500000), Emu(4400000), Emu(11100000), Emu(1400000), "生产级能力",
-          ["PostgreSQL checkpointer durable execution（7 checkpoint/run，崩溃后同 thread_id 断点续跑）",
-           "HITL 复核队列 confirm/reject 闭环 · handoff 弹跳预算 · worker 只回结论防上下文膨胀"], ACC)
+          ["PostgreSQL checkpointer durable execution（崩溃后 POST /api/pipeline/resume/{run_id} 断点续跑，可现场演示）",
+           "HITL 复核队列 confirm/reject/undo 闭环 · handoff 弹跳预算 · worker 只回结论防上下文膨胀"], ACC)
     _notes(s, "评委如果只看一页请看这页：三套模式对应三类任务，共享 TaskRun+Redis 态——'架构精良且可扩展'的具体含义：加一条新链路=加一张子图。45 秒，本页放慢。")
 
     # ---------- P8 知识底座 ----------
@@ -217,18 +217,18 @@ def build(dst):
     _head(s, "L1–L6 资产分层 × OWASP × ATLAS × 中文政策", "AI 安全知识底座")
     _card(s, Emu(500000), Emu(1250000), Emu(5600000), Emu(2900000), "三维情报立方体",
           ["L1 基础设施/推理 · L2 模型/数据 · L3 应用/智能体", "L4 供应链 · L5 政策治理 · L6 滥用威胁",
-           "OWASP LLM Top10 + ASI Agentic Top10 双标签", "MITRE ATLAS 成熟度三级标注"], ACC)
+           "OWASP LLM Top10 + ASI Agentic Top10 双标签", "ATT&CK/ATLAS 双框架技术映射"], ACC)
     _card(s, Emu(6300000), Emu(1250000), Emu(5300000), Emu(2900000), "别人没有的那一层",
           ["CVE+非CVE 双轨：incident/article/policy 同库同问答", "中文政策源（网信办/TC260/GB）国际平台零覆盖",
            "影子漏洞标注（disputed-but-exploited）", "KG：Item-CVE-CWE-Technique-Product-Vendor"], ACC2)
     _card(s, Emu(500000), Emu(4400000), Emu(11100000), Emu(1100000), "实测",
-          ["AI 相关条目 2,330 条（L1 2078/L2 138/L3 2196/L4 103/L5 25/L6 13）· KG 29,134 节点 58,471 边"], WARN)
+          ["AI 相关条目 2,949 条（L1 2649/L2 145/L3 2659/L4 125/L5 28/L6 14）· KG 52,844 节点 84,735 边"], WARN)
     _notes(s, "回答'为什么是 AI 安全情报系统而不是漏洞库'：EchoLeak 零点击注入、MCP 投毒、GB/T 45654——它们没有 CVSS，但都是安全团队的早报头条。35 秒。")
 
     # ---------- P9 演示 ----------
     s = _slide(prs)
     _head(s, "一个 SOC 的早晨：从告警到日报，无人值守", "场景演示")
-    steps = ["① 大屏态势：41 源实时流入", "② 新 CVE 入库：15min 增量",
+    steps = ["① 值班台态势：41 源实时流入", "② 新 CVE 入库：15min 增量",
              "③ 富化情报卡：8 worker 并发全景", "④ 内网风险问答：多跳推理+引用",
              "⑤ 为你推荐+自动日报：画像驱动"]
     y = 1500000
@@ -245,8 +245,8 @@ def build(dst):
         ("数据源覆盖", "≥7 类", "11 类 / 41 源"),
         ("监测时效", "≤6h", "≤1h（cvelistV5 增量 p50≈30min）"),
         ("富化维度/准确率", "≥5 维 / ≥95%", "8 worker 10+ 维 / 准确率 99.2%·召回 100%"),
-        ("问答质量", "多跳≥85%、≤5s", "多跳 100%·整体 100%·快路径 3.2s·深度 p50 8.9s"),
-        ("数据规模", "—", "45,034 情报 / 29,134 KG 节点 / 58,471 边"),
+        ("问答质量", "多跳≥85%、≤5s", "多跳 95.8%·整体 97.9%·快路径 3.2s·深度 p50 8.9s"),
+        ("数据规模", "—", "50,277 情报 / 52,844 KG 节点 / 84,735 边"),
         ("运维自愈", "—", "systemd 三服务+compose 重启策略，断电自愈"),
     ], font=12)
     tf = _box(s, Emu(700000), Emu(5000000), Emu(10800000), Emu(800000))
@@ -289,7 +289,7 @@ def build(dst):
         ("③ 攻击链自动生成", "确定性模板+LLM 润色+可视化"),
         ("④ PoC 四级可信度", "含 7 类恶意特征静态检测"),
         ("⑤ 层级真值源富化", "CNA+ADP→NVD Primary，cvss_source 溯源"),
-        ("⑥ Durable execution", "PG checkpointer 断点续跑，生产级编排"),
+        ("⑥ Durable execution", "PG checkpointer 断点续跑（resume API 可演示），生产级编排"),
     ]
     x0, y0 = 600000, 1300000
     for i, (t, d) in enumerate(inns):

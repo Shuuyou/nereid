@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, RefreshCw, FileDown, ChevronDown } from "lucide-react";
 import { API, api } from "@/lib/api";
 import { LayerTag, cvssToSev } from "@/components/cards";
-import { Skeleton, SpecRow, SpecDot, Sev, SevPill, St } from "@/components/ui";
+import { Skeleton, Sev, SevPill, St } from "@/components/ui";
+import { zh, ITEM_TYPE, REVIEW_STATUS, ENRICH_STATUS, ENRICH_DIM, CREDIBILITY, cvssSrcZh as zhCvssSrc, CVSS_SRC, SSVC_EXPLOIT, SSVC_BOOL, SSVC_IMPACT, EXPLOIT_MATURITY } from "@/lib/labels";
 import { SEV_COLOR } from "@/lib/theme";
 
 /* ── 左栏属性行：label 小灰 + 值右对齐，hairline 分隔 ── */
@@ -51,6 +52,7 @@ export default function ItemDetail() {
   const [related, setRelated] = useState<any[]>([]);
   const [err, setErr] = useState("");
   const [why, setWhy] = useState<Record<string, boolean>>({});
+  const [reenriching, setReenriching] = useState(false);
 
   useEffect(() => {
     setIt(null); setErr(""); setWhy({});
@@ -89,49 +91,49 @@ export default function ItemDetail() {
     it.cvss_v31_score != null && {
       k: "cvss31", label: "CVSS v3.1",
       value: <span style={{ color: SEV_COLOR[cvssToSev(it.cvss_v31_score)] }}>{it.cvss_v31_score.toFixed(1)}</span>,
-      basis: ex.cvss_source ? `src ${ex.cvss_source}` : "采集器内联",
-      whyText: `向量 ${it.cvss_v31_vector || "—"} · 分值来源 ${ex.cvss_source || "collector"}（CNA/ADP 优先于 NVD Secondary）`,
+      basis: ex.cvss_source ? zh(CVSS_SRC, ex.cvss_source) : "采集器内联",
+      whyText: `向量 ${it.cvss_v31_vector || "—"} · 分值来源 ${zh(CVSS_SRC, ex.cvss_source) || "采集器"}（厂商填报优先于 NVD 二手）`,
     },
     it.cvss_v40_score != null && {
       k: "cvss40", label: "CVSS v4.0",
       value: <span style={{ color: SEV_COLOR[cvssToSev(it.cvss_v40_score)] }}>{it.cvss_v40_score.toFixed(1)}</span>,
-      basis: "v4.0 metric",
+      basis: "v4.0 向量",
       whyText: `向量 ${it.cvss_v40_vector || "—"}`,
     },
     it.epss_score != null && {
       k: "epss", label: "EPSS",
       value: `${(it.epss_score * 100).toFixed(2)}%`,
-      basis: it.epss_percentile != null ? `pctl ${(it.epss_percentile * 100).toFixed(0)}%` : "—",
+      basis: it.epss_percentile != null ? `超过 ${(it.epss_percentile * 100).toFixed(0)}% CVE` : "—",
       whyText: `FIRST 官方 30 天利用概率 · 快照 ${ex.epss_as_of || (ex.epss_fetched_at || "").slice(0, 10) || "—"} · 模型 ${ex.epss_model_version || "—"}`,
     },
     it.is_kev && {
       k: "kev", label: "CISA KEV",
       value: <span className="text-err">在列</span>,
-      basis: it.kev_date_added ? `added ${it.kev_date_added.slice(0, 10)}` : "—",
+      basis: it.kev_date_added ? `列入 ${it.kev_date_added.slice(0, 10)}` : "—",
       whyText: `要求措施：${ex.kev_required_action || "—"}`,
     },
     ssvc && {
       k: "ssvc", label: "SSVC",
-      value: ssvc.exploitation || "—",
-      basis: `auto:${ssvc.automatable || "?"} impact:${ssvc.technical_impact || "?"}`,
+      value: zh(SSVC_EXPLOIT, ssvc.exploitation),
+      basis: `自动化：${zh(SSVC_BOOL, ssvc.automatable)} · 影响：${zh(SSVC_IMPACT, ssvc.technical_impact)}`,
       whyText: `CISA Vulnrichment 决策点 · ${ssvc.ts_parsed ? ssvc.ts_parsed.slice(0, 10) : "无时间戳"}`,
     },
     it.exploit_maturity && {
       k: "maturity", label: "利用成熟度",
-      value: it.exploit_maturity,
-      basis: "kev/ssvc/poc 综合",
-      whyText: { weaponized: "KEV 在列或 SSVC exploitation=active → 武器化", poc: "存在公开 PoC 代码", none: "未见公开利用证据" }[it.exploit_maturity as string] || "综合 KEV/SSVC/PoC 信号判定",
+      value: zh(EXPLOIT_MATURITY, it.exploit_maturity),
+      basis: "KEV / SSVC / PoC 综合",
+      whyText: { weaponized: "KEV 在列或已证实野外利用 → 武器化", poc: "存在公开 PoC 代码", none: "未见公开利用证据" }[it.exploit_maturity as string] || "综合 KEV/SSVC/PoC 信号判定",
     },
     it.ai_relevance_score != null && {
       k: "airel", label: "AI 相关度",
       value: it.ai_relevance_score.toFixed(2),
-      basis: "≥0.30 计入",
+      basis: "高于纳入阈值",
       whyText: "实体/向量规则综合打分，≥0.30 进入 AI 相关情报集合",
     },
     it.priority_score != null && {
       k: "prio", label: "优先级",
       value: it.priority_score.toFixed(2),
-      basis: "ingest._priority",
+      basis: "两段式优先级",
       whyText: "两段式：KEV/weaponized/SSVC-active 直置顶桶 [6,8]；其余 65%·CVSS + 35%·(EPSS+利用成熟度+AI 相关)",
     },
   ].filter(Boolean) as any[];
@@ -156,16 +158,16 @@ export default function ItemDetail() {
 
   return (
     <div>
-      <SpecRow>
-        <span>FIG_03</span><SpecDot />
-        <span><Link href="/items" className="hover:text-accent">情报检索</Link> / <span className="text-dim">详情</span></span><SpecDot />
-        <span className="truncate">{it.id}</span>
+      <div className="flex items-center gap-2 text-[12px] text-faint">
         <button onClick={goBack}
-          className="ml-auto inline-flex items-center gap-1 transition-colors hover:text-accent"
-          title="返回来源页">
-          <ArrowLeft size={11} />返回
+          className="inline-flex items-center gap-1 transition-colors hover:text-accent" title="返回来源页">
+          <ArrowLeft size={12} />返回
         </button>
-      </SpecRow>
+        <span className="text-line2">/</span>
+        <Link href="/items" className="transition-colors hover:text-accent">情报检索</Link>
+        <span className="text-line2">/</span>
+        <span className="text-dim">详情</span>
+      </div>
 
       {/* ── 头区：标题 + 标记 chips + 时间戳 + 操作 ── */}
       <div className="mt-4">
@@ -178,8 +180,10 @@ export default function ItemDetail() {
               download={`nereid-${id.slice(0, 8)}.stix.json`} title="导出 STIX 2.1 Bundle">
               <FileDown size={12} />STIX
             </a>
-            <button className="btn btn-sm" onClick={() => api.enrich(id).then(() => location.reload())}>
-              <RefreshCw size={12} />重新富化
+            <button className="btn btn-sm" disabled={reenriching}
+              onClick={() => { setReenriching(true); api.enrich(id).then(() => setTimeout(() => location.reload(), 4000)).catch(() => setReenriching(false)); }}
+              title={reenriching ? "已触发富化，约几秒后自动刷新" : "重新跑富化管线"}>
+              <RefreshCw size={12} className={reenriching ? "animate-spin" : ""} />{reenriching ? "富化中…" : "重新富化"}
             </button>
             {it.url && (
               <a className="btn btn-ghost btn-sm" href={it.url} target="_blank">
@@ -192,7 +196,7 @@ export default function ItemDetail() {
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <SevPill level={it.severity} />
-          <span className="badge">{it.item_type || "—"}</span>
+          <span className="badge">{zh(ITEM_TYPE, it.item_type)}</span>
           <LayerTag l={it.ai_layer} />
           {(it.cve_ids || []).map((c: string) => <span key={c} className="badge mono">{c}</span>)}
           {it.is_kev && (
@@ -220,11 +224,11 @@ export default function ItemDetail() {
         {/* 左栏：固定属性表 */}
         <aside className="min-w-0">
           <Rail title="属性">
-            <Attr label="Item ID" mono><span title={it.id}>{it.id.length > 22 ? `${it.id.slice(0, 22)}…` : it.id}</span></Attr>
+            <Attr label="条目 ID" mono><span title={it.id}>{it.id.length > 22 ? `${it.id.slice(0, 22)}…` : it.id}</span></Attr>
             <Attr label="置信度" mono>{pct(it.confidence)}</Attr>
             <Attr label="可靠性" mono>{pct(it.reliability_score)}</Attr>
             <Attr label="技术成熟度">{it.technique_maturity}</Attr>
-            <Attr label="复核状态">{it.review_status}</Attr>
+            <Attr label="复核状态">{zh(REVIEW_STATUS, it.review_status)}</Attr>
           </Rail>
 
           {(it.cve_ids?.length || it.ghsa_ids?.length || it.cnvd_ids?.length || it.cnnvd_ids?.length ||
@@ -251,7 +255,7 @@ export default function ItemDetail() {
             <Rail title="影响面">
               <Attr label="厂商">{(it.vendors || []).join("、") || null}</Attr>
               <Attr label="产品">{(it.products || []).join("、") || null}</Attr>
-              {it.packages?.length > 0 && <Attr label="包" mono>{it.packages.length} purl</Attr>}
+              {it.packages?.length > 0 && <Attr label="包" mono>{it.packages.length} 个</Attr>}
             </Rail>
           ) : null}
 
@@ -272,9 +276,9 @@ export default function ItemDetail() {
           {enrichDims.length > 0 && (
             <Rail title="富化维度">
               {enrichDims.map(([k, v]: [string, any]) => (
-                <Attr key={k} label={k}>
+                <Attr key={k} label={zh(ENRICH_DIM, k)}>
                   <St tone={v.status === "ok" ? "ok" : v.status === "error" ? "err" : v.status === "partial" ? "warn" : "dim"}>
-                    {v.status}{v.confidence != null ? ` ${(v.confidence * 100).toFixed(0)}%` : ""}
+                    {zh(ENRICH_STATUS, v.status)}{v.confidence != null ? ` ${(v.confidence * 100).toFixed(0)}%` : ""}
                   </St>
                 </Attr>
               ))}
@@ -285,11 +289,11 @@ export default function ItemDetail() {
         {/* 右主区：.sect 分区（分诊动线：摘要→评分→影响→映射/攻击链→证据附件） */}
         <div className="min-w-0">
           {toc.length > 1 && (
-            <nav className="mb-4 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
+            <nav className="mb-4 text-[11px] text-faint">
               <span className="mr-2">§</span>
               {toc.map(([href, label], i) => (
                 <span key={href}>
-                  {i > 0 && " · "}
+                  {i > 0 && <span className="mx-1.5 text-line2">/</span>}
                   <a href={href} className="transition-colors hover:text-accent">{label}</a>
                 </span>
               ))}
@@ -446,7 +450,7 @@ export default function ItemDetail() {
                 <thead>
                   <tr>
                     <th className="w-[104px]">可信度</th><th>链接</th>
-                    <th className="w-[96px]">平台</th><th className="r w-[64px]">Stars</th><th className="w-[96px]">获取</th>
+                    <th className="w-[96px]">平台</th><th className="r w-[64px]">星标</th><th className="w-[96px]">获取</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -455,7 +459,7 @@ export default function ItemDetail() {
                       <td>
                         <span className="badge">
                           <span className="dot" style={{ background: CRED_DOT[p.credibility] || "#71717a" }} />
-                          {p.credibility}
+                          {zh(CREDIBILITY, p.credibility)}
                         </span>
                       </td>
                       <td>

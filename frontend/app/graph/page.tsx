@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { C, echartsBase } from "@/lib/theme";
-import { SpecRow, SpecDot, Sev, St } from "@/components/ui";
+import { Sev } from "@/components/ui";
 import { Search, Share2, ExternalLink, RotateCcw } from "lucide-react";
 
 const Chart = dynamic(() => import("echarts-for-react"), { ssr: false });
@@ -137,14 +137,12 @@ export default function GraphPage() {
 
   return (
     <div>
-      <SpecRow>
-        <span>FIG_07</span><SpecDot />
-        <span>KNOWLEDGE GRAPH</span><SpecDot />
-        <span>{stats ? `${(stats.nodes ?? 0).toLocaleString()} NODES / ${(stats.edges ?? 0).toLocaleString()} EDGES` : "NEO4J"}</span>
-        <span className="ml-auto flex items-center gap-1.5 normal-case tracking-normal">
-          <St tone={loading ? "live" : "dim"}>{loading ? "LOADING" : `${nodes.length}/${links.length} SHOWN`}</St>
+      <div className="flex items-baseline gap-3 text-[12px] text-faint">
+        {stats && <span>节点 <span className="tnum text-dim">{(stats.nodes ?? 0).toLocaleString()}</span>，边 <span className="tnum text-dim">{(stats.edges ?? 0).toLocaleString()}</span></span>}
+        <span className="ml-auto">
+          {loading ? "加载中…" : nodes.length ? `已显示 ${nodes.length} 节点 / ${links.length} 边` : ""}
         </span>
-      </SpecRow>
+      </div>
 
       <div className="flex gap-4" style={{ height: "calc(100vh - 148px)" }}>
         {/* ── 左栏：检索 + 类型过滤 ── */}
@@ -172,7 +170,7 @@ export default function GraphPage() {
             </div>
           </div>
           <div className="mt-auto text-[12px] leading-relaxed text-faint">
-            拖拽平移，滚轮缩放<br />点击节点查看属性<br />label 仅默认显示关键节点
+            拖拽平移，滚轮缩放<br />点击节点查看属性<br />标签仅默认显示关键节点
           </div>
         </div>
 
@@ -207,16 +205,16 @@ export default function GraphPage() {
               {note && <div className="text-[12px] text-err">{note}</div>}
             </div>
           )}
-          <div className="pointer-events-none absolute left-3 top-2.5 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
-            SUBGRAPH {query} DEPTH 2
+          <div className="pointer-events-none absolute left-3 top-2.5 text-[11px] text-faint">
+            {query ? `子图 · ${query}` : ""}
           </div>
         </div>
 
         {/* ── 右栏：选中实体属性 ── */}
         <div className="panel flex w-[264px] shrink-0 flex-col overflow-hidden">
           <div className="panel-h">
-            <span className="t">ENTITY</span>
-            {sel && <span className="mono text-[11px] text-faint">deg {sel.degree}</span>}
+            <span className="t">实体</span>
+            {sel && <span className="text-[11px] text-faint">度 {sel.degree}</span>}
           </div>
           <div className="flex-1 overflow-y-auto">
             {!sel ? (
@@ -236,7 +234,7 @@ export default function GraphPage() {
                   </div>
                   <div className="mono mt-1 break-all text-[11px] text-faint">{sel.node.id}</div>
                   {sel.node.score != null && (
-                    <div className="num mt-1 text-[12px] text-dim">score {sel.node.score}</div>
+                    <div className="num mt-1 text-[12px] text-dim">相关度 {sel.node.score}</div>
                   )}
                   <div className="mt-2.5 flex flex-col items-start gap-0.5">
                     {sel.node.kind === "Item" && (

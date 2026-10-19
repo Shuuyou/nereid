@@ -43,7 +43,6 @@
   --panel: #ffffff;
   --surface: #f4f2ed;
   --surface-2: #edeae3;
-  --overlay: #ffffff;
   --line: rgba(33, 31, 38, 0.07);
   --line-2: rgba(33, 31, 38, 0.13);
   --text: #211f26;
@@ -58,20 +57,9 @@
   --sev-high: #c77400;
   --sev-med: #a68a1b;
   --sev-low: #2e6fb8;
-  --sev-info: #71717a;
   /* pastel 色块的阴影色相（同族 ink 色 alpha） */
   --sh-card: 60, 50, 90;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-  /* 动效刻度（Kowalski/Vercel 实证值；≤300ms 硬上限） */
-  --dur-instant: 70ms;
-  --dur-fast: 120ms;
-  --dur-normal: 160ms;
-  --dur-medium: 240ms;
-  --dur-slow: 320ms;
-  --dur-exit: 150ms;
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -111,10 +99,6 @@ body {
 }
 .tnum {
   font-variant-numeric: tabular-nums;
-}
-/* 大写缩写/标签的微间距（CVE/CVSS/TLP 透气感） */
-.caps {
-  font-feature-settings: "cpsp";
 }
 
 /* ── 图纸语言：页面级 mono 元数据行（编辑排版感，保留） ── */
@@ -227,12 +211,6 @@ table.dt {
   font-size: 11.5px;
   font-weight: 590;
   white-space: nowrap;
-}
-.sev .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex: none;
 }
 .sev svg { flex: none; }
 .sev-crit { color: var(--sev-crit); }
@@ -352,53 +330,6 @@ select.input {
   padding: 14px;
 }
 
-/* ── bento 色块卡（.tile）：白/淡彩/深，色块即分类 ── */
-.tile {
-  border-radius: 22px;
-  padding: 20px 22px;
-  box-shadow:
-    0 1px 2px rgba(var(--sh-card), 0.05),
-    0 8px 24px -6px rgba(var(--sh-card), 0.1);
-  position: relative;
-}
-.tile-white { background: var(--panel); box-shadow: 0 0 0 1px rgba(33,31,38,.05), 0 1px 2px rgba(60,50,90,.05), 0 8px 24px -6px rgba(60,50,90,.1); }
-.tile-dark {
-  background: #22212a;
-  color: #eceef0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 12px 32px -8px rgba(0, 0, 0, 0.35);
-}
-.tile-mint   { background: #dcf3ea; --sh-card: 46, 125, 91; }
-.tile-lav    { background: #efe6ff; --sh-card: 107, 79, 160; }
-.tile-peach  { background: #ffe4d6; --sh-card: 180, 89, 58; }
-.tile-sky    { background: #ddeaff; --sh-card: 62, 111, 176; }
-.tile-butter { background: #fff3c9; --sh-card: 143, 107, 31; }
-.tile-rose   { background: #fde1e8; --sh-card: 168, 72, 95; }
-.tile-kicker {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.55;
-  font-feature-settings: "cpsp";
-}
-/* bento 指标卡的大数字 */
-.tile-metric {
-  font-family: var(--font-mono);
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums slashed-zero;
-  line-height: 1;
-}
-.tile-sub { font-size: 11.5px; opacity: 0.72; }
-/* pastel 色块卡上的 label 用 ink 的 alpha 而非灰 token（对比度对） */
-.tile-mint .tile-kicker, .tile-lav .tile-kicker, .tile-peach .tile-kicker,
-.tile-sky .tile-kicker, .tile-butter .tile-kicker, .tile-rose .tile-kicker {
-  color: rgba(33, 31, 38, 0.62); opacity: 1;
-}
-.tile-mint .tile-sub, .tile-lav .tile-sub, .tile-peach .tile-sub,
-.tile-sky .tile-sub, .tile-butter .tile-sub, .tile-rose .tile-sub { opacity: 0.66; }
-
 /* ── 状态点 ── */
 .st {
   display: inline-flex;
@@ -473,10 +404,14 @@ select.input {
   margin: 18px 0 8px;
   letter-spacing: -0.01em;
 }
+.prose-a h1 { font-size: 18px; }
 .prose-a h2 { font-size: 16px; }
 .prose-a h3 { font-size: 14px; }
+.prose-a h4 { font-size: 13px; }
 .prose-a p { margin: 8px 0; color: var(--text-2); }
-.prose-a ul, .prose-a ol { margin: 8px 0 8px 18px; color: var(--text-2); }
+/* preflight 会清掉 marker——LLM 答案的列表必须显式恢复 */
+.prose-a ul { list-style: disc; margin: 8px 0 8px 20px; color: var(--text-2); }
+.prose-a ol { list-style: decimal; margin: 8px 0 8px 20px; color: var(--text-2); }
 .prose-a li { margin: 3px 0; }
 .prose-a code {
   font-family: var(--font-mono);
@@ -540,12 +475,6 @@ select.input {
 .rise {
   animation: rise 200ms ease-out both;
 }
-
-/* ── 行内左色条（Grafana 式 severity rail，用于日志/事件流） ── */
-.row-sev-crit { box-shadow: inset 3px 0 var(--sev-crit); }
-.row-sev-high { box-shadow: inset 3px 0 var(--sev-high); }
-.row-sev-med { box-shadow: inset 3px 0 var(--sev-med); }
-.row-sev-low { box-shadow: inset 3px 0 var(--sev-low); }
 
 /* ── stretched-link：行/卡内一条真 <a>，::after 拉伸覆盖整行 ──
    用法：tr/li 加 .rowlink，标题格内放 <a class="stretched">；

@@ -229,9 +229,13 @@ _STEP_MSG = {
     "route": "规划检索路径…", "kev_facts": "注入 KEV 在野利用事实",
     "tool_call": "Agent 调用工具…", "agent_evidence": "汇总工具证据",
     "retrieve": "混合检索+重排…", "kg_expand": "知识图谱多跳扩展",
-    "context": "组装证据上下文…", "generate": "DeepSeek 生成答案…",
+    "context": "组装证据上下文…", "generate": "生成答案…",
     "fast_path": "快速通道检索…", "fallback_retrieve": "补充检索…",
     "agent_stop": "Agent 完成证据收集", "prepare_error": "流水线降级（部分证据）",
+    "recent_facts": "枚举时间窗内情报…", "agent_error": "Agent 降级，走直接检索…",
+    "time_filter": "时效过滤候选…", "time_filter_retry": "放宽时间窗重检…",
+    "time_filter_dropped": "窗口无命中，放开时间限制…",
+    "severity_filter": "级别过滤候选…",
 }
 
 

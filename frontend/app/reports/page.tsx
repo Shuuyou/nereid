@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FileText, FilePlus2, Download } from "lucide-react";
 import { api } from "@/lib/api";
-import { SpecRow, SpecDot, PageHeader, Empty, Skeleton } from "@/components/ui";
+import { PageHeader, Empty, Skeleton } from "@/components/ui";
+import { zh, REPORT_TYPE } from "@/lib/labels";
 
 export default function ReportsPage() {
   const [rows, setRows] = useState<any[]>([]);
@@ -37,13 +38,7 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <SpecRow>
-        <span>FIG_08</span><SpecDot />
-        <span>REPORTS</span><SpecDot />
-        <span>{rows.length} GENERATED</span>
-      </SpecRow>
-
-      <PageHeader title="情报报告" desc="LLM 分析师按周期聚合生成（Markdown）"
+      <PageHeader title="情报报告" desc="AI 分析师按周期聚合生成"
         right={
           <button className="btn btn-acc" disabled={generating} onClick={generate}>
             <FilePlus2 size={12} strokeWidth={1.75} />{generating ? "生成中…" : "生成日报"}
@@ -72,7 +67,7 @@ export default function ReportsPage() {
                     </Link>
                   </div>
                 </td>
-                <td><span className="badge mono">{r.report_type}</span></td>
+                <td><span className="badge">{zh(REPORT_TYPE, r.report_type)}</span></td>
                 <td className="r num text-dim">{r.stats?.total ?? r.stats?.items ?? "—"}</td>
                 <td className="r">
                   <div className="z-act flex justify-end gap-1.5">

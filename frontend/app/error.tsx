@@ -6,8 +6,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="panel w-full max-w-md">
         <div className="panel-h">
-          <span className="t">RUNTIME ERROR</span>
-          <span className="st st-err"><span className="dot" />FAULT</span>
+          <span className="t">运行错误</span>
         </div>
         <div className="panel-b flex flex-col items-center gap-3 py-6 text-center">
           <TriangleAlert size={26} strokeWidth={1.5} className="text-err" />
