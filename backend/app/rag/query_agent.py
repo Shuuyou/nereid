@@ -815,7 +815,7 @@ async def stream_answer(question: str, session_id: str | None = None,
         ans = "（置信度不足，无法给出可靠答案）\n\n" + ans
     _observe_qa(trace, time.time() - t0)
     res = {"answer": ans, "confidence": conf, "abstain": abstain,
-           "followups": _rule_followups(q, cites), "citations": cites[:12], "trace": trace,
+           "followups": _rule_followups(question, cites), "citations": cites[:12], "trace": trace,
            "latency_ms": int((time.time() - t0) * 1000)}
     yield {"type": "done", "data": res}
 
